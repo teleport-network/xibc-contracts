@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message RemoteContractCall {
+    string srcChain = 1;
+    string destChain = 2;
+    string sender = 3;
+    string contractAddress = 4;
+    bytes data = 5;
+}
