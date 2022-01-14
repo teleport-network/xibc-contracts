@@ -8,6 +8,9 @@ const CLIENT_MANAGER_ADDRES = process.env.CLIENT_MANAGER_ADDRES
 
 task("deployTendermint", "Deploy Tendermint Client")
     .setAction(async (taskArgs, hre) => {
+        const HeaderCodec = await hre.ethers.getContractFactory('HeaderCodec')
+        const headerCodec = await HeaderCodec.deploy()
+        await headerCodec.deployed()
         const tendermintFactory = await hre.ethers.getContractFactory(
             'Tendermint',
             {
@@ -15,6 +18,7 @@ task("deployTendermint", "Deploy Tendermint Client")
                     ClientStateCodec: String(CLIENT_STATE_CODEC_ADDRES),
                     ConsensusStateCodec: String(CONSENSUS_STATE_CODEC_ADDRES),
                     Verifier: String(VERIFIER_ADDRES),
+                    HeaderCodec: String(headerCodec.address),
                 }
             },
         )
