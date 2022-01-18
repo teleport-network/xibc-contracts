@@ -70,7 +70,7 @@ yarn hardhat createClientFromFile  --chain teleport --client $TENDERMINT_CLIENT 
 Deploy Token
 
 ```bash
-yarn hardhat deployToken  --network  $NETWORK_NAME
+yarn hardhat deployToken  --name $TokenName --symbol $TokenSymbol --network  $NETWORK_NAME
 ```
 
 Register relayer

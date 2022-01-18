@@ -33,7 +33,7 @@ module.exports = {
             chainId: 9000,
             gas: 4100000,
             accounts: [
-                "AD51805F0944FA719F27CF92F9CECAE1A0A7E5DE495C274B450433BB3C62B48B",
+                "143B8C26CE93CFD6D7C15E028F24D8B511F7179CE2C5BD0C9DF9DF8CF6E144BE",
             ],
         },
         rinkeby: {
@@ -44,11 +44,11 @@ module.exports = {
             accounts: ['6995eddbc393d46b4bad576d1de73f5345782af4d003739176807ac3cbe969f6'],
         },
         bsctest: {
-            url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-            gasPrice: 1500000000,
+            url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+            gasPrice: 10000000000,
             chainId: 97,
             gas: 4100000,
-            accounts: ['380896e1b43b6c40e3b8c7ff72f827efd141049439e031d3c81ebd573e9f5a01'],
+            accounts: ['FB0536CF27B7F16EAB7F8BBD1771980E83ECE69F50BE30A7161D7E643645958D'],
         },
         ropsten: {
             url: 'https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
