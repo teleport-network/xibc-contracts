@@ -1,10 +1,10 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 
-const CLIENT_STATE_CODEC_ADDRES = process.env.CLIENT_STATE_CODEC_ADDRES
-const CONSENSUS_STATE_CODEC_ADDRES = process.env.CONSENSUS_STATE_CODEC_ADDRES
-const VERIFIER_ADDRES = process.env.VERIFIER_ADDRES
-const CLIENT_MANAGER_ADDRES = process.env.CLIENT_MANAGER_ADDRES
+const CLIENT_STATE_CODEC_ADDRESS = process.env.CLIENT_STATE_CODEC_ADDRESS
+const CONSENSUS_STATE_CODEC_ADDRESS = process.env.CONSENSUS_STATE_CODEC_ADDRESS
+const VERIFIER_ADDRESS = process.env.VERIFIER_ADDRESS
+const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 
 task("deployTendermint", "Deploy Tendermint Client")
     .setAction(async (taskArgs, hre) => {
@@ -12,16 +12,16 @@ task("deployTendermint", "Deploy Tendermint Client")
             'Tendermint',
             {
                 libraries: {
-                    ClientStateCodec: String(CLIENT_STATE_CODEC_ADDRES),
-                    ConsensusStateCodec: String(CONSENSUS_STATE_CODEC_ADDRES),
-                    Verifier: String(VERIFIER_ADDRES),
+                    ClientStateCodec: String(CLIENT_STATE_CODEC_ADDRESS),
+                    ConsensusStateCodec: String(CONSENSUS_STATE_CODEC_ADDRESS),
+                    Verifier: String(VERIFIER_ADDRESS),
                 }
             },
         )
 
         const tendermint = await hre.upgrades.deployProxy(
             tendermintFactory,
-            [String(CLIENT_MANAGER_ADDRES)],
+            [String(CLIENT_MANAGER_ADDRESS)],
             { "unsafeAllowLinkedLibraries": true }
         )
         await tendermint.deployed()

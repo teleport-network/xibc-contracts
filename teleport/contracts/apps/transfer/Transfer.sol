@@ -23,14 +23,14 @@ contract Transfer is ITransfer {
     address public constant multiCallAddress =
         address(0x0000000000000000000000000000000010000005);
 
-    // Token come in
-    address[] public boundTokens;
-    mapping(address => string[]) public boundTokenSources;
+    // token come in
+    address[] public override boundTokens;
+    mapping(address => string[]) public override boundTokenSources;
     mapping(string => TransferDataTypes.InToken) public bindings; // mapping(token/origin_chain => InToken)
-    mapping(string => address) public bindingTraces; // mapping(origin_chain/origin_token => token)
+    mapping(string => address) public override bindingTraces; // mapping(origin_chain/origin_token => token)
 
-    // Token out
-    mapping(address => mapping(string => uint256)) public outTokens; // mapping(token, mapping(dst_chain => amount))
+    // token out
+    mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
 
     TransferDataTypes.PacketData public latestPacket;
@@ -72,34 +72,37 @@ contract Transfer is ITransfer {
     }
 
     function bindToken(
-        address tokenAddres,
+        address tokenAddress,
         string calldata oriToken,
         string calldata oriChain
     ) external onlyXIBCModuleAggregate {
-        string memory bindingKey = tokenAddres
+        string memory bindingKey = tokenAddress
             .addressToString()
             .toSlice()
             .concat("/".toSlice())
             .toSlice()
             .concat(oriChain.toSlice());
 
-        require(
-            !bindings[bindingKey].bound,
-            "source chain should not be bound before"
-        );
+        require(tokenAddress != address(0), "invalid ERC20 address");
 
-        boundTokens.push(tokenAddres);
-        boundTokenSources[tokenAddres].push(oriChain);
+        require(!bindings[bindingKey].bound, "trace already bound");
+
+        string memory traceKey = oriChain
+            .toSlice()
+            .concat("/".toSlice())
+            .toSlice()
+            .concat(oriToken.toSlice());
+
+        require(bindingTraces[traceKey] == address(0), "trace already bound");
+
+        boundTokens.push(tokenAddress);
+        boundTokenSources[tokenAddress].push(oriChain);
         bindings[bindingKey] = TransferDataTypes.InToken({
             oriToken: oriToken,
             amount: 0,
             bound: true
         });
-        bindingTraces[
-            oriChain.toSlice().concat("/".toSlice()).toSlice().concat(
-                oriToken.toSlice()
-            )
-        ] = tokenAddres;
+        bindingTraces[traceKey] = tokenAddress;
     }
 
     function sendTransferERC20(
@@ -477,5 +480,25 @@ contract Transfer is ITransfer {
         } catch (bytes memory) {
             return false;
         }
+    }
+
+    // ===========================================================================
+
+    function getLatestPacket()
+        external
+        view
+        override
+        returns (TransferDataTypes.PacketData memory)
+    {
+        return latestPacket;
+    }
+
+    function getBindings(string calldata key)
+        external
+        view
+        override
+        returns (TransferDataTypes.InToken memory)
+    {
+        return bindings[key];
     }
 }

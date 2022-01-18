@@ -1,9 +1,9 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 
-const CLIENT_MANAGER_ADDRES = process.env.CLIENT_MANAGER_ADDRES
-const PACKET_ADDRES = process.env.PACKET_ADDRES
-const ACCESS_MANAGER_ADDRES = process.env.ACCESS_MANAGER_ADDRES
+const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
+const PACKET_ADDRESS = process.env.PACKET_ADDRESS
+const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 
 task("deployTransfer", "Deploy Transfer")
     .setAction(async (taskArgs, hre) => {
@@ -11,9 +11,9 @@ task("deployTransfer", "Deploy Transfer")
         const transfer = await hre.upgrades.deployProxy(
             transferFactory,
             [
-                String(PACKET_ADDRES),
-                String(CLIENT_MANAGER_ADDRES),
-                String(ACCESS_MANAGER_ADDRES),
+                String(PACKET_ADDRESS),
+                String(CLIENT_MANAGER_ADDRESS),
+                String(ACCESS_MANAGER_ADDRESS),
             ],
         )
         await transfer.deployed()

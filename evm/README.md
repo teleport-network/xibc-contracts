@@ -44,14 +44,14 @@ yarn hardhat deployLibraries --network $NETWORK_NAME
 yarn hardhat deployAcessManager --network $NETWORK_NAME --wallet $SUPER_ADMIN
 
 # Deploy ClientManager
-yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth --accm $ACCESS_MANAGER_ADDRES
+yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth --accm $ACCESS_MANAGER_ADDRESS
 
 # Deploy Tendermint Client
 # When multiple light clients need to be created, multiple instances need to be deployed (Tendermint contracts)
 yarn hardhat deployTendermint --network $NETWORK_NAME
 
 # Deploy Routing
-yarn hardhat deployRouting --network $NETWORK_NAME --accm $ACCESS_MANAGER_ADDRES
+yarn hardhat deployRouting --network $NETWORK_NAME --accm $ACCESS_MANAGER_ADDRESS
 
 # Deploy Packet
 yarn hardhat deployPacket --network $NETWORK_NAME
@@ -82,11 +82,11 @@ yarn hardhat registerRelayer  --chain teleport  --relayer  $SUPER_ADMIN   --netw
 Call TransferBase
 
 ```bash
-yarn hardhat transferBase  --transfer $TRANSFER_ADDRES --address 0x0000000000000000000000000000000010000003  --receiver  0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3 --destchain  eth  --amount 20   --network teleport
+yarn hardhat transferBase  --transfer $TRANSFER_ADDRESS --address 0x0000000000000000000000000000000010000003  --receiver  0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3 --destchain  eth  --amount 20   --network teleport
 ```
 
 Call TransferERC20
 
 ```bash
-yarn hardhat transferERC20 --address 0x582e0992cb1EaE9B1AbcBF889EE640626453259F  --transfer $TRANSFER_ADDRES   --receiver 0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3   --amount 10 --destChain destChain  --network ropsten
+yarn hardhat transferERC20 --address 0x582e0992cb1EaE9B1AbcBF889EE640626453259F  --transfer $TRANSFER_ADDRESS   --receiver 0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3   --amount 10 --destChain destChain  --network ropsten
 ```

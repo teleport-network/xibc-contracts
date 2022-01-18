@@ -4,7 +4,8 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "./IModule.sol";
-import "../../contracts/libraries/app/Transfer.sol";
+import "../proto/TokenTransfer.sol";
+import "../libraries/app/Transfer.sol";
 
 interface ITransfer is IModule {
     function sendTransferERC20(
@@ -22,4 +23,23 @@ interface ITransfer is IModule {
     function transferBase(
         TransferDataTypes.BaseTransferDataMulti calldata transferData
     ) external payable returns (bytes memory);
+
+    function boundTokens(uint256) external pure returns (address);
+
+    function bindingTraces(string calldata) external pure returns (address);
+
+    function outTokens(address, string calldata)
+        external
+        pure
+        returns (uint256);
+
+    function getBindings(address)
+        external
+        view
+        returns (TransferDataTypes.InToken memory);
+
+    function getLatestPacket()
+        external
+        view
+        returns (TokenTransfer.Data memory);
 }
