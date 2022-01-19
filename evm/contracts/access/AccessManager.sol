@@ -55,7 +55,7 @@ contract AccessManager is AccessControlUpgradeable {
     }
 
     /**
-     *  @notice dynamically add roles through multi-signature contract addresses
+     *  @notice dynamically add roles through multi-signature contract address
      *  @param role       role
      *  @param account    the address corresponding to the role
      */
@@ -93,7 +93,7 @@ contract AccessManager is AccessControlUpgradeable {
     }
 
     /**
-     *  @notice dynamically add roles through multi-signature contract addresses
+     *  @notice dynamically add roles through multi-signature contract address
      *  @param roles       collection of roles
      *  @param accounts    collection of accounts
      */
@@ -112,7 +112,7 @@ contract AccessManager is AccessControlUpgradeable {
     }
 
     /**
-     *  @notice volume authorization, roles and addresses need to be one-to-one correspondence
+     *  @notice volume authorization, roles and address need to be one-to-one correspondence
      *  @param roles      collection of roles
      *  @param accounts   collection of accounts
      */
@@ -131,7 +131,7 @@ contract AccessManager is AccessControlUpgradeable {
     }
 
     /**
-     *  @notice batch deauthorization, roles and addresses need to be one-to-one correspondence
+     *  @notice batch deauthorization, roles and address need to be one-to-one correspondence
      *  @param roles      collection of roles
      *  @param accounts   collection of accounts
      */

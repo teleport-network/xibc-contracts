@@ -32,7 +32,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     IAccessManager public accessManager;
 
     // token come in
-    address[] public boundTokens;
+    address[] public override boundTokens;
     mapping(address => TransferDataTypes.InToken) public bindings; // mapping(token => InToken)
     mapping(string => address) public  bindingTraces; // mapping(origin_chain/origin_token => token)
 
@@ -546,6 +546,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     function getLatestPacket()
         external
         view
+        override
         returns (TokenTransfer.Data memory)
     {
         return latestPacket;
@@ -554,6 +555,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     function getBindings(address token)
         external
         view
+        override
         returns (TransferDataTypes.InToken memory)
     {
         return bindings[token];

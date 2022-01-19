@@ -3,8 +3,8 @@ import { task } from "hardhat/config"
 import { utils } from "ethers"
 import { readFileSync } from 'fs'
 
-const CLIENT_MANAGER_ADDRES = process.env.CLIENT_MANAGER_ADDRES
-const ACCESS_MANAGER_ADDRES = process.env.ACCESS_MANAGER_ADDRES
+const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
+const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 
 let client = require("../test/proto/compiled.js")
 
@@ -16,22 +16,22 @@ task("deployClientManager", "Deploy Client Manager")
             clientManagerFactory,
             [
                 taskArgs.chain,
-                String(ACCESS_MANAGER_ADDRES),
+                String(ACCESS_MANAGER_ADDRESS),
             ]
         )
         await clientManager.deployed()
         console.log("Client Manager deployed to:", clientManager.address)
-        console.log("export CLIENT_MANAGER_ADDRES=%s", clientManager.address)
+        console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address)
     })
 
 task("upgradeClientManager", "Upgrade Client Manager")
     .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await hre.upgrades.upgradeProxy(String(CLIENT_MANAGER_ADDRES), clientManagerFactory)
+        const clientManager = await hre.upgrades.upgradeProxy(String(CLIENT_MANAGER_ADDRESS), clientManagerFactory)
         await clientManager.deployed()
         console.log("Client Manager upgraded to:", clientManager.address)
-        console.log("export CLIENT_MANAGER_ADDRES=%s", clientManager.address)
+        console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address)
     })
 
 task("createClientFromFile", "Deploy Client Manager")
@@ -45,7 +45,7 @@ task("createClientFromFile", "Deploy Client Manager")
         const consensusStateBytesHex = await readFileSync(taskArgs.consensusstate)
         const consensusStateBytes = Buffer.from(consensusStateBytesHex.toString(), "hex")
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const clientStateObj = JSON.parse(clientStatebytes.toString())
         console.log("clientStateObj:", clientStateObj)
         const consensusStateObj = JSON.parse(consensusStateBytes.toString())
@@ -92,7 +92,7 @@ task("getTssCLient", "Get Tss CLient")
     .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
 
         const result = await clientManager.clients(taskArgs.chain)
 
@@ -107,7 +107,7 @@ task("createTssCLient", "Create Tss CLient")
     .addParam("pubkey", "Tss pubkey")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
 
         let clientStateBz = utils.defaultAbiCoder.encode(
             ["tuple(address,bytes)"],
@@ -130,7 +130,7 @@ task("createClient", "Deploy Client Manager")
     .addParam("consensusstate", "HEX encoding consensus state")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const clientStatebytes = Buffer.from(taskArgs.clientstate, "hex")
         const clientStateObj = JSON.parse(clientStatebytes.toString())
         const clientStateEncode = {
@@ -178,7 +178,7 @@ task("registerRelayer", "Deploy Client Manager")
     .addParam("relayer", "Relayer Address")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.registerRelayer(taskArgs.chain, taskArgs.relayer)
         console.log(result)
     })
@@ -188,7 +188,7 @@ task("updateClient", "Deploy Client Manager")
     .addParam("header", "HEX encoding header")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.updateClient(taskArgs.chain, Buffer.from(taskArgs.header, "hex"))
         console.log(await result.wait())
     })
@@ -198,7 +198,7 @@ task("getRelayers", "Deploy Client Manager")
     .addParam("relayer", "Relayer Address")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.relayers(taskArgs.chain, taskArgs.relayer)
         console.log(result)
     })
@@ -207,7 +207,7 @@ task("lastheight", "Deploy Client Manager")
     .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.getLatestHeight(taskArgs.chain)
         console.log(result)
     })
@@ -216,7 +216,7 @@ task("getClient", "Deploy Client Manager")
     .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.getClient(taskArgs.chain)
         console.log(await result.wait())
     })
@@ -225,7 +225,7 @@ task("getChainName", "Deploy Client Manager")
     .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.getChainName()
         console.log(result)
     })

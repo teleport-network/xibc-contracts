@@ -20,7 +20,7 @@ contract RCC is IRCC {
     address public constant multiCallAddress =
         address(0x0000000000000000000000000000000010000005);
 
-    mapping(bytes32 => bytes) public acks;
+    mapping(bytes32 => bytes) public override acks;
 
     RCCDataTypes.PacketData public latestPacket;
 
@@ -124,5 +124,16 @@ contract RCC is IRCC {
     {
         acks[dataHash] = result;
         emit Ack(dataHash, result);
+    }
+
+    // ===========================================================================
+
+    function getLatestPacket()
+        external
+        view
+        override
+        returns (RCCDataTypes.PacketData memory)
+    {
+        return latestPacket;
     }
 }
