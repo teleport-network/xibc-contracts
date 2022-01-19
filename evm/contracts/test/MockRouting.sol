@@ -3,20 +3,16 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../libraries/utils/Strings.sol";
 import "../interfaces/IRouting.sol";
 import "../interfaces/IModule.sol";
 import "../interfaces/IAccessManager.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
-contract MockRoutingUpgrade is Initializable, OwnableUpgradeable, IRouting {
+
+contract MockRouting is Initializable, OwnableUpgradeable, IRouting {
     using Strings for *;
-
-    struct Rule {
-        string val;
-        bool isValue;
-    }
 
     mapping(string => IModule) public modules;
     // access control contract
@@ -35,7 +31,7 @@ contract MockRoutingUpgrade is Initializable, OwnableUpgradeable, IRouting {
     function setVersion(uint256 _version) public {
         version = _version;
     }
-
+    
     function initialize(address accessManagerContract) public initializer {
         accessManager = IAccessManager(accessManagerContract);
     }

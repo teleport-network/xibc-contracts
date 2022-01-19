@@ -23,6 +23,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     using Bytes for *;
 
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
+    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
 
     string private constant PORT = "FT";
 
@@ -30,16 +31,14 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     IClientManager public clientManager;
     IAccessManager public accessManager;
 
-    // Token come in
-    address[] public boundTokens;
+    // token come in
+    address[] public override boundTokens;
     mapping(address => TransferDataTypes.InToken) public bindings; // mapping(token => InToken)
-    mapping(string => address) public bindingTraces; // mapping(origin_chain/origin_token => token)
+    mapping(string => address) public override bindingTraces; // mapping(origin_chain/origin_token => token)
 
-    // Token out
-    mapping(address => mapping(string => uint256)) public outTokens; // mapping(token, mapping(dst_chain => amount))
+    // token out
+    mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
-
-    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
 
     TokenTransfer.Data public latestPacket;
 
@@ -65,27 +64,30 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     }
 
     function bindToken(
-        address tokenAddres,
+        address tokenAddress,
         string calldata oriToken,
         string calldata oriChain
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
-        require(
-            !bindings[tokenAddres].bound,
-            "source chain should not be bound before"
-        );
+        require(tokenAddress != address(0), "invalid ERC20 address");
 
-        boundTokens.push(tokenAddres);
-        bindings[tokenAddres] = TransferDataTypes.InToken({
+        require(!bindings[tokenAddress].bound, "token already bound");
+
+        string memory key = oriChain
+            .toSlice()
+            .concat("/".toSlice())
+            .toSlice()
+            .concat(oriToken.toSlice());
+
+        require(bindingTraces[key] == address(0), "trace already bound");
+
+        boundTokens.push(tokenAddress);
+        bindings[tokenAddress] = TransferDataTypes.InToken({
             oriChain: oriChain,
             oriToken: oriToken,
             amount: 0,
             bound: true
         });
-        bindingTraces[
-            oriChain.toSlice().concat("/".toSlice()).toSlice().concat(
-                oriToken.toSlice()
-            )
-        ] = tokenAddres;
+        bindingTraces[key] = tokenAddress;
     }
 
     function sendTransferERC20(
@@ -511,5 +513,25 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         } catch (bytes memory) {
             return false;
         }
+    }
+
+    // ===========================================================================
+
+    function getLatestPacket()
+        external
+        view
+        override
+        returns (TokenTransfer.Data memory)
+    {
+        return latestPacket;
+    }
+
+    function getBindings(address token)
+        external
+        view
+        override
+        returns (TransferDataTypes.InToken memory)
+    {
+        return bindings[token];
     }
 }

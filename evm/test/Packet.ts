@@ -1,13 +1,12 @@
-import { ethers, upgrades } from "hardhat"
-import { BigNumber, Signer } from "ethers"
+import { Signer, BigNumber } from "ethers"
 import chai from "chai"
-
-import { Packet, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager } from '../typechain'
-import { sha256 } from "ethers/lib/utils"
-
-let client = require("./proto/compiled.js")
+import { MockTransfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { sha256, keccak256 } from "ethers/lib/utils"
 
 const { expect } = chai
+const { web3, ethers, upgrades } = require("hardhat")
+
+let client = require("./proto/compiled.js")
 
 describe('Packet', () => {
     let routing: Routing
@@ -17,9 +16,10 @@ describe('Packet', () => {
     let accessManager: AccessManager
     let accounts: Signer[]
     let packet: Packet
+    let erc20: ERC20
     const srcChainName = "srcChain"
     const destChainName = "destChain"
-    const relayChainName = "relayChain"
+    const relayChainName = ""
 
     before('deploy Packet', async () => {
         accounts = await ethers.getSigners()
@@ -29,24 +29,35 @@ describe('Packet', () => {
         await deployRouting()
         await deployPacket()
         await deployTransfer()
+        await deployToken()
     })
 
     it("send transfer ERC20 packet and receive ack", async () => {
-        let dataByte = Buffer.from("testdata", "utf-8")
+
         let transferData = {
-            tokenAddress: "0x0000000000000000000000000000000000000000",
-            receiver: (await accounts[3].getAddress()).toString(),
+            tokenAddress: erc20.address.toLocaleLowerCase(),
+            receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
             amount: 1,
             destChain: destChainName,
             relayChain: relayChainName,
         }
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
+            srcChain: srcChainName,
+            destChain: transferData.destChain,
+            sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
+            receiver: transferData.receiver,
+            amount: amount,
+            token: transferData.tokenAddress,
+            oriToken: null
+        }
+        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
         await transfer.sendTransferERC20(transferData)
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
-        expect(commit).to.equal(sha256(sha256(dataByte)))
-
+        expect(commit).to.equal(sha256(sha256(packetDataBz)))
         let sequence: BigNumber = BigNumber.from(1)
         let pkt = {
             sequence: sequence,
@@ -54,7 +65,7 @@ describe('Packet', () => {
             destChain: destChainName,
             relayChain: relayChainName,
             ports: ["FT"],
-            dataList: [dataByte],
+            dataList: [packetDataBz],
         }
         let ackByte = await transfer.NewAcknowledgement(true, "")
         let proof = Buffer.from("proof", "utf-8")
@@ -68,18 +79,28 @@ describe('Packet', () => {
     })
 
     it("send transfer Base packet and receive ack", async () => {
-        let dataByte = Buffer.from("testdata", "utf-8")
         let transferData = {
             receiver: "receiver",
             destChain: destChainName,
             relayChain: relayChainName,
         }
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
+            srcChain: srcChainName,
+            destChain: transferData.destChain,
+            sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
+            receiver: transferData.receiver,
+            amount: amount,
+            token: "0x0000000000000000000000000000000000000000",
+            oriToken: null
+        }
+        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
         await transfer.sendTransferBase(transferData, { value: 1 })
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(3)
-        expect(commit).to.equal(sha256(sha256(dataByte)))
+        expect(commit).to.equal(sha256(sha256(packetDataBz)))
         let sequence: BigNumber = BigNumber.from(2)
         let pkt = {
             sequence: sequence,
@@ -87,7 +108,7 @@ describe('Packet', () => {
             destChain: destChainName,
             relayChain: relayChainName,
             ports: ["FT"],
-            dataList: [dataByte],
+            dataList: [packetDataBz],
         }
         let ackByte = await transfer.NewAcknowledgement(true, "")
         let proof = Buffer.from("proof", "utf-8")
@@ -101,7 +122,17 @@ describe('Packet', () => {
     })
 
     it("receive packet and write ack", async () => {
-        let dataByte = Buffer.from("testdata", "utf-8")
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
+            srcChain: destChainName,
+            destChain: srcChainName,
+            sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
+            receiver: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
+            amount: amount,
+            token: "",
+            oriToken: "0x0000000000000000000000000000000000000000"
+        }
+        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
         let ackByte = await transfer.NewAcknowledgement(true, "")
         let proof = Buffer.from("proof", "utf-8")
         let height = {
@@ -115,20 +146,20 @@ describe('Packet', () => {
             destChain: srcChainName,
             relayChain: relayChainName,
             ports: ["FT"],
-            dataList: [dataByte],
+            dataList: [packetDataBz],
         }
         await packet.recvPacket(pkt, proof, height)
         let ackPath = "acks/" + destChainName + "/" + srcChainName + "/sequences/" + 1
         let receiptPath = "receipts/" + destChainName + "/" + srcChainName + "/sequences/" + 1
-        let macAckSeqPath = "maxAckSeq/" + destChainName + "/" + srcChainName
+        let maxAckSeqPath = "maxAckSeq/" + destChainName + "/" + srcChainName
         let ackCommit = await packet.commitments(Buffer.from(ackPath, "utf-8"))
         expect(ackCommit).to.equal(sha256(ackByte))
         expect(await packet.receipts(Buffer.from(receiptPath, "utf-8"))).to.equal(true)
-        expect(await packet.sequences(Buffer.from(macAckSeqPath, "utf-8"))).to.equal(1)
+        expect(await packet.sequences(Buffer.from(maxAckSeqPath, "utf-8"))).to.equal(1)
     })
 
     it("upgrade packet", async () => {
-        const mockPacketUpgradeFactory = await ethers.getContractFactory("MockPacketUpgrade")
+        const mockPacketUpgradeFactory = await ethers.getContractFactory("MockPacket")
         const upgradedPacket = await upgrades.upgradeProxy(packet.address, mockPacketUpgradeFactory)
         expect(upgradedPacket.address).to.eq(packet.address)
 
@@ -198,12 +229,22 @@ describe('Packet', () => {
 
         let clientStateBuf = client.ClientState.encode(clientState).finish()
         let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
-        await clientManager.createClient(relayChainName, tendermint.address, clientStateBuf, consensusStateBuf)
+        await clientManager.createClient(destChainName, tendermint.address, clientStateBuf, consensusStateBuf)
     }
 
     const deployRouting = async () => {
         const rtFactory = await ethers.getContractFactory('Routing', accounts[0])
         routing = await upgrades.deployProxy(rtFactory, [accessManager.address]) as Routing
+    }
+
+    const deployToken = async () => {
+        const tokenFac = await ethers.getContractFactory("testToken")
+        erc20 = await tokenFac.deploy("test", "test")
+        await erc20.deployed()
+
+        erc20.mint(await accounts[0].getAddress(), 1000)
+        erc20.approve(transfer.address, 100000)
+        expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
     }
 
     const deployPacket = async () => {

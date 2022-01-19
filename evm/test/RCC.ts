@@ -1,6 +1,6 @@
 import { BigNumber, Signer } from "ethers"
 import chai from "chai"
-import { RCC, Routing, ClientManager, Tendermint, Transfer, AccessManager, ERC20, MockPacket } from '../typechain'
+import { RCC, Routing, ClientManager, MockTendermint, Transfer, AccessManager, ERC20, MockPacket } from '../typechain'
 import { sha256 } from "ethers/lib/utils"
 
 const { ethers, upgrades } = require("hardhat")
@@ -15,12 +15,11 @@ describe('RCC', () => {
     let transfer: Transfer
     let clientManager: ClientManager
     let routing: Routing
-    let tendermint: Tendermint
+    let tendermint: MockTendermint
     let accessManager: AccessManager
     let erc20: ERC20
-    let chainName = "teleport"
-    const srcChainName = "ethereum"
-    const destChainName = "ethereumdest"
+    const srcChainName = "srcChain"
+    const destChainName = "dstChain"
     const relayChainName = ""
 
     before('deploy RCC', async () => {
@@ -34,7 +33,6 @@ describe('RCC', () => {
         await deployTransfer()
         await deployToken()
         await deployRCC()
-        await initialize()
     })
 
     it("sendRemoteContractCall", async () => {
@@ -42,7 +40,7 @@ describe('RCC', () => {
         let rccData = {
             contractAddress: transfer.address,
             data: dataByte,
-            destChain: chainName,
+            destChain: destChainName,
             relayChain: relayChainName,
         }
         let sourceChain = await clientManager.getChainName();
@@ -58,7 +56,7 @@ describe('RCC', () => {
         await rcc.sendRemoteContractCall(rccData)
         let path = "commitments/" + srcChainName + "/" + rccData.destChain + "/sequences/" + 1
         let commit = await mockPacket.commitments(Buffer.from(path, "utf-8"))
-        let seq = await mockPacket.getNextSequenceSend(srcChainName, chainName)
+        let seq = await mockPacket.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
         expect(commit).to.equal(sha256(sha256(dataBytes)))
     })
@@ -69,8 +67,8 @@ describe('RCC', () => {
         let dataByte = Buffer.from("095ea7b3000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000001", "hex")
         let sourceChain = await clientManager.getChainName();
         let packetData = {
-            srcChain: sourceChain,
-            destChain: chainName,
+            srcChain: destChainName,
+            destChain: sourceChain,
             sender: account.toLowerCase(),
             contractAddress: erc20.address,
             data: dataByte,
@@ -97,7 +95,7 @@ describe('RCC', () => {
 
     const deployMockPacket = async () => {
         const mockPacketFactory = await ethers.getContractFactory(
-            'MockPacketUpgrade',
+            'MockPacket',
             { signer: accounts[0], }
         )
         mockPacket = await upgrades.deployProxy(
@@ -136,7 +134,7 @@ describe('RCC', () => {
 
     const deployClientManager = async () => {
         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-        clientManager = (await upgrades.deployProxy(msrFactory, ["ethereum", accessManager.address])) as ClientManager
+        clientManager = (await upgrades.deployProxy(msrFactory, [srcChainName, accessManager.address])) as ClientManager
     }
 
     const deployToken = async () => {
@@ -174,9 +172,6 @@ describe('RCC', () => {
     }
 
     const deployTendermint = async () => {
-        let originChainName = await clientManager.getChainName()
-        expect(originChainName).to.eq("ethereum")
-
         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
         const clientStateCodec = await ClientStateCodec.deploy()
         await clientStateCodec.deployed()
@@ -185,32 +180,13 @@ describe('RCC', () => {
         const consensusStateCodec = await ConsensusStateCodec.deploy()
         await consensusStateCodec.deployed()
 
-        const HeaderCodec = await ethers.getContractFactory('HeaderCodec')
-        const headerCodec = await HeaderCodec.deploy()
-        await headerCodec.deployed()
-
-        const ProofCodec = await ethers.getContractFactory('ProofCodec')
-        const proofCodec = await ProofCodec.deploy()
-        await proofCodec.deployed()
-
-        const Verifier = await ethers.getContractFactory(
-            'Verifier',
+        const tmFactory = await ethers.getContractFactory(
+            'MockTendermint',
             {
                 signer: accounts[0],
-                libraries: { ProofCodec: proofCodec.address },
-            }
-        )
-        const verifierLib = await Verifier.deploy()
-        await verifierLib.deployed()
-
-        const tmFactory = await ethers.getContractFactory(
-            'Tendermint',
-            {
                 libraries: {
                     ClientStateCodec: clientStateCodec.address,
-                    ConsensusStateCodec: consensusStateCodec.address,
-                    Verifier: verifierLib.address,
-                    HeaderCodec: headerCodec.address,
+                    ConsensusStateCodec: consensusStateCodec.address
                 },
             }
         )
@@ -218,34 +194,39 @@ describe('RCC', () => {
             tmFactory,
             [clientManager.address],
             { "unsafeAllowLinkedLibraries": true }
-        ) as Tendermint
-    }
+        ) as MockTendermint
 
-    const initialize = async () => {
         // create light client
         let clientState = {
-            chainId: "teleport",
+            chainId: destChainName,
             trustLevel: { numerator: 1, denominator: 3 },
-            trustingPeriod: 1000 * 24 * 60 * 60,
+            trustingPeriod: 10 * 24 * 60 * 60,
             unbondingPeriod: 1814400,
             maxClockDrift: 10,
-            latestHeight: { revisionNumber: 1, revisionHeight: 3893 },
-            merklePrefix: { keyPrefix: Buffer.from("xibc"), },
+            latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
+            merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
             timeDelay: 10,
         }
 
         let consensusState = {
-            timestamp: { secs: 1631155726, nanos: 5829 },
+            timestamp: { secs: 1631155726, nanos: 5829, },
             root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
             nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
         }
 
-        await createClient(chainName, tendermint.address, clientState, consensusState)
+        accounts = await ethers.getSigners()
 
-        let teleportClient = await clientManager.clients(chainName)
+        const ProofCodec = await ethers.getContractFactory('ProofCodec')
+        const proofCodec = await ProofCodec.deploy()
+        await proofCodec.deployed()
+
+        let clientStateBuf = client.ClientState.encode(clientState).finish()
+        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
+        await clientManager.createClient(destChainName, tendermint.address, clientStateBuf, consensusStateBuf)
+        let teleportClient = await clientManager.clients(destChainName)
         expect(teleportClient).to.eq(tendermint.address)
 
-        let latestHeight = await clientManager.getLatestHeight(chainName)
+        let latestHeight = await clientManager.getLatestHeight(destChainName)
         expect(latestHeight[0].toNumber()).to.eq(clientState.latestHeight.revisionNumber)
         expect(latestHeight[1].toNumber()).to.eq(clientState.latestHeight.revisionHeight)
 
@@ -262,7 +243,7 @@ describe('RCC', () => {
         expect(expConsensusState.next_validators_hash.slice(2)).to.eq(consensusState.nextValidatorsHash.toString("hex"))
 
         let signer = await accounts[0].getAddress()
-        let ret1 = await clientManager.registerRelayer(chainName, signer)
+        let ret1 = await clientManager.registerRelayer(destChainName, signer)
         expect(ret1.blockNumber).to.greaterThan(0)
     }
 })

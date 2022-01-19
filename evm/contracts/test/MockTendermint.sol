@@ -48,6 +48,15 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
         return clientState.latest_height;
     }
 
+    function getConsensusState(Height.Data memory height)
+        public
+        view
+        returns (ConsensusState.Data memory)
+    {
+        uint128 key = getStorageKey(height);
+        return consensusStates[key];
+    }
+
     /**
      * @notice return the status of the current light client
      */

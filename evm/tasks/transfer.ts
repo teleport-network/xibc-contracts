@@ -1,8 +1,9 @@
 import "@nomiclabs/hardhat-web3"
-import {task, types} from "hardhat/config"
+import { task, types } from "hardhat/config"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
+    .addParam("node","node url")
     .setAction(async (taskArgs, hre) => {
         const provider = new hre.ethers.providers.JsonRpcProvider(taskArgs.node)
 
@@ -55,9 +56,9 @@ task("transferBase", "Sender Base token")
             destChain: taskArgs.destchain,
             relayChain: taskArgs.relaychain,
         }
-        let res = await transfer.sendTransfer(
+        let res = await transfer.sendTransferBase(
             transferdata,
-            {value: hre.ethers.utils.parseEther(taskArgs.amount)}
+            { value: hre.ethers.utils.parseEther(taskArgs.amount) }
         )
         console.log(await res.wait())
     })
@@ -102,5 +103,62 @@ task("deployToken", "Deploy Token")
         console.log("export ERC20_TOKEN=%s", token.address);
 
     });
+
+task("mintToken", "Deploy Token")
+    .addParam("address", "token address")
+    .addParam("to", "reciver")
+    .addParam("amount", "token mint amount")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const token = await tokenFactory.attach(taskArgs.address)
+        
+        await token.mint(taskArgs.to,taskArgs.amount)
+    });
+
+task("queryErc20balances", "Deploy Token")
+    .addParam("address", "token address")
+    .addParam("user", "user address ")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        let balances = (await token.balanceOf(taskArgs.user)).toString()
+        console.log(balances)
+    });
+
+task("approve", "Deploy Token")
+    .addParam("address", "erc20 address")
+    .addParam("transfer", "transfer address ")
+    .addParam("amount", "approve amount")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        await token.approve(taskArgs.transfer, taskArgs.amount)
+    });
+    
+task("queryAllowance", "Deploy Token")
+    .addParam("address", "erc20 address")
+    .addParam("transfer", "transfer address ")
+    .addParam("account", "account address")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        let allowances = (await token.allowance(taskArgs.account, taskArgs.transfer))
+        console.log(allowances)
+    });
+
+task("queryOutToken", "Token")
+    .addParam("transfer", "transfer address ")
+    .addParam("chainname", "chainName")
+    .setAction(async (taskArgs, hre) => {
+        const transferFactory = await hre.ethers.getContractFactory('Transfer')
+        const transfer = await transferFactory.attach(taskArgs.transfer)
+
+        let outToken = (await transfer.outTokens("0x0000000000000000000000000000000000000000", taskArgs.chainname))
+        console.log(outToken)
+    });
+
 
 module.exports = {}

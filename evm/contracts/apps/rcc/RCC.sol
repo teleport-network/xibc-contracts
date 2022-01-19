@@ -19,15 +19,15 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
     using Strings for *;
     using Bytes for *;
 
+    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
+
     string private constant PORT = "CONTRACT";
 
     IPacket public packet;
     IClientManager public clientManager;
     IAccessManager public accessManager;
 
-    mapping(bytes32 => bytes) public acks;
-
-    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
+    mapping(bytes32 => bytes) public override acks;
 
     RemoteContractCall.Data public latestPacket;
 
@@ -160,5 +160,16 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
     {
         acks[sha256(data)] = result;
         emit Ack(sha256(data), result);
+    }
+
+    // ===========================================================================
+
+    function getLatestPacket()
+        external
+        view
+        override
+        returns (RemoteContractCall.Data memory)
+    {
+        return latestPacket;
     }
 }

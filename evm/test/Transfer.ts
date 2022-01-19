@@ -1,10 +1,10 @@
 import { Signer, BigNumber } from "ethers"
 import chai from "chai"
-import { Transfer, MockPacket, ClientManager, Routing, Tendermint, AccessManager, ERC20 } from '../typechain'
+import { Transfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { randomBytes } from "crypto"
 
 const { expect } = chai
-const { ethers, upgrades } = require("hardhat")
+const { web3, ethers, upgrades } = require("hardhat")
 const keccak256 = require('keccak256')
 
 let client = require("./proto/compiled.js")
@@ -12,15 +12,14 @@ let client = require("./proto/compiled.js")
 describe('Transfer', () => {
     let accounts: Signer[]
     let transfer: Transfer
-    let mockPacket: MockPacket
+    let packet: Packet
     let clientManager: ClientManager
     let routing: Routing
-    let tendermint: Tendermint
+    let tendermint: MockTendermint
     let accessManager: AccessManager
     let erc20: ERC20
-    let chainName = "teleport"
-    const srcChainName = "ethereumsrc"
-    const destChainName = "ethereumdest"
+    const srcChainName = "srcChain"
+    const destChainName = "dstChain"
     const relayChainName = ""
 
 
@@ -34,7 +33,6 @@ describe('Transfer', () => {
         await deployPacket()
         await deployTransfer()
         await deployToken()
-        await initialize()
     })
 
     it("test transfer ERC20", async () => {
@@ -44,16 +42,16 @@ describe('Transfer', () => {
         let transferData = {
             tokenAddress: erc20.address,
             receiver: (await accounts[1].getAddress()),
-            amount: 1024,
+            amount: 1,
             destChain: destChainName,
-            relayChain: "",
+            relayChain: relayChainName,
         }
 
         transfer.sendTransferERC20(transferData)
         let outToken = (await transfer.outTokens(erc20.address, destChainName))
         balances = (await erc20.balanceOf(await accounts[0].getAddress())).toString()
-        expect(outToken).to.eq(1024)
-        expect(balances.toString()).to.eq("9999999998976")
+        expect(outToken).to.eq(1)
+        expect(balances.toString()).to.eq("9999999999999")
     })
 
     it("test transfer Base", async () => {
@@ -72,22 +70,24 @@ describe('Transfer', () => {
     })
 
     it("test receive packet", async () => {
-        let account = await accounts[2].getAddress()
+        let account = (await accounts[2].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
             revision_height: 1,
         }
-        let amount = new Int32Array([0, 0, 0, 1])
-        let transferData = {
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
-            receiver: account,
+            sender: account,
+            receiver: receiver,
             amount: amount,
-            token: "0x0000000000000000000000000000000000000000",
+            token: erc20.address.toLocaleLowerCase(),
+            oriToken: null
         }
-
-        let transferByte = client.TokenTransfer.encode(transferData).finish()
+        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
         let sequence: BigNumber = BigNumber.from(1)
         let pac = {
             sequence: sequence,
@@ -95,16 +95,16 @@ describe('Transfer', () => {
             destChain: srcChainName,
             relayChain: relayChainName,
             ports: ["FT"],
-            dataList: [transferByte],
+            dataList: [packetDataBz],
         }
-        await transfer.bindToken(erc20.address, transferData.token, transferData.srcChain)
+        await transfer.bindToken(erc20.address, packetData.token, packetData.srcChain)
 
-        let trace = await transfer.bindingTraces(transferData.srcChain + "/" + transferData.token)
+        let trace = await transfer.bindingTraces(packetData.srcChain + "/" + packetData.token)
         expect(trace.toString()).to.eq(erc20.address)
 
-        await mockPacket.recvPacket(pac, proof, height)
+        await packet.recvPacket(pac, proof, height)
         let binds = await transfer.bindings(erc20.address)
-        let balances = (await erc20.balanceOf(account)).toString()
+        let balances = (await erc20.balanceOf(receiver)).toString()
         let totalSupply = (await erc20.totalSupply()).toString()
 
         expect(binds.amount.toString()).to.eq("1")
@@ -114,15 +114,15 @@ describe('Transfer', () => {
 
     it("upgrade transfer", async () => {
         // upgrade transfer contract and check the contract address    
-        const mockTransferFactory = await ethers.getContractFactory("MockTransferUpgrade");
+        const mockTransferFactory = await ethers.getContractFactory("MockTransfer");
         const upgradedTransfer = await upgrades.upgradeProxy(transfer.address, mockTransferFactory);
         expect(upgradedTransfer.address).to.eq(transfer.address);
 
         // Verify that old data can be accessed
-        let trace = await upgradedTransfer.bindingTraces(destChainName + "/" + "0x0000000000000000000000000000000000000000")
+        let trace = await upgradedTransfer.bindingTraces(destChainName + "/" + erc20.address.toLocaleLowerCase())
         expect(trace.toString()).to.eq(erc20.address)
         let binds = await upgradedTransfer.bindings(trace)
-        expect(binds.amount.toString()).to.eq("1")
+        expect("1").to.eq(binds.amount.toString())
         let outToken = (await upgradedTransfer.outTokens("0x0000000000000000000000000000000000000000", destChainName))
         expect(outToken.toString()).to.eq("10000")
 
@@ -132,27 +132,29 @@ describe('Transfer', () => {
         expect(1).to.eq(version.toNumber())
 
         // The old method of verifying that has been changed
-        let account = await accounts[3].getAddress()
-        let amount = new Int32Array([0, 0, 0, 1])
-        let transferData = {
+        let account = (await accounts[2].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
-            receiver: account,
+            sender: account,
+            receiver: receiver,
             amount: amount,
-            token: "0x0000000000000000000000000000000000000000",
+            token: erc20.address.toLocaleLowerCase(),
+            oriToken: null
         }
 
-        let transferByte = client.TokenTransfer.encode(transferData).finish()
+        let transferByte = client.TokenTransfer.encode(packetData).finish()
         await upgradedTransfer.onRecvPacket(transferByte)
-        let balances = (await erc20.balanceOf(account)).toString()
-        expect(balances).to.eq("1")
-    })
+        let balances = (await erc20.balanceOf(receiver)).toString()
+        binds = await upgradedTransfer.bindings(erc20.address)
+        let totalSupply = (await erc20.totalSupply()).toString()
 
-    const createClient = async function (chainName: string, lightClientAddress: any, clientState: any, consensusState: any) {
-        let clientStateBuf = client.ClientState.encode(clientState).finish()
-        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
-        await clientManager.createClient(chainName, lightClientAddress, clientStateBuf, consensusStateBuf)
-    }
+        expect(binds.amount.toString()).to.eq("2")
+        expect(totalSupply).to.eq("10000000000002")
+        expect(balances).to.eq("2")
+    })
 
     const deployAccessManager = async () => {
         const accessFactory = await ethers.getContractFactory('AccessManager')
@@ -161,13 +163,10 @@ describe('Transfer', () => {
 
     const deployClientManager = async () => {
         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-        clientManager = (await upgrades.deployProxy(msrFactory, ["ethereum", accessManager.address])) as ClientManager
+        clientManager = (await upgrades.deployProxy(msrFactory, [srcChainName, accessManager.address])) as ClientManager
     }
 
     const deployTendermint = async () => {
-        let originChainName = await clientManager.getChainName()
-        expect(originChainName).to.eq("ethereum")
-
         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
         const clientStateCodec = await ClientStateCodec.deploy()
         await clientStateCodec.deployed()
@@ -176,32 +175,13 @@ describe('Transfer', () => {
         const consensusStateCodec = await ConsensusStateCodec.deploy()
         await consensusStateCodec.deployed()
 
-        const HeaderCodec = await ethers.getContractFactory('HeaderCodec')
-        const headerCodec = await HeaderCodec.deploy()
-        await headerCodec.deployed()
-
-        const ProofCodec = await ethers.getContractFactory('ProofCodec')
-        const proofCodec = await ProofCodec.deploy()
-        await proofCodec.deployed()
-
-        const Verifier = await ethers.getContractFactory(
-            'Verifier',
+        const tmFactory = await ethers.getContractFactory(
+            'MockTendermint',
             {
                 signer: accounts[0],
-                libraries: { ProofCodec: proofCodec.address },
-            }
-        )
-        const verifierLib = await Verifier.deploy()
-        await verifierLib.deployed()
-
-        const tmFactory = await ethers.getContractFactory(
-            'Tendermint',
-            {
                 libraries: {
                     ClientStateCodec: clientStateCodec.address,
-                    ConsensusStateCodec: consensusStateCodec.address,
-                    Verifier: verifierLib.address,
-                    HeaderCodec: headerCodec.address,
+                    ConsensusStateCodec: consensusStateCodec.address
                 },
             }
         )
@@ -209,7 +189,57 @@ describe('Transfer', () => {
             tmFactory,
             [clientManager.address],
             { "unsafeAllowLinkedLibraries": true }
-        ) as Tendermint
+        ) as MockTendermint
+
+        // create light client
+        let clientState = {
+            chainId: destChainName,
+            trustLevel: { numerator: 1, denominator: 3 },
+            trustingPeriod: 10 * 24 * 60 * 60,
+            unbondingPeriod: 1814400,
+            maxClockDrift: 10,
+            latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
+            merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
+            timeDelay: 10,
+        }
+
+        let consensusState = {
+            timestamp: { secs: 1631155726, nanos: 5829, },
+            root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
+            nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
+        }
+
+        accounts = await ethers.getSigners()
+
+        const ProofCodec = await ethers.getContractFactory('ProofCodec')
+        const proofCodec = await ProofCodec.deploy()
+        await proofCodec.deployed()
+
+        let clientStateBuf = client.ClientState.encode(clientState).finish()
+        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
+        await clientManager.createClient(destChainName, tendermint.address, clientStateBuf, consensusStateBuf)
+        let teleportClient = await clientManager.clients(destChainName)
+        expect(teleportClient).to.eq(tendermint.address)
+
+        let latestHeight = await clientManager.getLatestHeight(destChainName)
+        expect(latestHeight[0].toNumber()).to.eq(clientState.latestHeight.revisionNumber)
+        expect(latestHeight[1].toNumber()).to.eq(clientState.latestHeight.revisionHeight)
+
+        let expClientState = await tendermint.clientState()
+        expect(expClientState.chain_id).to.eq(clientState.chainId)
+
+        let key: any = {
+            revision_number: clientState.latestHeight.revisionNumber,
+            revision_height: clientState.latestHeight.revisionHeight,
+        }
+
+        let expConsensusState = await tendermint.getConsensusState(key)
+        expect(expConsensusState.root.slice(2)).to.eq(consensusState.root.toString("hex"))
+        expect(expConsensusState.next_validators_hash.slice(2)).to.eq(consensusState.nextValidatorsHash.toString("hex"))
+
+        let signer = await accounts[0].getAddress()
+        let ret1 = await clientManager.registerRelayer(destChainName, signer)
+        expect(ret1.blockNumber).to.greaterThan(0)
     }
 
     const deployHost = async () => {
@@ -233,8 +263,18 @@ describe('Transfer', () => {
     }
 
     const deployPacket = async () => {
-        const mockPacketFactory = await ethers.getContractFactory("MockPacket")
-        mockPacket = await mockPacketFactory.deploy() as MockPacket
+        const pkFactory = await ethers.getContractFactory(
+            'Packet',
+            { signer: accounts[0], }
+        )
+        packet = await upgrades.deployProxy(
+            pkFactory,
+            [
+                clientManager.address,
+                routing.address,
+                accessManager.address,
+            ]
+        ) as Packet
     }
 
     const deployTransfer = async () => {
@@ -242,58 +282,11 @@ describe('Transfer', () => {
         transfer = await upgrades.deployProxy(
             transFactory,
             [
-                mockPacket.address,
+                packet.address,
                 clientManager.address,
                 accessManager.address
             ]
         ) as Transfer
         await routing.addRouting("FT", transfer.address)
-    }
-
-    const initialize = async () => {
-        // create light client
-        let clientState = {
-            chainId: "teleport",
-            trustLevel: { numerator: 1, denominator: 3 },
-            trustingPeriod: 1000 * 24 * 60 * 60,
-            unbondingPeriod: 1814400,
-            maxClockDrift: 10,
-            latestHeight: { revisionNumber: 1, revisionHeight: 3893 },
-            merklePrefix: { keyPrefix: Buffer.from("xibc"), },
-            timeDelay: 10,
-        }
-
-        let consensusState = {
-            timestamp: { secs: 1631155726, nanos: 5829 },
-            root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
-            nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
-        }
-
-        await createClient(chainName, tendermint.address, clientState, consensusState)
-
-        let teleportClient = await clientManager.clients(chainName)
-        expect(teleportClient).to.eq(tendermint.address)
-
-        let latestHeight = await clientManager.getLatestHeight(chainName)
-        expect(latestHeight[0].toNumber()).to.eq(clientState.latestHeight.revisionNumber)
-        expect(latestHeight[1].toNumber()).to.eq(clientState.latestHeight.revisionHeight)
-
-        let expClientState = await tendermint.clientState()
-        expect(expClientState.chain_id).to.eq(clientState.chainId)
-
-        let key: any = {
-            revision_number: clientState.latestHeight.revisionNumber,
-            revision_height: clientState.latestHeight.revisionHeight,
-        }
-
-        let expConsensusState = await tendermint.getConsensusState(key)
-        expect(expConsensusState.root.slice(2)).to.eq(consensusState.root.toString("hex"))
-        expect(expConsensusState.next_validators_hash.slice(2)).to.eq(consensusState.nextValidatorsHash.toString("hex"))
-
-        let signer = await accounts[0].getAddress()
-        let ret1 = await clientManager.registerRelayer(chainName, signer)
-        expect(ret1.blockNumber).to.greaterThan(0)
-
-        mockPacket.setModule(transfer.address)
     }
 })

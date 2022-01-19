@@ -244,7 +244,7 @@ describe('MultiCall', () => {
     })
 
     const deployMockTransfer = async () => {
-        const transferFactory = await ethers.getContractFactory('MockTransferUpgrade', accounts[0])
+        const transferFactory = await ethers.getContractFactory('MockTransfer', accounts[0])
         mockTransfer = await upgrades.deployProxy(
             transferFactory,
             [
@@ -258,7 +258,7 @@ describe('MultiCall', () => {
 
     const deployMockPacket = async () => {
         const mockPacketFactory = await ethers.getContractFactory(
-            'MockPacketUpgrade',
+            'MockPacket',
             { signer: accounts[0], }
         )
         mockPacket = await upgrades.deployProxy(
@@ -315,7 +315,7 @@ describe('MultiCall', () => {
 
     const deployToken = async () => {
         const tokenFac = await ethers.getContractFactory("testToken")
-        erc20 = await tokenFac.deploy("test","test")
+        erc20 = await tokenFac.deploy("test", "test")
         await erc20.deployed()
 
         erc20.mint(await accounts[0].getAddress(), 1000)
