@@ -209,7 +209,7 @@ task("lastheight", "Deploy Client Manager")
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRES))
         const result = await clientManager.getLatestHeight(taskArgs.chain)
-        console.log(await result.wait())
+        console.log(result)
     })
 
 task("getClient", "Deploy Client Manager")
