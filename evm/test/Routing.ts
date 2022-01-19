@@ -21,7 +21,7 @@ describe('Routing', () => {
     })
 
     it("upgrade routing", async () => {
-        const mockRoutingUpgradeFactory = await ethers.getContractFactory("MockRoutingUpgrade")
+        const mockRoutingUpgradeFactory = await ethers.getContractFactory("MockRouting")
         const upgradedRouting = await upgrades.upgradeProxy(routing.address, mockRoutingUpgradeFactory)
         expect(upgradedRouting.address).to.eq(routing.address)
 

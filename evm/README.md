@@ -44,14 +44,15 @@ yarn hardhat deployLibraries --network $NETWORK_NAME
 yarn hardhat deployAcessManager --network $NETWORK_NAME --wallet $SUPER_ADMIN
 
 # Deploy ClientManager
-yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth --accm $ACCESS_MANAGER_ADDRESS
+yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth 
 
 # Deploy Tendermint Client
 # When multiple light clients need to be created, multiple instances need to be deployed (Tendermint contracts)
 yarn hardhat deployTendermint --network $NETWORK_NAME
 
 # Deploy Routing
-yarn hardhat deployRouting --network $NETWORK_NAME --accm $ACCESS_MANAGER_ADDRESS
+yarn hardhat deployRouting --network $NETWORK_NAME
+
 
 # Deploy Packet
 yarn hardhat deployPacket --network $NETWORK_NAME
@@ -70,7 +71,7 @@ yarn hardhat createClientFromFile  --chain teleport --client $TENDERMINT_CLIENT 
 Deploy Token
 
 ```bash
-yarn hardhat deployToken  --network  $NETWORK_NAME
+yarn hardhat deployToken  --name $TokenName --symbol $TokenSymbol --network  $NETWORK_NAME
 ```
 
 Register relayer

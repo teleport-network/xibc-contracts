@@ -5,6 +5,7 @@ const transferContractAddress = "0x0000000000000000000000000000000010000003"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
+    .addParam("node","node url")
     .setAction(async (taskArgs, hre) => {
         const provider = new hre.ethers.providers.JsonRpcProvider(taskArgs.node)
 

@@ -47,12 +47,12 @@ task("createClientFromFile", "Deploy Client Manager")
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const clientStateObj = JSON.parse(clientStatebytes.toString())
-        console.log("clientStateObj:",clientStateObj)
+        console.log("clientStateObj:", clientStateObj)
         const consensusStateObj = JSON.parse(consensusStateBytes.toString())
         console.log("consensusStateObj:", consensusStateObj)
-        console.log("chainId:",clientStateObj.chain_id)
+        console.log("chainId:", clientStateObj.chain_id)
         const clientStateEncode = {
-            chainId: clientStateObj.chainId,
+            chainId: clientStateObj.chain_id,
             trustLevel: {
                 numerator: clientStateObj.trust_level.numerator,
                 denominator: clientStateObj.trust_level.denominator
@@ -209,7 +209,25 @@ task("lastheight", "Deploy Client Manager")
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const result = await clientManager.getLatestHeight(taskArgs.chain)
+        console.log(result)
+    })
+
+task("getClient", "Deploy Client Manager")
+    .addParam("chain", "Chain Name")
+    .setAction(async (taskArgs, hre) => {
+        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
+        const result = await clientManager.getClient(taskArgs.chain)
         console.log(await result.wait())
     })
 
+task("getChainName", "Deploy Client Manager")
+    .addParam("chain", "Chain Name")
+    .setAction(async (taskArgs, hre) => {
+        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
+        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
+        const result = await clientManager.getChainName()
+        console.log(result)
+    })
+    
 module.exports = {}
