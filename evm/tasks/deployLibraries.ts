@@ -22,15 +22,15 @@ task("deployLibraries", "Deploy All Libraries")
         const verifierLib = await Verifier.deploy()
         await verifierLib.deployed()
 
-        console.log("ClientStateCodec deployed to:", clientStateCodec.address)
-        console.log("ConsensusStateCodec deployed to:", consensusStateCodec.address)
-        console.log("ProofCodec deployed to:", proofCodec.address)
-        console.log("Verifier deployed to:", verifierLib.address)
+        console.log("ClientStateCodec deployed to:", clientStateCodec.address.toLocaleLowerCase())
+        console.log("ConsensusStateCodec deployed to:", consensusStateCodec.address.toLocaleLowerCase())
+        console.log("ProofCodec deployed to:", proofCodec.address.toLocaleLowerCase())
+        console.log("Verifier deployed to:", verifierLib.address.toLocaleLowerCase())
 
-        console.log("export CLIENT_STATE_CODEC_ADDRESS=%s", clientStateCodec.address)
-        console.log("export CONSENSUS_STATE_CODEC_ADDRESS=%s", consensusStateCodec.address)
-        console.log("export PROOF_CODEC_ADDRESS=%s", proofCodec.address)
-        console.log("export VERIFIER_ADDRESS=%s", verifierLib.address)
+        console.log("export CLIENT_STATE_CODEC_ADDRESS=%s", clientStateCodec.address.toLocaleLowerCase())
+        console.log("export CONSENSUS_STATE_CODEC_ADDRESS=%s", consensusStateCodec.address.toLocaleLowerCase())
+        console.log("export PROOF_CODEC_ADDRESS=%s", proofCodec.address.toLocaleLowerCase())
+        console.log("export VERIFIER_ADDRESS=%s", verifierLib.address.toLocaleLowerCase())
     })
 
 module.exports = {}

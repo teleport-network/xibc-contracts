@@ -99,8 +99,8 @@ task("deployToken", "Deploy Token")
         const token = await tokenFactory.deploy(taskArgs.name, taskArgs.symbol)
         await token.deployed();
 
-        console.log("Token %s deployed to:%s", taskArgs.name, token.address);
-        console.log("export ERC20_TOKEN=%s", token.address);
+        console.log("Token %s deployed to:%s", taskArgs.name, token.address.toLocaleLowerCase());
+        console.log("export ERC20_TOKEN=%s", token.address.toLocaleLowerCase());
 
     });
 

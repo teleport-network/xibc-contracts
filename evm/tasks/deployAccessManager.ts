@@ -10,8 +10,8 @@ task("deployAcessManager", "Deploy acessManager")
             [taskArgs.wallet]
         )
         await accessManager.deployed()
-        console.log("AccessManager deployed to:", accessManager.address)
-        console.log("export ACCESS_MANAGER_ADDRESS=%s", accessManager.address)
+        console.log("AccessManager deployed to:", accessManager.address.toLocaleLowerCase())
+        console.log("export ACCESS_MANAGER_ADDRESS=%s", accessManager.address.toLocaleLowerCase())
     })
 
 module.exports = {}

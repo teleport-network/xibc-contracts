@@ -30,7 +30,7 @@ task("deployTendermint", "Deploy Tendermint Client")
             { "unsafeAllowLinkedLibraries": true }
         )
         await tendermint.deployed()
-        console.log("Tendermint deployed to:", tendermint.address)
+        console.log("Tendermint deployed to:", tendermint.address.toLocaleLowerCase())
     })
 
 module.exports = {}
