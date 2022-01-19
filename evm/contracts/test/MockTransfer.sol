@@ -34,10 +34,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     // token come in
     address[] public override boundTokens;
     mapping(address => TransferDataTypes.InToken) public bindings; // mapping(token => InToken)
-    mapping(string => address) public  bindingTraces; // mapping(origin_chain/origin_token => token)
+    mapping(string => address) public override bindingTraces; // mapping(origin_chain/origin_token => token)
 
     // token out
-    mapping(address => mapping(string => uint256)) public outTokens; // mapping(token, mapping(dst_chain => amount))
+    mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
 
     TokenTransfer.Data public latestPacket;
