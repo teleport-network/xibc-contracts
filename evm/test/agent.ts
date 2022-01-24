@@ -1,7 +1,6 @@
 import { BigNumber, utils, Signer } from "ethers"
 import chai from "chai"
-import { RCC, Routing, ClientManager, Tendermint, MockTransfer, AccessManager, MockPacket, ERC20, MultiCall, Agent } from '../typechain'
-import { sha256, keccak256 } from "ethers/lib/utils"
+import { RCC, Routing, ClientManager, Tendermint, MockTransfer, AccessManager, MockPacket, ERC20, Agent } from '../typechain'
 import { web3 } from "hardhat"
 const { ethers, upgrades } = require("hardhat")
 const { expect } = chai
@@ -17,13 +16,12 @@ describe('Agent', () => {
     let tendermint: Tendermint
     let accessManager: AccessManager
     let mockTransfer: MockTransfer
-    let multiCall: MultiCall
     let agent: Agent
     let erc20: ERC20
     const srcChainName = "srcChain"
     const destChainName = "destChain"
 
-    before('deploy Multicall', async () => {
+    before('deploy Agent', async () => {
         accounts = await ethers.getSigners()
         await deployAccessManager()
         await deployClientManager()
@@ -35,7 +33,6 @@ describe('Agent', () => {
         await deployToken()
         await deployRCC()
         await deployAgent()
-        await deployMultiCall()
         await initialize()
     })
 
@@ -74,8 +71,8 @@ describe('Agent', () => {
             sourceChain: packetData.srcChain,
             destChain: packetData.destChain,
             relayChain: "",
-            ports: ["FT","CONTRACT"],
-            dataList: [erc20PacketDataBz,transferByte],
+            ports: ["FT", "CONTRACT"],
+            dataList: [erc20PacketDataBz, transferByte],
         }
         await mockTransfer.bindToken(erc20.address, erc20PacketData.token, erc20PacketData.srcChain)
 
@@ -85,13 +82,12 @@ describe('Agent', () => {
         await mockPacket.recvPacket(pac, proof, height)
 
         expect((await erc20.balanceOf(agent.address)).toString()).to.eq("1047576")
-       
+
         let outToken = (await mockTransfer.outTokens(erc20.address, destChainName))
         expect(outToken).to.eq(0)
-        
-        expect( await agent.balances(account.toLowerCase(),erc20.address.toLowerCase())).to.eq("1047576")
-        expect( await agent.supplies(erc20.address.toLowerCase())).to.eq("1047576")
 
+        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1047576")
+        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1047576")
     })
 
     const deployMockTransfer = async () => {
@@ -144,19 +140,6 @@ describe('Agent', () => {
                 rcc.address,
             ]
         ) as Agent
-    }
-
-    const deployMultiCall = async () => {
-        const multiCallFactory = await ethers.getContractFactory('MultiCall')
-        multiCall = await upgrades.deployProxy(
-            multiCallFactory,
-            [
-                mockPacket.address,
-                clientManager.address,
-                mockTransfer.address,
-                rcc.address,
-            ]
-        ) as MultiCall
     }
 
     const createClient = async function (chainName: string, lightClientAddress: any, clientState: any, consensusState: any) {

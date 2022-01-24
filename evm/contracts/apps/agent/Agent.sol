@@ -68,8 +68,8 @@ contract Agent is Initializable, OwnableUpgradeable {
         TokenTransfer.Data memory transferPacket = transfer.getLatestPacket();
 
         require(
-            transferPacket.receiver.equals(address(this).addressToString())&&
-            transferPacket.sender.equals(rccPacket.sender) &&
+            transferPacket.receiver.equals(address(this).addressToString()) &&
+                transferPacket.sender.equals(rccPacket.sender) &&
                 transferPacket.srcChain.equals(rccPacket.srcChain) &&
                 transferPacket.destChain.equals(rccPacket.destChain),
             "must synchronize"
