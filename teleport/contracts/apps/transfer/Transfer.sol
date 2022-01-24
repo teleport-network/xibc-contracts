@@ -71,6 +71,12 @@ contract Transfer is ITransfer {
         _;
     }
 
+    /**
+     * @notice bind token
+     * @param tokenAddress token address
+     * @param oriToken origin token address
+     * @param oriChain origin chain
+     */
     function bindToken(
         address tokenAddress,
         string calldata oriToken,

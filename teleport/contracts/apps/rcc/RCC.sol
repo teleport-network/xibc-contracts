@@ -110,6 +110,8 @@ contract RCC is IRCC {
             .call(packet.data);
         if (!success) {
             result.message = "onRecvPackt: execute packet failed";
+        } else if (res.length == 0) {
+            result.result = hex"01";
         } else {
             result.result = res;
         }
