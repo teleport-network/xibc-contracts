@@ -337,6 +337,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     {
         TokenTransfer.Data memory packetData = TokenTransfer.decode(data);
 
+        latestPacket = packetData;
         if (bytes(packetData.oriToken).length == 0) {
             // token come in
             address tokenAddress = bindingTraces[

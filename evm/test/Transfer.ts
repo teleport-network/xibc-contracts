@@ -47,7 +47,7 @@ describe('Transfer', () => {
             relayChain: relayChainName,
         }
 
-        transfer.sendTransferERC20(transferData)
+        await transfer.sendTransferERC20(transferData)
         let outToken = (await transfer.outTokens(erc20.address, destChainName))
         balances = (await erc20.balanceOf(await accounts[0].getAddress())).toString()
         expect(outToken).to.eq(1)
@@ -60,7 +60,7 @@ describe('Transfer', () => {
             destChain: destChainName,
             relayChain: "",
         }
-        transfer.sendTransferBase(
+        await transfer.sendTransferBase(
             transferData,
             { value: 10000 }
         )
