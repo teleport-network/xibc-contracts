@@ -63,6 +63,12 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         accessManager = IAccessManager(accessManagerContract);
     }
 
+    /**
+     * @notice bind token
+     * @param tokenAddress token address
+     * @param oriToken origin token address
+     * @param oriChain origin chain
+     */
     function bindToken(
         address tokenAddress,
         string calldata oriToken,
