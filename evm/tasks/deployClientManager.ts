@@ -20,8 +20,8 @@ task("deployClientManager", "Deploy Client Manager")
             ]
         )
         await clientManager.deployed()
-        console.log("Client Manager deployed to:", clientManager.address)
-        console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address)
+        console.log("Client Manager deployed to:", clientManager.address.toLocaleLowerCase())
+        console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address.toLocaleLowerCase())
     })
 
 task("upgradeClientManager", "Upgrade Client Manager")

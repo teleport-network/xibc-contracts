@@ -14,7 +14,7 @@ task("deployTssClient", "Deploy Tss Client")
             [String(CLIENT_MANAGER_ADDRESS)],
         )
         await tss.deployed()
-        console.log("TssClient deployed to:", tss.address)
+        console.log("TssClient deployed to:", tss.address.toLocaleLowerCase())
     })
 
 module.exports = {}

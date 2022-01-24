@@ -19,8 +19,8 @@ task("deployPacket", "Deploy Packet")
             ]
         )
         await packet.deployed()
-        console.log("Packet deployed to:", packet.address)
-        console.log("export PACKET_ADDRESS=%s", packet.address)
+        console.log("Packet deployed to:", packet.address.toLocaleLowerCase())
+        console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
     })
 
 task("queryRecipt", "Packet")
