@@ -71,7 +71,7 @@ describe('Transfer', () => {
 
     it("test receive packet", async () => {
         let account = (await accounts[2].getAddress()).toLocaleLowerCase()
-        let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[0].getAddress()).toLocaleLowerCase()
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -85,7 +85,7 @@ describe('Transfer', () => {
             receiver: receiver,
             amount: amount,
             token: erc20.address.toLocaleLowerCase(),
-            oriToken: null
+            oriToken: erc20.address.toLocaleLowerCase(),
         }
         let packetDataBz = client.TokenTransfer.encode(packetData).finish()
         let sequence: BigNumber = BigNumber.from(1)
@@ -97,19 +97,12 @@ describe('Transfer', () => {
             ports: ["FT"],
             dataList: [packetDataBz],
         }
-        await transfer.bindToken(erc20.address, packetData.token, packetData.srcChain)
-
-        let trace = await transfer.bindingTraces(packetData.srcChain + "/" + packetData.token)
-        expect(trace.toString()).to.eq(erc20.address)
-
         await packet.recvPacket(pac, proof, height)
-        let binds = await transfer.bindings(erc20.address)
-        let balances = (await erc20.balanceOf(receiver)).toString()
-        let totalSupply = (await erc20.totalSupply()).toString()
 
-        expect(binds.amount.toString()).to.eq("1")
-        expect(totalSupply).to.eq("10000000000001")
-        expect(balances).to.eq("1")
+        let outToken = (await transfer.outTokens(erc20.address, destChainName))
+        let balances = (await erc20.balanceOf(await accounts[0].getAddress())).toString()
+        expect(outToken).to.eq(0)
+        expect(balances.toString()).to.eq("10000000000000")
     })
 
     it("upgrade transfer", async () => {
@@ -119,10 +112,6 @@ describe('Transfer', () => {
         expect(upgradedTransfer.address).to.eq(transfer.address);
 
         // Verify that old data can be accessed
-        let trace = await upgradedTransfer.bindingTraces(destChainName + "/" + erc20.address.toLocaleLowerCase())
-        expect(trace.toString()).to.eq(erc20.address)
-        let binds = await upgradedTransfer.bindings(trace)
-        expect("1").to.eq(binds.amount.toString())
         let outToken = (await upgradedTransfer.outTokens("0x0000000000000000000000000000000000000000", destChainName))
         expect(outToken.toString()).to.eq("10000")
 
@@ -144,16 +133,20 @@ describe('Transfer', () => {
             token: erc20.address.toLocaleLowerCase(),
             oriToken: null
         }
+        await transfer.bindToken(erc20.address, packetData.token, packetData.srcChain)
 
+        let trace = await transfer.bindingTraces(packetData.srcChain + "/" + packetData.token)
+        expect(trace.toString()).to.eq(erc20.address)
         let transferByte = client.TokenTransfer.encode(packetData).finish()
+
         await upgradedTransfer.onRecvPacket(transferByte)
         let balances = (await erc20.balanceOf(receiver)).toString()
-        binds = await upgradedTransfer.bindings(erc20.address)
+        let binds = await upgradedTransfer.bindings(erc20.address)
         let totalSupply = (await erc20.totalSupply()).toString()
 
-        expect(binds.amount.toString()).to.eq("2")
-        expect(totalSupply).to.eq("10000000000002")
-        expect(balances).to.eq("2")
+        expect(binds.amount.toString()).to.eq("1")
+        expect(totalSupply).to.eq("10000000000001")
+        expect(balances).to.eq("1")
     })
 
     const deployAccessManager = async () => {
