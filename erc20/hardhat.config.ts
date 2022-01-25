@@ -25,6 +25,13 @@ module.exports = {
                 "",
             ],
         },
+        bsctest: {
+            url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+            gasPrice: 10000000000,
+            chainId: 97,
+            gas: 4100000,
+            accounts: [''],
+        },
     },
     solidity: {
         version: '0.8.0',

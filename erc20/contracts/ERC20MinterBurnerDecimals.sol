@@ -43,10 +43,12 @@ contract ERC20MinterBurnerDecimals is
     constructor(
         string memory name,
         string memory symbol,
-        uint8 decimals_
+        uint8 decimals_,
+        address transfer
     ) ERC20(name, symbol) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
+        _setupRole(MINTER_ROLE, transfer);
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
         _setupRole(BURNER_ROLE, _msgSender());

@@ -19,7 +19,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
-     using Strings for *;
+    using Strings for *;
     using Bytes for *;
 
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
@@ -542,7 +542,8 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
             return false;
         }
     }
- // ===========================================================================
+
+    // ===========================================================================
 
     function getLatestPacket()
         external
@@ -561,5 +562,4 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     {
         return bindings[token];
     }
-
 }
