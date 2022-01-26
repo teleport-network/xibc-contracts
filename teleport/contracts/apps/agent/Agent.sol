@@ -9,20 +9,33 @@ import "../../libraries/app/RCC.sol";
 import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
+import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Agent {
     using Strings for *;
     using Bytes for *;
 
+    struct AgentData {
+        bool sent;
+        string sender;
+        address tokenAddress;
+        uint256 amount;
+    }
+
     mapping(string => mapping(address => uint256)) public balances; // map[sender]map[token]amount
     mapping(address => uint256) public supplies; //map[token]amount
+    mapping(string => AgentData) public sequences; //map[srcChain/destChain/sequence]transferPacketData
+    mapping(string => bool) public refunded;
 
     address public constant transferContract =
         address(0x0000000000000000000000000000000010000003);
 
     address public constant rccContract =
         address(0x0000000000000000000000000000000010000004);
+
+   address public constant xibcModulePacket =
+        address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
 
     modifier onlyXIBCModuleRCC() {
         require(msg.sender == rccContract, "caller must be XIBC RCC module");
@@ -52,6 +65,28 @@ contract Agent {
         supplies[transferData.tokenAddress] = IERC20(transferData.tokenAddress)
             .balanceOf(address(this));
 
+        uint64 sequence = IPacket(xibcModulePacket).getNextSequenceSend(
+            rccPacket.destChain,
+            transferData.destChain
+        ) - 1;
+        string memory sequencesKey = Strings.strConcat(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(rccPacket.destChain, "/"),
+                    transferData.destChain
+                ),
+                "/"
+            ),
+            Strings.uint642str(sequence)
+        );
+
+        sequences[sequencesKey] = AgentData({
+            sent: true,
+            sender: rccPacket.sender,
+            tokenAddress: transferData.tokenAddress,
+            amount: transferData.amount
+        });
+
         return true;
     }
 
@@ -80,5 +115,43 @@ contract Agent {
         balances[transferPacket.sender][
             transferPacket.token.parseAddr()
         ] += transferPacket.amount.toUint256();
+    }
+
+    function refund(
+        string calldata srcChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external {
+        string memory sequencesKey = Strings.strConcat(
+            Strings.strConcat(
+                Strings.strConcat(Strings.strConcat(srcChain, "/"), destChain),
+                "/"
+            ),
+            Strings.uint642str(sequence)
+        );
+
+        require(sequences[sequencesKey].sent, "not exist");
+        require(!refunded[sequencesKey], "refunded");
+        require(
+            IPacket(xibcModulePacket).getAckStatus(srcChain, destChain, sequence) == 2,
+            "not err ack"
+        );
+        require(
+            IERC20(sequences[sequencesKey].tokenAddress).balanceOf(
+                address(this)
+            ) >=
+                supplies[sequences[sequencesKey].tokenAddress] +
+                    sequences[sequencesKey].amount,
+            "haven't received token"
+        );
+
+        balances[sequences[sequencesKey].sender][
+            sequences[sequencesKey].tokenAddress
+        ] += sequences[sequencesKey].amount;
+        refunded[sequencesKey] = true;
+
+        supplies[sequences[sequencesKey].tokenAddress] = IERC20(
+            sequences[sequencesKey].tokenAddress
+        ).balanceOf(address(this));
     }
 }

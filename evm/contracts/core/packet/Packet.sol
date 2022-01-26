@@ -28,7 +28,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     mapping(bytes => uint64) public sequences;
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
-    mapping(bytes => bool) public ackStatus;
+    mapping(bytes => uint8) public ackStatus;// 0 => not found , 1 => success , 2 => err
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
 
@@ -467,7 +467,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
                         packet.destChain,
                         packet.sequence
                     )
-                ] = true;
+                ] = 1;
                 for (uint64 i = 0; i < packet.ports.length; i++) {
                     IModule module = routing.getModule(packet.ports[i]);
                     module.onAcknowledgementPacket(
@@ -482,7 +482,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
                         packet.destChain,
                         packet.sequence
                     )
-                ] = false;
+                ] = 2;
                 for (uint64 i = 0; i < packet.ports.length; i++) {
                     IModule module = routing.getModule(packet.ports[i]);
                     module.onAcknowledgementPacket(packet.dataList[i], hex"");
@@ -595,7 +595,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
         string calldata sourceChain,
         string calldata destChain,
         uint64 sequence
-    ) external view override returns (bool) {
+    ) external view override returns (uint8) {
         return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
     }
 }

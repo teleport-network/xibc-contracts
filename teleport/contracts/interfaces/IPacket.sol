@@ -24,5 +24,5 @@ interface IPacket {
         string calldata sourceChain,
         string calldata destChain,
         uint64 sequence
-    ) external view returns (bool);
+    ) external view returns (uint8);
 }

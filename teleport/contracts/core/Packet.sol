@@ -7,15 +7,15 @@ import "../interfaces/IPacket.sol";
 import "../libraries/utils/Strings.sol";
 
 contract Packet is IPacket {
-    address public constant xibcModulePackert =
+    address public constant xibcModulePacket =
         address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
 
     mapping(bytes => uint64) public sequences;
-    mapping(bytes => bool) public ackStatus;
+    mapping(bytes => uint8) public ackStatus;
 
     modifier onlyXIBCModulePacket() {
         require(
-            msg.sender == address(xibcModulePackert),
+            msg.sender == address(xibcModulePacket),
             "caller must be xibc packet module"
         );
         _;
@@ -40,17 +40,15 @@ contract Packet is IPacket {
      * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
-     * @param successed is successed
+     * @param state is ack state(1 => success,2 => err,0 => not found)
      */
     function setAckStatus(
         string calldata sourceChain,
         string calldata destChain,
         uint64 sequence,
-        bool successed
+        uint8 state
     ) external onlyXIBCModulePacket {
-        ackStatus[
-            getAckStatusKey(sourceChain, destChain, sequence)
-        ] = successed;
+        ackStatus[getAckStatusKey(sourceChain, destChain, sequence)] = state;
     }
 
     /**
@@ -79,7 +77,7 @@ contract Packet is IPacket {
         string calldata sourceChain,
         string calldata destChain,
         uint64 sequence
-    ) external view override returns (bool) {
+    ) external view override returns (uint8) {
         return ackStatus[getAckStatusKey(sourceChain, destChain, sequence)];
     }
 

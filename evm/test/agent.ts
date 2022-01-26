@@ -36,7 +36,7 @@ describe('Agent', () => {
         await initialize()
     })
 
-    it("test", async () => {
+    it("send", async () => {
         let account = (await accounts[0].getAddress()).toString()
         let amount = web3.utils.hexToBytes("0x000000000000000000000000000000000000000000000000000000000010000")
         let erc20PacketData = {
@@ -50,7 +50,6 @@ describe('Agent', () => {
         }
         let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()
 
-        // approve to rcc.address 
         let dataByte = Buffer.from("efb50925000000000000000000000000000000000000000000000000000000000000002000000000000000000000000067d269191c92caf3cd7723f116c85e6e9bf5593300000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a30783730393937393730633531383132646333613031306337643031623530653064313764633739633800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657374436861696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "hex")
         let packetData = {
             srcChain: destChainName,
@@ -88,8 +87,11 @@ describe('Agent', () => {
 
         expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1047576")
         expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1047576")
-    })
 
+    })
+    // todo recvErrAck and refund test
+    // await agent.refund(srcChainName,destChainName,1)
+    
     const deployMockTransfer = async () => {
         const transferFactory = await ethers.getContractFactory('MockTransfer', accounts[0])
         mockTransfer = await upgrades.deployProxy(
@@ -138,6 +140,7 @@ describe('Agent', () => {
             [
                 mockTransfer.address,
                 rcc.address,
+                mockPacket.address,
             ]
         ) as Agent
     }
@@ -155,7 +158,7 @@ describe('Agent', () => {
 
     const deployClientManager = async () => {
         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-        clientManager = (await upgrades.deployProxy(msrFactory, ["ethereum", accessManager.address])) as ClientManager
+        clientManager = (await upgrades.deployProxy(msrFactory, [srcChainName, accessManager.address])) as ClientManager
     }
 
     const deployToken = async () => {
@@ -181,7 +184,7 @@ describe('Agent', () => {
 
     const deployTendermint = async () => {
         let originChainName = await clientManager.getChainName()
-        expect(originChainName).to.eq("ethereum")
+        expect(originChainName).to.eq(srcChainName)
 
         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
         const clientStateCodec = await ClientStateCodec.deploy()

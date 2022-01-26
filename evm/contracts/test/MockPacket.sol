@@ -28,6 +28,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
     mapping(bytes => uint64) public sequences;
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
+    mapping(bytes => uint8) public ackStatus;
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
     uint256 public version;
@@ -412,12 +413,34 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
             Acknowledgement.Data memory ack = Acknowledgement.decode(
                 acknowledgement
             );
-            for (uint64 i = 0; i < packet.ports.length; i++) {
-                IModule module = routing.getModule(packet.ports[i]);
-                module.onAcknowledgementPacket(
-                    packet.dataList[i],
-                    ack.results[i]
-                );
+
+            if (ack.results.length > 0) {
+                ackStatus[
+                    Host.ackStatusKey(
+                        packet.sourceChain,
+                        packet.destChain,
+                        packet.sequence
+                    )
+                ] = 1;
+                for (uint64 i = 0; i < packet.ports.length; i++) {
+                    IModule module = routing.getModule(packet.ports[i]);
+                    module.onAcknowledgementPacket(
+                        packet.dataList[i],
+                        ack.results[i]
+                    );
+                }
+            } else {
+                ackStatus[
+                    Host.ackStatusKey(
+                        packet.sourceChain,
+                        packet.destChain,
+                        packet.sequence
+                    )
+                ] = 2;
+                for (uint64 i = 0; i < packet.ports.length; i++) {
+                    IModule module = routing.getModule(packet.ports[i]);
+                    module.onAcknowledgementPacket(packet.dataList[i], hex"");
+                }
             }
         } else {
             require(
@@ -438,7 +461,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice Verify packet acknowledgement
+     * @notice verify packet acknowledgement
      */
     function verifyPacketAcknowledgement(
         address sender,
@@ -497,7 +520,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice Set max ack sequence
+     * @notice set max ack sequence
      * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence max ack sequence
@@ -514,5 +537,19 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
             currentMaxAckSeq = sequence;
         }
         sequences[Host.MaxAckSeqKey(sourceChain, destChain)] = currentMaxAckSeq;
+    }
+
+    /**
+     * @notice get the next sequence of sourceChain/destChain
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     */
+    function getAckStatus(
+        string calldata sourceChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external view override returns (uint8) {
+        return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
     }
 }
