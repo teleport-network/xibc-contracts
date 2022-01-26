@@ -77,10 +77,7 @@ contract Agent is Initializable, OwnableUpgradeable {
         // check received
         require(
             IERC20(tokenAddress).balanceOf(address(this)) >=
-                supplies[tokenAddress] + transferPacket.amount.toUint256() &&
-                IERC20(tokenAddress).balanceOf(address(this)) >=
-                balances[rccPacket.sender][tokenAddress] +
-                    transferPacket.amount.toUint256(),
+                supplies[tokenAddress] + transferPacket.amount.toUint256(),
             "haven't received token"
         );
 
