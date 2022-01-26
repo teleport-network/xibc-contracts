@@ -90,7 +90,7 @@ task("queryBindings", "query ERC20 token trace")
         let res = await transfer.bindings(taskArgs.address)
         console.log(await res)
     })
-
+    
 task("deployToken", "Deploy Token")
     .addParam("name", "token name")
     .addParam("symbol", "token symbol")
