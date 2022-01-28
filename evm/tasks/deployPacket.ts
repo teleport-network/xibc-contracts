@@ -1,7 +1,5 @@
 import "@nomiclabs/hardhat-web3"
-import { tasks } from "hardhat"
 import { task } from "hardhat/config"
-let client = require("../test/proto/compiled.js")
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS

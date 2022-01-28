@@ -13,6 +13,8 @@ import "./tasks/deployClientManager"
 import "./tasks/deployPacket"
 import "./tasks/deployRouting"
 import "./tasks/deployTransfer"
+import "./tasks/deployMultiCall"
+import "./tasks/deployRcc"
 import "./tasks/deployAccessManager"
 import "./tasks/transfer"
 
