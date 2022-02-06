@@ -1,7 +1,8 @@
-import { BigNumber, utils, Signer } from "ethers"
+import { BigNumber, Signer } from "ethers"
 import chai from "chai"
-import { RCC, Routing, ClientManager, Tendermint, MockTransfer, AccessManager, MockPacket, ERC20, Agent } from '../typechain'
+import { RCC, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager, MockPacket, ERC20, Agent } from '../typechain'
 import { web3 } from "hardhat"
+import { sha256 } from "ethers/lib/utils"
 const { ethers, upgrades } = require("hardhat")
 const { expect } = chai
 
@@ -13,7 +14,7 @@ describe('Agent', () => {
     let mockPacket: MockPacket
     let clientManager: ClientManager
     let routing: Routing
-    let tendermint: Tendermint
+    let tendermint: MockTendermint
     let accessManager: AccessManager
     let mockTransfer: MockTransfer
     let agent: Agent
@@ -33,7 +34,6 @@ describe('Agent', () => {
         await deployToken()
         await deployRCC()
         await deployAgent()
-        await initialize()
     })
 
     it("send", async () => {
@@ -50,7 +50,7 @@ describe('Agent', () => {
         }
         let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()
 
-        let dataByte = Buffer.from("efb50925000000000000000000000000000000000000000000000000000000000000002000000000000000000000000067d269191c92caf3cd7723f116c85e6e9bf5593300000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a30783730393937393730633531383132646333613031306337643031623530653064313764633739633800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657374436861696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "hex")
+        let dataByte = Buffer.from("efb50925000000000000000000000000000000000000000000000000000000000000002000000000000000000000000067d269191c92caf3cd7723f116c85e6e9bf5593300000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a30786633396664366535316161643838663666346365366162383832373237396366666662393232363600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657374436861696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "hex")
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
@@ -87,11 +87,55 @@ describe('Agent', () => {
 
         expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1047576")
         expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1047576")
-
+        expect((await agent.sequences(srcChainName + "/" + destChainName + "/1")).sent).to.eq(true)
+        expect(await mockPacket.getNextSequenceSend(srcChainName, destChainName)).to.eq(2)
     })
-    // todo recvErrAck and refund test
-    // await agent.refund(srcChainName,destChainName,1)
-    
+
+    it("refund", async () => {
+        let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
+        let account = (await accounts[0].getAddress()).toString()
+        let erc20PacketData = {
+            srcChain: srcChainName,
+            destChain: destChainName,
+            sender: agent.address.toLocaleLowerCase(),
+            receiver: account.toLocaleLowerCase(),
+            amount: amount,
+            token: erc20.address.toLocaleLowerCase(),
+            oriToken: "0x0000000000000000000000000000000010000011"
+        }
+
+        let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()
+
+        let proof = Buffer.from("proof", "utf-8")
+        let height = {
+            revision_number: 1,
+            revision_height: 1,
+        }
+        let sequence: BigNumber = BigNumber.from(1)
+        let pac = {
+            sequence: sequence,
+            sourceChain: srcChainName,
+            destChain: destChainName,
+            relayChain: "",
+            ports: ["FT"],
+            dataList: [erc20PacketDataBz],
+        }
+        let path = "commitments/" + pac.sourceChain + "/" + pac.destChain + "/sequences/" + pac.sequence
+        expect(await mockPacket.commitments(Buffer.from(path, "utf-8"))).to.eq(sha256(sha256(erc20PacketDataBz)))
+        console.log()
+        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("1047576")
+        let Erc20Ack = await mockTransfer.NewAcknowledgement(false, "1: onRecvPackt: binding is not exist")
+
+        await mockPacket.acknowledgePacket(pac, Erc20Ack, proof, height)
+        expect(await mockPacket.getAckStatus(srcChainName, destChainName, 1)).to.eq(2)
+        
+        await agent.refund(srcChainName, destChainName, 1)
+        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("1048576")
+        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1048576")
+        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1048576")
+        expect(await agent.refunded(srcChainName+"/"+destChainName+"/"+"1")).to.eq(true)
+    })
+
     const deployMockTransfer = async () => {
         const transferFactory = await ethers.getContractFactory('MockTransfer', accounts[0])
         mockTransfer = await upgrades.deployProxy(
@@ -165,10 +209,6 @@ describe('Agent', () => {
         const tokenFac = await ethers.getContractFactory("testToken")
         erc20 = await tokenFac.deploy("test", "test")
         await erc20.deployed()
-
-        await erc20.mint(await accounts[0].getAddress(), 1000)
-        await erc20.approve(mockTransfer.address, 100000)
-        expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
     }
 
     const deployHost = async () => {
@@ -183,9 +223,6 @@ describe('Agent', () => {
     }
 
     const deployTendermint = async () => {
-        let originChainName = await clientManager.getChainName()
-        expect(originChainName).to.eq(srcChainName)
-
         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
         const clientStateCodec = await ClientStateCodec.deploy()
         await clientStateCodec.deployed()
@@ -194,32 +231,13 @@ describe('Agent', () => {
         const consensusStateCodec = await ConsensusStateCodec.deploy()
         await consensusStateCodec.deployed()
 
-        const HeaderCodec = await ethers.getContractFactory('HeaderCodec')
-        const headerCodec = await HeaderCodec.deploy()
-        await headerCodec.deployed()
-
-        const ProofCodec = await ethers.getContractFactory('ProofCodec')
-        const proofCodec = await ProofCodec.deploy()
-        await proofCodec.deployed()
-
-        const Verifier = await ethers.getContractFactory(
-            'Verifier',
+        const tmFactory = await ethers.getContractFactory(
+            'MockTendermint',
             {
                 signer: accounts[0],
-                libraries: { ProofCodec: proofCodec.address },
-            }
-        )
-        const verifierLib = await Verifier.deploy()
-        await verifierLib.deployed()
-
-        const tmFactory = await ethers.getContractFactory(
-            'Tendermint',
-            {
                 libraries: {
                     ClientStateCodec: clientStateCodec.address,
-                    ConsensusStateCodec: consensusStateCodec.address,
-                    Verifier: verifierLib.address,
-                    HeaderCodec: headerCodec.address,
+                    ConsensusStateCodec: consensusStateCodec.address
                 },
             }
         )
@@ -227,48 +245,35 @@ describe('Agent', () => {
             tmFactory,
             [clientManager.address],
             { "unsafeAllowLinkedLibraries": true }
-        ) as Tendermint
-    }
+        ) as MockTendermint
 
-    const initialize = async () => {
         // create light client
         let clientState = {
-            chainId: "teleport",
+            chainId: destChainName,
             trustLevel: { numerator: 1, denominator: 3 },
-            trustingPeriod: 1000 * 24 * 60 * 60,
+            trustingPeriod: 10 * 24 * 60 * 60,
             unbondingPeriod: 1814400,
             maxClockDrift: 10,
-            latestHeight: { revisionNumber: 1, revisionHeight: 3893 },
-            merklePrefix: { keyPrefix: Buffer.from("xibc"), },
+            latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
+            merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
             timeDelay: 10,
         }
 
         let consensusState = {
-            timestamp: { secs: 1631155726, nanos: 5829 },
+            timestamp: { secs: 1631155726, nanos: 5829, },
             root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
             nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
         }
 
-        await createClient(destChainName, tendermint.address, clientState, consensusState)
+        accounts = await ethers.getSigners()
 
-        let teleportClient = await clientManager.clients(destChainName)
-        expect(teleportClient).to.eq(tendermint.address)
+        const ProofCodec = await ethers.getContractFactory('ProofCodec')
+        const proofCodec = await ProofCodec.deploy()
+        await proofCodec.deployed()
 
-        let latestHeight = await clientManager.getLatestHeight(destChainName)
-        expect(latestHeight[0].toNumber()).to.eq(clientState.latestHeight.revisionNumber)
-        expect(latestHeight[1].toNumber()).to.eq(clientState.latestHeight.revisionHeight)
-
-        let expClientState = await tendermint.clientState()
-        expect(expClientState.chain_id).to.eq(clientState.chainId)
-
-        let key: any = {
-            revision_number: clientState.latestHeight.revisionNumber,
-            revision_height: clientState.latestHeight.revisionHeight,
-        }
-
-        let expConsensusState = await tendermint.getConsensusState(key)
-        expect(expConsensusState.root.slice(2)).to.eq(consensusState.root.toString("hex"))
-        expect(expConsensusState.next_validators_hash.slice(2)).to.eq(consensusState.nextValidatorsHash.toString("hex"))
+        let clientStateBuf = client.ClientState.encode(clientState).finish()
+        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
+        await clientManager.createClient(destChainName, tendermint.address, clientStateBuf, consensusStateBuf)
 
         let signer = await accounts[0].getAddress()
         let ret1 = await clientManager.registerRelayer(destChainName, signer)
