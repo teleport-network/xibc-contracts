@@ -128,12 +128,12 @@ describe('Agent', () => {
 
         await mockPacket.acknowledgePacket(pac, Erc20Ack, proof, height)
         expect(await mockPacket.getAckStatus(srcChainName, destChainName, 1)).to.eq(2)
-        
+
         await agent.refund(srcChainName, destChainName, 1)
         expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("1048576")
         expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1048576")
         expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1048576")
-        expect(await agent.refunded(srcChainName+"/"+destChainName+"/"+"1")).to.eq(true)
+        expect(await agent.refunded(srcChainName + "/" + destChainName + "/" + "1")).to.eq(true)
     })
 
     const deployMockTransfer = async () => {
