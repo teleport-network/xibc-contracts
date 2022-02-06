@@ -87,6 +87,10 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                     multiCallData.data[i],
                     (MultiCallDataTypes.RCCData)
                 );
+                require(
+                    !data.contractAddress.equals(""),
+                    "invalid ContractAddress"
+                );
                 dataList[i] = callRCC(multiCallData.destChain, data);
                 ports[i] = "CONTRACT";
             }

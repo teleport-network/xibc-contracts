@@ -45,7 +45,7 @@ describe('Agent', () => {
             sender: account.toLowerCase(),
             receiver: agent.address.toLowerCase(),
             amount: amount,
-            token: erc20.address.toLocaleLowerCase(),
+            token: "0x0000000000000000000000000000000010000011",
             oriToken: null
         }
         let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()

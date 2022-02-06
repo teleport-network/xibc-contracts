@@ -59,7 +59,11 @@ contract Agent is Initializable, OwnableUpgradeable {
         RemoteContractCall.Data memory rccPacket = rcc.getLatestPacket();
 
         _comingIn(rccPacket, transferData.tokenAddress);
-
+        require(
+            balances[rccPacket.sender][transferData.tokenAddress] >=
+                transferData.amount,
+            "err amount"
+        );
         IERC20(transferData.tokenAddress).approve(
             address(transfer),
             transferData.amount
@@ -117,9 +121,9 @@ contract Agent is Initializable, OwnableUpgradeable {
             "haven't received token"
         );
 
-        balances[transferPacket.sender][
-            transferPacket.token.parseAddr()
-        ] += transferPacket.amount.toUint256();
+        balances[transferPacket.sender][tokenAddress] += transferPacket
+            .amount
+            .toUint256();
     }
 
     function refund(
@@ -144,7 +148,9 @@ contract Agent is Initializable, OwnableUpgradeable {
         require(
             IERC20(sequences[sequencesKey].tokenAddress).balanceOf(
                 address(this)
-            ) >= supplies[sequences[sequencesKey].tokenAddress] + sequences[sequencesKey].amount,
+            ) >=
+                supplies[sequences[sequencesKey].tokenAddress] +
+                    sequences[sequencesKey].amount,
             "haven't received token"
         );
 
@@ -153,7 +159,8 @@ contract Agent is Initializable, OwnableUpgradeable {
         ] += sequences[sequencesKey].amount;
         refunded[sequencesKey] = true;
 
-        supplies[sequences[sequencesKey].tokenAddress] = IERC20(sequences[sequencesKey].tokenAddress)
-            .balanceOf(address(this));
+        supplies[sequences[sequencesKey].tokenAddress] = IERC20(
+            sequences[sequencesKey].tokenAddress
+        ).balanceOf(address(this));
     }
 }

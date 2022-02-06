@@ -22,39 +22,39 @@ task("deployPacket", "Deploy Packet")
     })
 
 task("queryRecipt", "Packet")
-    .addParam("packet","packet address")
-    .addParam("sourcechain","sourceChain")
-    .addParam("destchain","sourceChain")
-    .addParam("sequence","sourceChain")
+    .addParam("packet", "packet address")
+    .addParam("sourcechain", "sourceChain")
+    .addParam("destchain", "sourceChain")
+    .addParam("sequence", "sourceChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(taskArgs.packet)
         let key = "receipts/" + taskArgs.sourcechain + "/" + taskArgs.destchain + "/sequences/" + taskArgs.sequence
-        let packetRec = await packet.receipts(Buffer.from(key,"utf-8"))
+        let packetRec = await packet.receipts(Buffer.from(key, "utf-8"))
         console.log(packetRec)
     })
 
 task("queryCommit", "Packet")
-    .addParam("packet","packet address")
-    .addParam("sourcechain","sourceChain")
-    .addParam("destchain","sourceChain")
-    .addParam("sequence","sourceChain")
+    .addParam("packet", "packet address")
+    .addParam("sourcechain", "sourceChain")
+    .addParam("destchain", "sourceChain")
+    .addParam("sequence", "sourceChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(taskArgs.packet)
         let key = "acks/" + taskArgs.sourcechain + "/" + taskArgs.destchain + "/sequences/" + taskArgs.sequence
-        let packetRec = await packet.commitments(Buffer.from(key,"utf-8"))
+        let packetRec = await packet.commitments(Buffer.from(key, "utf-8"))
         console.log(packetRec)
-    })  
+    })
 
 task("queryRole", "Packet")
-    .addParam("packet","packet address")
+    .addParam("packet", "packet address")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(taskArgs.packet)
 
-        let roleHash =  await packet.MULTISEND_ROLE()
+        let roleHash = await packet.MULTISEND_ROLE()
         console.log(roleHash)
-    })  
-   
+    })
+
 module.exports = {}

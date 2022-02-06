@@ -34,8 +34,8 @@ contract Agent {
     address public constant rccContract =
         address(0x0000000000000000000000000000000010000004);
 
-   address public constant xibcModulePacket =
-        address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
+    address public constant xibcModulePacket =
+        address(0x0000000000000000000000000000000010000008);
 
     modifier onlyXIBCModuleRCC() {
         require(msg.sender == rccContract, "caller must be XIBC RCC module");
@@ -52,6 +52,12 @@ contract Agent {
 
         _comingIn(rccPacket, transferData.tokenAddress);
 
+        require(
+            balances[rccPacket.sender][transferData.tokenAddress] >=
+                transferData.amount,
+            "err amount"
+        );
+        
         IERC20(transferData.tokenAddress).approve(
             transferContract,
             transferData.amount
@@ -68,7 +74,7 @@ contract Agent {
         uint64 sequence = IPacket(xibcModulePacket).getNextSequenceSend(
             rccPacket.destChain,
             transferData.destChain
-        ) - 1;
+        );
         string memory sequencesKey = Strings.strConcat(
             Strings.strConcat(
                 Strings.strConcat(
@@ -112,9 +118,9 @@ contract Agent {
             "haven't received token"
         );
 
-        balances[transferPacket.sender][
-            transferPacket.token.parseAddr()
-        ] += transferPacket.amount.toUint256();
+        balances[transferPacket.sender][tokenAddress] += transferPacket
+            .amount
+            .toUint256();
     }
 
     function refund(
@@ -133,7 +139,11 @@ contract Agent {
         require(sequences[sequencesKey].sent, "not exist");
         require(!refunded[sequencesKey], "refunded");
         require(
-            IPacket(xibcModulePacket).getAckStatus(srcChain, destChain, sequence) == 2,
+            IPacket(xibcModulePacket).getAckStatus(
+                srcChain,
+                destChain,
+                sequence
+            ) == 2,
             "not err ack"
         );
         require(
