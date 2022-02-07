@@ -10,12 +10,12 @@ library TimestampLib {
         return int64(block.timestamp);
     }
 
-    function add(Timestamp.Data memory self, int64 secnods)
+    function add(Timestamp.Data memory self, int64 second)
         internal
         pure
         returns (Timestamp.Data memory target)
     {
-        target.secs = self.secs + secnods;
+        target.secs = self.secs + second;
         target.nanos = self.nanos;
         return target;
     }

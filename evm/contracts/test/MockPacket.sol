@@ -264,21 +264,17 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
             IModule imodule = routing.getModule(packet.ports[i]);
             require(
                 address(imodule) != address(0),
-                Strings.uint642str(i).toSlice().concat(
-                    ": module not found!".toSlice()
-                )
+                Strings.strConcat(Strings.uint642str(i), ": module not found!")
             );
             PacketTypes.Result memory res = imodule.onRecvPacket(
                 packet.dataList[i]
             );
             require(
                 res.result.length > 0,
-                Strings
-                    .uint642str(i)
-                    .toSlice()
-                    .concat(": ".toSlice())
-                    .toSlice()
-                    .concat(res.message.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(Strings.uint642str(i), ": "),
+                    res.message
+                )
             );
             results[i] = res.result;
         }

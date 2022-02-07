@@ -82,8 +82,10 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
             return Status.Unknown;
         }
 
-        if (uint256(consState.timestamp.secs + clientState.trusting_period) <=
-                block.timestamp) {
+        if (
+            uint256(consState.timestamp.secs + clientState.trusting_period) <=
+            block.timestamp
+        ) {
             return Status.Expired;
         }
         return Status.Active;
@@ -140,14 +142,13 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
             getStorageKey(header.trusted_height)
         ];
 
-        bytes memory vsh = LightClient.genValidatorSetHash(header.trusted_validators);
+        bytes memory vsh = LightClient.genValidatorSetHash(
+            header.trusted_validators
+        );
 
         // check heaer
         require(
-            Bytes.equals(
-                LightClient.genValidatorSetHash(header.trusted_validators),
-                tmConsState.next_validators_hash
-            ),
+            Bytes.equals(vsh, tmConsState.next_validators_hash),
             "invalid validator set"
         );
         require(

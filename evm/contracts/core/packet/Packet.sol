@@ -28,7 +28,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     mapping(bytes => uint64) public sequences;
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
-    mapping(bytes => uint8) public ackStatus;// 0 => not found , 1 => success , 2 => err
+    mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
 
@@ -219,7 +219,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice recvPacket is called by a module in order to receive & process an XIBC packet
+     * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
      * @param packet xibc packet
      * @param proof proof commit
      * @param height proof height
@@ -309,21 +309,17 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
             IModule module = routing.getModule(packet.ports[i]);
             require(
                 address(module) != address(0),
-                Strings.uint642str(i).toSlice().concat(
-                    ": module not found!".toSlice()
-                )
+                Strings.strConcat(Strings.uint642str(i), ": module not found!")
             );
             PacketTypes.Result memory res = module.onRecvPacket(
                 packet.dataList[i]
             );
             require(
                 res.result.length > 0,
-                Strings
-                    .uint642str(i)
-                    .toSlice()
-                    .concat(": ".toSlice())
-                    .toSlice()
-                    .concat(res.message.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(Strings.uint642str(i), ": "),
+                    res.message
+                )
             );
             results[i] = res.result;
         }

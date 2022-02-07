@@ -78,11 +78,10 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
         require(!bindings[tokenAddress].bound, "token already bound");
 
-        string memory key = oriChain
-            .toSlice()
-            .concat("/".toSlice())
-            .toSlice()
-            .concat(oriToken.toSlice());
+        string memory key = Strings.strConcat(
+            Strings.strConcat(oriChain, "/"),
+            oriToken
+        );
 
         require(bindingTraces[key] == address(0), "trace already bound");
 
@@ -347,12 +346,10 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         if (bytes(packetData.oriToken).length == 0) {
             // token come in
             address tokenAddress = bindingTraces[
-                packetData
-                    .srcChain
-                    .toSlice()
-                    .concat("/".toSlice())
-                    .toSlice()
-                    .concat(packetData.token.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(packetData.srcChain, "/"),
+                    packetData.token
+                )
             ];
 
             // check bindings
