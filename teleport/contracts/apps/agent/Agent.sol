@@ -42,11 +42,30 @@ contract Agent {
         _;
     }
 
-    function send(TransferDataTypes.ERC20TransferData calldata transferData)
-        external
-        onlyXIBCModuleRCC
-        returns (bool)
-    {
+    event SendEvent(
+        bytes indexed id,
+        string srcChain,
+        string destChain,
+        uint64 sequence
+    );
+
+    function send(
+        bytes calldata id,
+        address tokenAddress,
+        string calldata receiver,
+        uint256 amount,
+        string calldata destChain,
+        string calldata relayChain
+    ) external onlyXIBCModuleRCC returns (bool) {
+        TransferDataTypes.ERC20TransferData
+            memory transferData = TransferDataTypes.ERC20TransferData({
+                tokenAddress: tokenAddress,
+                receiver: receiver,
+                amount: amount,
+                destChain: destChain,
+                relayChain: relayChain
+            });
+
         RCCDataTypes.PacketData memory rccPacket = IRCC(rccContract)
             .getLatestPacket();
 
@@ -57,7 +76,7 @@ contract Agent {
                 transferData.amount,
             "err amount"
         );
-        
+
         IERC20(transferData.tokenAddress).approve(
             transferContract,
             transferData.amount
@@ -92,7 +111,13 @@ contract Agent {
             tokenAddress: transferData.tokenAddress,
             amount: transferData.amount
         });
-
+        
+        emit SendEvent(
+            id,
+            rccPacket.destChain,
+            transferData.destChain,
+            sequence
+        );
         return true;
     }
 

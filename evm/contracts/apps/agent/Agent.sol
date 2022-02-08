@@ -4,9 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
-import "../../libraries/app/Transfer.sol";
-import "../../libraries/app/RCC.sol";
-import "../../libraries/host/Host.sol";
 import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
@@ -51,11 +48,30 @@ contract Agent is Initializable, OwnableUpgradeable {
         packet = IPacket(packetContract);
     }
 
-    function send(TransferDataTypes.ERC20TransferData calldata transferData)
-        external
-        onlyXIBCModuleRCC
-        returns (bool)
-    {
+    event SendEvent(
+        bytes indexed id,
+        string srcChain,
+        string destChain,
+        uint64 sequence
+    );
+
+    function send(
+        bytes calldata id,
+        address tokenAddress,
+        string calldata receiver,
+        uint256 amount,
+        string calldata destChain,
+        string calldata relayChain
+    ) external onlyXIBCModuleRCC returns (bool) {
+        TransferDataTypes.ERC20TransferData
+            memory transferData = TransferDataTypes.ERC20TransferData({
+                tokenAddress: tokenAddress,
+                receiver: receiver,
+                amount: amount,
+                destChain: destChain,
+                relayChain: relayChain
+            });
+
         RemoteContractCall.Data memory rccPacket = rcc.getLatestPacket();
 
         _comingIn(rccPacket, transferData.tokenAddress);
@@ -98,6 +114,12 @@ contract Agent is Initializable, OwnableUpgradeable {
             amount: transferData.amount
         });
 
+        emit SendEvent(
+            id,
+            rccPacket.destChain,
+            transferData.destChain,
+            sequence
+        );
         return true;
     }
 
