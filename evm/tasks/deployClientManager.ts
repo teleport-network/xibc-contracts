@@ -104,16 +104,16 @@ task("getTssCLient", "Get Tss CLient")
 task("createTssCLient", "Create Tss CLient")
     .addParam("chain", "Chain Name")
     .addParam("client", "Client Address")
-    .addParam("pubkey", "Tss pubkey")
+    .addParam("pubkey", "pool pubkey")
+    .addParam("partpubkeys", "part pubkeys")
+    .addParam("pooladdress", "pool address")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-
         let clientStateBz = utils.defaultAbiCoder.encode(
-            ["tuple(address,bytes)"],
-            [["0x0000000000000000000000000000000000000000", taskArgs.pubkey]],
+            ["tuple(address,bytes,bytes[])"],
+            [[taskArgs.pooladdress, taskArgs.pubkey,taskArgs.partpubkeys]],
         )
-
         const result = await clientManager.createClient(
             taskArgs.chain,
             taskArgs.client,
