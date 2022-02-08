@@ -23,7 +23,7 @@ describe('AccessManager', () => {
 
     it("add role should true", async () => {
         let operator = (await accounts[0].getAddress()).toString()
-        await accessManager.addRole(test1Role, operator)
+        await accessManager.grantRole(test1Role, operator)
 
         let result = await accessManager.hasRole(test1Role, operator)
         expect(result).to.equal(true)
@@ -32,7 +32,7 @@ describe('AccessManager', () => {
     it("grant role & revoke role should true", async () => {
         let operator = (await accounts[0].getAddress()).toString()
         let authorizedPerson = (await accounts[1].getAddress()).toString()
-        await accessManager.addRole(test1Role, operator)
+        await accessManager.grantRole(test1Role, operator)
 
         // grant role
         await accessManager.grantRole(test1Role, authorizedPerson)
@@ -56,7 +56,7 @@ describe('AccessManager', () => {
         var roles = [test1Role, test2Role]
         var addrs = [addr0, addr1]
 
-        await accessManager.batchAddRole(roles, addrs)
+        await accessManager.batchGrantRole(roles, addrs)
 
         let result = await accessManager.hasRole(test1Role, addr0)
         expect(result).to.equal(true)
@@ -78,7 +78,7 @@ describe('AccessManager', () => {
         var roles = [test1Role, test2Role]
         var addrsAdd = [addr0, addr1]
 
-        await accessManager.batchAddRole(roles, addrsAdd)
+        await accessManager.batchGrantRole(roles, addrsAdd)
 
         let result = await accessManager.hasRole(test1Role, addr0)
         expect(result).to.equal(true)

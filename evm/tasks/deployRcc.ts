@@ -35,9 +35,6 @@ task("sendRcc", "Send Rcc")
             destChain: "teleport",
             relayChain: "",
         }
-        
-        // let RCCDataAbi = utils.defaultAbiCoder.encode(["tuple(string,bytes)"], [[RCCData.contractAddress, RCCData.data]]);
-
         let res =  await rcc.sendRemoteContractCall(rccData)
         console.log(res)
     })

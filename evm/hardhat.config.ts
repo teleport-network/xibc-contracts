@@ -15,6 +15,7 @@ import "./tasks/deployRouting"
 import "./tasks/deployTransfer"
 import "./tasks/deployMultiCall"
 import "./tasks/deployRcc"
+import "./tasks/deployProxy"
 import "./tasks/deployAccessManager"
 import "./tasks/transfer"
 
