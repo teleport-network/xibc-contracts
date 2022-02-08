@@ -4,9 +4,9 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "./Verifier.sol";
+import "./LightClientLib.sol";
 import "../../../interfaces/IClient.sol";
 import "../../../libraries/utils/Bytes.sol";
-import "../../../libraries/tendermint/LightClient.sol";
 import "../../../libraries/packet/Packet.sol";
 import "../../../proto/Tendermint.sol";
 import "../../../proto/Commitment.sol";
@@ -142,7 +142,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
             getStorageKey(header.trusted_height)
         ];
 
-        bytes memory vsh = LightClient.genValidatorSetHash(
+        bytes memory vsh = LightClientGenValHash.genValidatorSetHash(
             header.trusted_validators
         );
 
@@ -174,7 +174,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         // - assert header timestamp is not past the trusting period
         // - assert header timestamp is past latest stored consensus state timestamp
         // - assert that a TrustLevel proportion of TrustedValidators signed new Commit
-        LightClient.verify(
+        LightClientVerify.verify(
             trustedHeader,
             header.trusted_validators,
             header.signed_header,
