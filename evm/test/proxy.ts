@@ -42,9 +42,9 @@ describe('Proxy', () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
 
-        await erc20.approve(proxy.address.toLocaleLowerCase(), 1048576)
+        await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
         let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
-        expect(allowance.toNumber()).to.eq(1048576)
+        expect(allowance.toNumber()).to.eq(1000)
 
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),

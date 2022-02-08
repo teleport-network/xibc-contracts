@@ -38,7 +38,7 @@ describe('Agent', () => {
 
     it("send", async () => {
         let account = (await accounts[0].getAddress()).toString()
-        let amount = web3.utils.hexToBytes("0x100000")
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000002710")
         let erc20PacketData = {
             srcChain: destChainName,
             destChain: srcChainName,
@@ -118,13 +118,13 @@ describe('Agent', () => {
 
         await mockPacket.recvPacket(pac, proof, height)
 
-        expect((await erc20.balanceOf(agent.address)).toString()).to.eq("1047576")
+        expect((await erc20.balanceOf(agent.address)).toString()).to.eq("9000")
 
         let outToken = (await mockTransfer.outTokens(erc20.address, destChainName))
         expect(outToken).to.eq(0)
 
-        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1047576")
-        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1047576")
+        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("9000")
+        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("9000")
         expect((await agent.sequences(srcChainName + "/" + destChainName + "/1")).sent).to.eq(true)
         expect(await mockPacket.getNextSequenceSend(srcChainName, destChainName)).to.eq(2)
     })
@@ -160,16 +160,16 @@ describe('Agent', () => {
         }
         let path = "commitments/" + pac.sourceChain + "/" + pac.destChain + "/sequences/" + pac.sequence
         expect(await mockPacket.commitments(Buffer.from(path, "utf-8"))).to.eq(sha256(sha256(erc20PacketDataBz)))
-        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("1047576")
+        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("9000")
         let Erc20Ack = await mockTransfer.NewAcknowledgement(false, "1: onRecvPackt: binding is not exist")
 
         await mockPacket.acknowledgePacket(pac, Erc20Ack, proof, height)
         expect(await mockPacket.getAckStatus(srcChainName, destChainName, 1)).to.eq(2)
 
         await agent.refund(srcChainName, destChainName, 1)
-        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("1048576")
-        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("1048576")
-        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("1048576")
+        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("10000")
+        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("10000")
+        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("10000")
         expect(await agent.refunded(srcChainName + "/" + destChainName + "/" + "1")).to.eq(true)
     })
 
