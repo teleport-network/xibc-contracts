@@ -9,7 +9,7 @@ import "../../proto/ProtoBufRuntime.sol";
 import "../../proto/Tendermint.sol";
 import "../utils/Timestamp.sol";
 import "../utils/Bytes.sol";
-import "./Ed25519.sol";
+import "../utils/Ed25519.sol";
 import "./MerkleTree.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -208,9 +208,14 @@ library LightClient {
             // Validate signature.
             bytes memory signBytes = genVoteSignBytes(commit, chainID, i);
             Ed25519.verify(
-                val.pub_key.ed25519,
-                signBytes,
-                commit.signatures[i].signature
+                Bytes.toBytes32(val.pub_key.ed25519),
+                Bytes.toBytes32(
+                    Bytes.substr(commit.signatures[i].signature, 0, 32)
+                ),
+                Bytes.toBytes32(
+                    Bytes.substr(commit.signatures[i].signature, 32, 32)
+                ),
+                signBytes
             );
             talliedVotingPower += val.voting_power;
             // return as soon as +2/3 of the signatures are verified
@@ -283,9 +288,14 @@ library LightClient {
             // Validate signature.
             bytes memory signBytes = genVoteSignBytes(commit, chainID, i);
             Ed25519.verify(
-                val.pub_key.ed25519,
-                signBytes,
-                commit.signatures[i].signature
+                Bytes.toBytes32(val.pub_key.ed25519),
+                Bytes.toBytes32(
+                    Bytes.substr(commit.signatures[i].signature, 0, 32)
+                ),
+                Bytes.toBytes32(
+                    Bytes.substr(commit.signatures[i].signature, 32, 32)
+                ),
+                signBytes
             );
             talliedVotingPower += uint256(val.voting_power);
             if (talliedVotingPower > votingPowerNeeded) {
