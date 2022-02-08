@@ -234,4 +234,58 @@ library Host {
         return
             Strings.strConcat("maxAckSeq/", packetPath(sourceChain, destChain));
     }
+
+    /**
+     * @notice ackStatusKey returns the store key of ack status
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     */
+    function ackStatusKey(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence
+    ) internal pure returns (bytes memory) {
+        return bytes(ackStatusPath(sourceChain, destChain, sequence));
+    }
+
+    /**
+     * @notice ackStatusPath defines ack status store path
+     *  @param sourceChain source chain name
+     *  @param destChain destination chain name
+     *  @param sequence sequence
+     */
+    function ackStatusPath(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence
+    ) internal pure returns (string memory) {
+        return
+            Strings.strConcat(
+                Strings.strConcat(
+                    ackStatusPrefixPath(sourceChain, destChain),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            );
+    }
+
+    /**
+     * @notice ackStatusPrefixPath returns the store key of under which a ack status
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     */
+    function ackStatusPrefixPath(
+        string memory sourceChain,
+        string memory destChain
+    ) internal pure returns (string memory) {
+        return
+            Strings.strConcat(
+                Strings.strConcat(
+                    "ackStatus/",
+                    packetPath(sourceChain, destChain)
+                ),
+                "/sequences"
+            );
+    }
 }

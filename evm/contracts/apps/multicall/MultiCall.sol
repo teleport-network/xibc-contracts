@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import "../../proto/Ack.sol";
 import "../../proto/RemoteContractCall.sol";
-import "../../core/client/ClientManager.sol";
 import "../../libraries/app/RCC.sol";
 import "../../libraries/packet/Packet.sol";
 import "../../libraries/utils/Bytes.sol";
@@ -12,6 +11,7 @@ import "../../libraries/utils/Strings.sol";
 import "../../libraries/app/Transfer.sol";
 import "../../libraries/app/RCC.sol";
 import "../../interfaces/IMultiCall.sol";
+import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IRCC.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IPacket.sol";
@@ -86,6 +86,10 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                 MultiCallDataTypes.RCCData memory data = abi.decode(
                     multiCallData.data[i],
                     (MultiCallDataTypes.RCCData)
+                );
+                require(
+                    !data.contractAddress.equals(""),
+                    "invalid ContractAddress"
                 );
                 dataList[i] = callRCC(multiCallData.destChain, data);
                 ports[i] = "CONTRACT";

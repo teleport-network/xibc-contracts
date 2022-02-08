@@ -113,7 +113,6 @@ library LightClient {
         // VerifyAdjacent, where validator set is known in advance.
         verifyCommitLight(
             trustedHeader.header.chain_id,
-            untrustedHeader.commit.block_id,
             untrustedHeader.header.height,
             untrustedHeader.commit,
             untrustedVals
@@ -170,7 +169,6 @@ library LightClient {
         // VerifyAdjacent, where validator set is known in advance.
         verifyCommitLight(
             trustedHeader.header.chain_id,
-            untrustedHeader.commit.block_id,
             untrustedHeader.header.height,
             untrustedHeader.commit,
             untrustedVals
@@ -184,7 +182,6 @@ library LightClient {
      */
     function verifyCommitLight(
         string memory chainID,
-        BlockID.Data memory blockID,
         int64 height,
         Commit.Data memory commit,
         ValidatorSet.Data memory untrustedVals
@@ -195,23 +192,6 @@ library LightClient {
         );
 
         require(height == commit.height, "Invalid commit -- wrong height");
-
-        require(
-            Bytes.equals(blockID.hash, commit.block_id.hash),
-            "invalid block_id.hash"
-        );
-        require(
-            blockID.part_set_header.total ==
-                commit.block_id.part_set_header.total,
-            "invalid part_set_header.total"
-        );
-        require(
-            Bytes.equals(
-                blockID.part_set_header.hash,
-                commit.block_id.part_set_header.hash
-            ),
-            "invalid part_set_header.hash"
-        );
 
         int64 talliedVotingPower = 0;
         int64 votingPowerNeeded = (untrustedVals.total_voting_power * 2) / 3;

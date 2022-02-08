@@ -61,7 +61,6 @@ describe('MultiCall', () => {
 
         let role = Buffer.from("MULTISEND_ROLE", "utf-8")
         expect((await accessManager.hasRole(keccak256(role), account.toString())).toString()).to.eq("true")
-        await accessManager.grantRole(keccak256(role), multiCall.address)
         expect((await accessManager.hasRole(keccak256(role), multiCall.address.toString())).toString()).to.eq("true")
 
         let MultiCallData = {
@@ -295,6 +294,8 @@ describe('MultiCall', () => {
                 rcc.address,
             ]
         ) as MultiCall
+        let role = Buffer.from("MULTISEND_ROLE", "utf-8")
+        await accessManager.grantRole(keccak256(role), multiCall.address)
     }
 
     const createClient = async function (chainName: string, lightClientAddress: any, clientState: any, consensusState: any) {

@@ -55,27 +55,11 @@ contract AccessManager is AccessControlUpgradeable {
     }
 
     /**
-     *  @notice dynamically add roles through multi-signature contract address
-     *  @param role       role
-     *  @param account    the address corresponding to the role
-     */
-    function addRole(bytes32 role, address account)
-        external
-        onlyMultiSignWallet
-    {
-        _setupRole(role, account);
-    }
-
-    /**
      *  @notice authorize a designated role to an address through a multi-signature contract address
      *  @param role       role
      *  @param account    authorized  address
      */
-    function grantRole(bytes32 role, address account)
-        public
-        override
-        onlyMultiSignWallet
-    {
+    function grantRole(bytes32 role, address account) public override {
         super.grantRole(role, account);
     }
 
@@ -84,31 +68,8 @@ contract AccessManager is AccessControlUpgradeable {
      *  @param role       role
      *  @param account    deauthorized  address
      */
-    function revokeRole(bytes32 role, address account)
-        public
-        override
-        onlyMultiSignWallet
-    {
+    function revokeRole(bytes32 role, address account) public override {
         super.revokeRole(role, account);
-    }
-
-    /**
-     *  @notice dynamically add roles through multi-signature contract address
-     *  @param roles       collection of roles
-     *  @param accounts    collection of accounts
-     */
-    function batchAddRole(bytes32[] calldata roles, address[] calldata accounts)
-        external
-        onlyMultiSignWallet
-    {
-        require(
-            roles.length == accounts.length,
-            "batchAdd: roles and accounts length mismatch"
-        );
-
-        for (uint256 i = 0; i < roles.length; ++i) {
-            _setupRole(roles[i], accounts[i]);
-        }
     }
 
     /**

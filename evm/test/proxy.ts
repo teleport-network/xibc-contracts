@@ -1,14 +1,14 @@
-import { BigNumber, Signer } from "ethers"
+import { Signer } from "ethers"
 import chai from "chai"
-import { RCC, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager, MockPacket, ERC20, Agent } from '../typechain'
+import { RCC, Proxy, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager, MockPacket, ERC20, MultiCall } from '../typechain'
 import { web3 } from "hardhat"
-import { sha256 } from "ethers/lib/utils"
+import { keccak256, sha256 } from "ethers/lib/utils"
 const { ethers, upgrades } = require("hardhat")
 const { expect } = chai
 
 let client = require("./proto/compiled.js")
 
-describe('Agent', () => {
+describe('Proxy', () => {
     let rcc: RCC
     let accounts: Signer[]
     let mockPacket: MockPacket
@@ -17,12 +17,13 @@ describe('Agent', () => {
     let tendermint: MockTendermint
     let accessManager: AccessManager
     let mockTransfer: MockTransfer
-    let agent: Agent
+    let multiCall: MultiCall
+    let proxy: Proxy
     let erc20: ERC20
     const srcChainName = "srcChain"
     const destChainName = "destChain"
 
-    before('deploy Agent', async () => {
+    before('deploy Proxy', async () => {
         accounts = await ethers.getSigners()
         await deployAccessManager()
         await deployClientManager()
@@ -33,24 +34,46 @@ describe('Agent', () => {
         await deployMockTransfer()
         await deployToken()
         await deployRCC()
-        await deployAgent()
+        await deployMultiCall()
+        await deployProxy()
     })
 
     it("send", async () => {
-        let account = (await accounts[0].getAddress()).toString()
-        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000002710")
-        let erc20PacketData = {
-            srcChain: destChainName,
-            destChain: srcChainName,
-            sender: account.toLowerCase(),
-            receiver: agent.address.toLowerCase(),
+        let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
+        let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
+
+        await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
+        let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
+        expect(allowance.toNumber()).to.eq(1000)
+
+        let ERC20TransferData = {
+            tokenAddress: erc20.address.toLocaleLowerCase(),
+            receiver: "0x0000000000000000000000000000000010000007",
+            amount: 1000,
+        }
+        let rccTransfer = {
+            tokenAddress: "0x9999999999999999999999999999999999999999",
+            receiver: reciver,
+            amount: 1000,
+            destChain: "eth-test",
+            relayChain: "",
+        }
+        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer)
+        let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
+
+        let ERC20TransferPacketData = {
+            srcChain: srcChainName,
+            destChain: destChainName,
+            sender: proxy.address.toLocaleLowerCase(),
+            receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
-            token: "0x0000000000000000000000000000000010000011",
+            token: ERC20TransferData.tokenAddress,
             oriToken: null
         }
-        let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()
-        let mockId = web3.utils.utf8ToHex("src/des/1")
-        const transferData = web3.eth.abi.encodeFunctionCall(
+        let ERC20TransferPacketDataBz = await client.TokenTransfer.encode(ERC20TransferPacketData).finish()
+        let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(ERC20TransferPacketDataBz)))
+        let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1))
+        const agentAbi = web3.eth.abi.encodeFunctionCall(
             {
                 name: 'send',
                 type: 'function',
@@ -86,91 +109,24 @@ describe('Agent', () => {
                         "type": "string"
                     }
                 ],
-            }, [mockId, "0x67d269191c92caf3cd7723f116c85e6e9bf55933", "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", "1000", "destChain", ""]
+            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
         )
-        expect(transferData).to.eq("0x716e215800000000000000000000000000000000000000000000000000000000000000c000000000000000000000000067d269191c92caf3cd7723f116c85e6e9bf55933000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003e8000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000097372632f6465732f310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a30786633396664366535316161643838663666346365366162383832373237396366666662393232363600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657374436861696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-        let packetData = {
-            srcChain: destChainName,
-            destChain: srcChainName,
-            sender: account.toLowerCase(),
-            contractAddress: agent.address,
-            data: web3.utils.hexToBytes(transferData),
-        }
-        let proof = Buffer.from("proof", "utf-8")
-        let height = {
-            revision_number: 1,
-            revision_height: 1,
-        }
-        let transferByte = client.RemoteContractCall.encode(packetData).finish()
-        let sequence: BigNumber = BigNumber.from(1)
-        let pac = {
-            sequence: sequence,
-            sourceChain: packetData.srcChain,
-            destChain: packetData.destChain,
-            relayChain: "",
-            ports: ["FT", "CONTRACT"],
-            dataList: [erc20PacketDataBz, transferByte],
-        }
-        await mockTransfer.bindToken(erc20.address, erc20PacketData.token, erc20PacketData.srcChain)
 
-        let trace = await mockTransfer.bindingTraces(erc20PacketData.srcChain + "/" + erc20PacketData.token)
-        expect(trace.toString()).to.eq(erc20.address)
-
-        await mockPacket.recvPacket(pac, proof, height)
-
-        expect((await erc20.balanceOf(agent.address)).toString()).to.eq("9000")
-
-        let outToken = (await mockTransfer.outTokens(erc20.address, destChainName))
-        expect(outToken).to.eq(0)
-
-        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("9000")
-        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("9000")
-        expect((await agent.sequences(srcChainName + "/" + destChainName + "/1")).sent).to.eq(true)
-        expect(await mockPacket.getNextSequenceSend(srcChainName, destChainName)).to.eq(2)
-    })
-
-    it("refund", async () => {
-        let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-        let account = (await accounts[0].getAddress()).toString()
-        let erc20PacketData = {
+        let RccPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: agent.address.toLocaleLowerCase(),
-            receiver: account.toLocaleLowerCase(),
-            amount: amount,
-            token: erc20.address.toLocaleLowerCase(),
-            oriToken: "0x0000000000000000000000000000000010000011"
+            sender: proxy.address.toLocaleLowerCase(),
+            contractAddress: "0x0000000000000000000000000000000010000007",
+            data: web3.utils.hexToBytes(agentAbi),
         }
+        let RccPacketDataBz = await client.RemoteContractCall.encode(RccPacketData).finish()
+        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
 
-        let erc20PacketDataBz = client.TokenTransfer.encode(erc20PacketData).finish()
-
-        let proof = Buffer.from("proof", "utf-8")
-        let height = {
-            revision_number: 1,
-            revision_height: 1,
-        }
-        let sequence: BigNumber = BigNumber.from(1)
-        let pac = {
-            sequence: sequence,
-            sourceChain: srcChainName,
-            destChain: destChainName,
-            relayChain: "",
-            ports: ["FT"],
-            dataList: [erc20PacketDataBz],
-        }
-        let path = "commitments/" + pac.sourceChain + "/" + pac.destChain + "/sequences/" + pac.sequence
-        expect(await mockPacket.commitments(Buffer.from(path, "utf-8"))).to.eq(sha256(sha256(erc20PacketDataBz)))
-        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("9000")
-        let Erc20Ack = await mockTransfer.NewAcknowledgement(false, "1: onRecvPackt: binding is not exist")
-
-        await mockPacket.acknowledgePacket(pac, Erc20Ack, proof, height)
-        expect(await mockPacket.getAckStatus(srcChainName, destChainName, 1)).to.eq(2)
-
-        await agent.refund(srcChainName, destChainName, 1)
-        expect(await erc20.balanceOf(agent.address.toLowerCase().toString())).to.eq("10000")
-        expect(await agent.balances(account.toLowerCase(), erc20.address.toLowerCase())).to.eq("10000")
-        expect(await agent.supplies(erc20.address.toLowerCase())).to.eq("10000")
-        expect(await agent.refunded(srcChainName + "/" + destChainName + "/" + "1")).to.eq(true)
+        let lengthSum = ERC20TransferPacketDataBzHash.length + RccPacketDataBzHash.length
+        let sum = Buffer.concat([ERC20TransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
+        let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
+        let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
+        expect(commitment.toString()).to.eq(sha256(sum))
     })
 
     const deployMockTransfer = async () => {
@@ -214,16 +170,17 @@ describe('Agent', () => {
         await routing.addRouting("CONTRACT", rcc.address)
     }
 
-    const deployAgent = async () => {
-        const AgentFactory = await ethers.getContractFactory('Agent')
-        agent = await upgrades.deployProxy(
-            AgentFactory,
+    const deployProxy = async () => {
+        const ProxyFactory = await ethers.getContractFactory('Proxy')
+        proxy = await upgrades.deployProxy(
+            ProxyFactory,
             [
-                mockTransfer.address,
-                rcc.address,
+                clientManager.address,
+                multiCall.address,
                 mockPacket.address,
+                mockTransfer.address,
             ]
-        ) as Agent
+        ) as Proxy
     }
 
     const deployAccessManager = async () => {
@@ -236,10 +193,28 @@ describe('Agent', () => {
         clientManager = (await upgrades.deployProxy(msrFactory, [srcChainName, accessManager.address])) as ClientManager
     }
 
+    const deployMultiCall = async () => {
+        const multiCallFactory = await ethers.getContractFactory('MultiCall')
+        multiCall = await upgrades.deployProxy(
+            multiCallFactory,
+            [
+                mockPacket.address,
+                clientManager.address,
+                mockTransfer.address,
+                rcc.address,
+            ]
+        ) as MultiCall
+        let role = Buffer.from("MULTISEND_ROLE", "utf-8")
+        await accessManager.grantRole(keccak256(role), multiCall.address)
+    }
+
     const deployToken = async () => {
         const tokenFac = await ethers.getContractFactory("testToken")
         erc20 = await tokenFac.deploy("test", "test")
         await erc20.deployed()
+
+        erc20.mint(await accounts[0].getAddress(), 1048576)
+        expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1048576")
     }
 
     const deployHost = async () => {

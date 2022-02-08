@@ -3,7 +3,7 @@ import { task, types } from "hardhat/config"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
-    .addParam("node","node url")
+    .addParam("node", "node url")
     .setAction(async (taskArgs, hre) => {
         const provider = new hre.ethers.providers.JsonRpcProvider(taskArgs.node)
 
@@ -90,7 +90,7 @@ task("queryBindings", "query ERC20 token trace")
         let res = await transfer.bindings(taskArgs.address)
         console.log(await res)
     })
-    
+
 task("deployToken", "Deploy Token")
     .addParam("name", "token name")
     .addParam("symbol", "token symbol")
@@ -111,8 +111,8 @@ task("mintToken", "Deploy Token")
     .setAction(async (taskArgs, hre) => {
         const tokenFactory = await hre.ethers.getContractFactory('testToken')
         const token = await tokenFactory.attach(taskArgs.address)
-        
-        await token.mint(taskArgs.to,taskArgs.amount)
+
+        await token.mint(taskArgs.to, taskArgs.amount)
     });
 
 task("queryErc20balances", "Deploy Token")
@@ -134,9 +134,10 @@ task("approve", "Deploy Token")
         const tokenFactory = await hre.ethers.getContractFactory('testToken')
         const token = await tokenFactory.attach(taskArgs.address)
 
-        await token.approve(taskArgs.transfer, taskArgs.amount)
+        let res = await token.approve(taskArgs.transfer, taskArgs.amount)
+        console.log(res)
     });
-    
+
 task("queryAllowance", "Deploy Token")
     .addParam("address", "erc20 address")
     .addParam("transfer", "transfer address ")
@@ -160,5 +161,16 @@ task("queryOutToken", "Token")
         console.log(outToken)
     });
 
+task("queryTrace", "Token")
+    .addParam("transfer", "transfer address")
+    .addParam("srcchain", "srcchain name")
+    .addParam("token", "token address")
+    .setAction(async (taskArgs, hre) => {
+        const transferFactory = await hre.ethers.getContractFactory('Transfer')
+        const transfer = await transferFactory.attach(taskArgs.transfer)
+
+        let trace = await transfer.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
+        console.log(trace)
+    });
 
 module.exports = {}

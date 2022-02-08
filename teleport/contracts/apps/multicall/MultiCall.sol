@@ -68,6 +68,10 @@ contract MultiCall is IMultiCall {
                     multiCallData.data[i],
                     (MultiCallDataTypes.RCCData)
                 );
+                require(
+                    !data.contractAddress.equals(""),
+                    "invalid ContractAddress"
+                );
                 callRCC(multiCallData.destChain, data);
             }
         }

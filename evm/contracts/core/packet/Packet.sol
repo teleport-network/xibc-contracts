@@ -28,6 +28,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     mapping(bytes => uint64) public sequences;
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
+    mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
 
@@ -218,7 +219,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice recvPacket is called by a module in order to receive & process an XIBC packet
+     * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
      * @param packet xibc packet
      * @param proof proof commit
      * @param height proof height
@@ -308,21 +309,17 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
             IModule module = routing.getModule(packet.ports[i]);
             require(
                 address(module) != address(0),
-                Strings.uint642str(i).toSlice().concat(
-                    ": module not found!".toSlice()
-                )
+                Strings.strConcat(Strings.uint642str(i), ": module not found!")
             );
             PacketTypes.Result memory res = module.onRecvPacket(
                 packet.dataList[i]
             );
             require(
                 res.result.length > 0,
-                Strings
-                    .uint642str(i)
-                    .toSlice()
-                    .concat(": ".toSlice())
-                    .toSlice()
-                    .concat(res.message.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(Strings.uint642str(i), ": "),
+                    res.message
+                )
             );
             results[i] = res.result;
         }
@@ -458,12 +455,34 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
             Acknowledgement.Data memory ack = Acknowledgement.decode(
                 acknowledgement
             );
-            for (uint64 i = 0; i < packet.ports.length; i++) {
-                IModule module = routing.getModule(packet.ports[i]);
-                module.onAcknowledgementPacket(
-                    packet.dataList[i],
-                    ack.results[i]
-                );
+
+            if (ack.results.length > 0) {
+                ackStatus[
+                    Host.ackStatusKey(
+                        packet.sourceChain,
+                        packet.destChain,
+                        packet.sequence
+                    )
+                ] = 1;
+                for (uint64 i = 0; i < packet.ports.length; i++) {
+                    IModule module = routing.getModule(packet.ports[i]);
+                    module.onAcknowledgementPacket(
+                        packet.dataList[i],
+                        ack.results[i]
+                    );
+                }
+            } else {
+                ackStatus[
+                    Host.ackStatusKey(
+                        packet.sourceChain,
+                        packet.destChain,
+                        packet.sequence
+                    )
+                ] = 2;
+                for (uint64 i = 0; i < packet.ports.length; i++) {
+                    IModule module = routing.getModule(packet.ports[i]);
+                    module.onAcknowledgementPacket(packet.dataList[i], hex"");
+                }
             }
         } else {
             require(
@@ -484,7 +503,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice Verify packet acknowledgement
+     * @notice verify packet acknowledgement
      */
     function verifyPacketAcknowledgement(
         address sender,
@@ -525,7 +544,27 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice Get packet next sequence to send
+     * @notice set max ack sequence
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence max ack sequence
+     */
+    function setMaxAckSequence(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence
+    ) internal {
+        uint64 currentMaxAckSeq = sequences[
+            Host.MaxAckSeqKey(sourceChain, destChain)
+        ];
+        if (sequence > currentMaxAckSeq) {
+            currentMaxAckSeq = sequence;
+        }
+        sequences[Host.MaxAckSeqKey(sourceChain, destChain)] = currentMaxAckSeq;
+    }
+
+    /**
+     * @notice get packet next sequence to send
      * @param sourceChain name of source chain
      * @param destChain name of destination chain
      */
@@ -543,22 +582,16 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
     }
 
     /**
-     * @notice Set max ack sequence
+     * @notice get the next sequence of sourceChain/destChain
      * @param sourceChain source chain name
      * @param destChain destination chain name
-     * @param sequence max ack sequence
+     * @param sequence sequence
      */
-    function setMaxAckSequence(
-        string memory sourceChain,
-        string memory destChain,
+    function getAckStatus(
+        string calldata sourceChain,
+        string calldata destChain,
         uint64 sequence
-    ) internal {
-        uint64 currentMaxAckSeq = sequences[
-            Host.MaxAckSeqKey(sourceChain, destChain)
-        ];
-        if (sequence > currentMaxAckSeq) {
-            currentMaxAckSeq = sequence;
-        }
-        sequences[Host.MaxAckSeqKey(sourceChain, destChain)] = currentMaxAckSeq;
+    ) external view override returns (uint8) {
+        return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
     }
 }

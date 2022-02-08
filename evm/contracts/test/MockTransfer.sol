@@ -87,9 +87,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
             bound: true
         });
         bindingTraces[
-            oriChain.toSlice().concat("/".toSlice()).toSlice().concat(
-                oriToken.toSlice()
-            )
+            Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken)
         ] = tokenAddres;
     }
 
@@ -341,12 +339,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         if (bytes(packetData.oriToken).length == 0) {
             // token come in
             address tokenAddress = bindingTraces[
-                packetData
-                    .srcChain
-                    .toSlice()
-                    .concat("/".toSlice())
-                    .toSlice()
-                    .concat(packetData.token.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(packetData.srcChain, "/"),
+                    packetData.token
+                )
             ];
 
             // check bindings

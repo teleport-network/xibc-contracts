@@ -82,22 +82,19 @@ contract Transfer is ITransfer {
         string calldata oriToken,
         string calldata oriChain
     ) external onlyXIBCModuleAggregate {
-        string memory bindingKey = tokenAddress
-            .addressToString()
-            .toSlice()
-            .concat("/".toSlice())
-            .toSlice()
-            .concat(oriChain.toSlice());
+        string memory bindingKey = Strings.strConcat(
+            Strings.strConcat(tokenAddress.addressToString(), "/"),
+            oriChain
+        );
 
         require(tokenAddress != address(0), "invalid ERC20 address");
 
         require(!bindings[bindingKey].bound, "trace already bound");
 
-        string memory traceKey = oriChain
-            .toSlice()
-            .concat("/".toSlice())
-            .toSlice()
-            .concat(oriToken.toSlice());
+        string memory traceKey = Strings.strConcat(
+            Strings.strConcat(oriChain, "/"),
+            oriToken
+        );
 
         require(bindingTraces[traceKey] == address(0), "trace already bound");
 
@@ -119,13 +116,10 @@ contract Transfer is ITransfer {
             "sourceChain can't equal to destChain"
         );
 
-        string memory bindingKey = transferData
-            .tokenAddress
-            .addressToString()
-            .toSlice()
-            .concat("/".toSlice())
-            .toSlice()
-            .concat(transferData.destChain.toSlice());
+        string memory bindingKey = Strings.strConcat(
+            Strings.strConcat(transferData.tokenAddress.addressToString(), "/"),
+            transferData.destChain
+        );
 
         // if is crossed chain token
         if (bindings[bindingKey].bound) {
@@ -197,13 +191,10 @@ contract Transfer is ITransfer {
             "sourceChain can't equal to destChain"
         );
 
-        string memory bindingKey = transferData
-            .tokenAddress
-            .addressToString()
-            .toSlice()
-            .concat("/".toSlice())
-            .toSlice()
-            .concat(transferData.destChain.toSlice());
+        string memory bindingKey = Strings.strConcat(
+            Strings.strConcat(transferData.tokenAddress.addressToString(), "/"),
+            transferData.destChain
+        );
 
         // if is crossed chain token
         if (bindings[bindingKey].bound) {
@@ -303,20 +294,16 @@ contract Transfer is ITransfer {
         if (bytes(packet.oriToken).length == 0) {
             // token come in
             address tokenAddress = bindingTraces[
-                packet
-                    .srcChain
-                    .toSlice()
-                    .concat("/".toSlice())
-                    .toSlice()
-                    .concat(packet.token.toSlice())
+                Strings.strConcat(
+                    Strings.strConcat(packet.srcChain, "/"),
+                    packet.token
+                )
             ];
 
-            string memory bindingKey = tokenAddress
-                .addressToString()
-                .toSlice()
-                .concat("/".toSlice())
-                .toSlice()
-                .concat(packet.srcChain.toSlice());
+            string memory bindingKey = Strings.strConcat(
+                Strings.strConcat(tokenAddress.addressToString(), "/"),
+                packet.srcChain
+            );
 
             // check bindings
             if (!bindings[bindingKey].bound) {
@@ -414,12 +401,10 @@ contract Transfer is ITransfer {
                     "mint back to sender failed"
                 );
                 bindings[
-                    packet
-                        .token
-                        .toSlice()
-                        .concat("/".toSlice())
-                        .toSlice()
-                        .concat(packet.destChain.toSlice())
+                    Strings.strConcat(
+                        Strings.strConcat(packet.token, "/"),
+                        packet.destChain
+                    )
                 ].amount += packet.amount.toUint256();
             } else if (packet.token.parseAddr() != address(0)) {
                 // refund native ERC20 token out

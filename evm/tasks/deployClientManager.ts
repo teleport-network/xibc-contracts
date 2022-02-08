@@ -229,5 +229,5 @@ task("getChainName", "Deploy Client Manager")
         const result = await clientManager.getChainName()
         console.log(result)
     })
-    
+
 module.exports = {}

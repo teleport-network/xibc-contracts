@@ -22,7 +22,7 @@ module.exports = {
             chainId: 9999999999999,
             gas: 4100000,
             accounts: [
-                "B9A6099FF0867BA2C9BB4FC090586956DD0EE153B4BD8C073FF5DFFDAC73C4E0",
+                "",
             ],
         },
     },

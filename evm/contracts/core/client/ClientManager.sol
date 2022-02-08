@@ -116,6 +116,19 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
+     *  @notice this function is called by the owner, the purpose is to revoke the relayer address of a light client
+     *  @param chainName  the counterparty chain name
+     *  @param relayer    relayer address
+     */
+    function revokeRelayer(string calldata chainName, address relayer)
+        external
+        onlyAuthorizee(REGISTER_RELAYER_ROLE)
+    {
+        require(relayers[chainName][relayer], "relayer already registered");
+        relayers[chainName][relayer] = false;
+    }
+
+    /**
      *  @notice obtain the contract address of the client according to the registered client name
      *  @param chainName  the counterparty chain name
      */
