@@ -8,7 +8,6 @@ task("deployTssClient", "Deploy Tss Client")
         const tssFactory = await hre.ethers.getContractFactory(
             'TssClient'
         )
-
         const tss = await hre.upgrades.deployProxy(
             tssFactory,
             [String(CLIENT_MANAGER_ADDRESS)],
