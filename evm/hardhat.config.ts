@@ -19,7 +19,6 @@ import "./tasks/deployProxy"
 import "./tasks/deployAccessManager"
 import "./tasks/transfer"
 
-
 module.exports = {
     defaultNetwork: 'hardhat',
     defender: {

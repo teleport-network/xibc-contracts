@@ -90,11 +90,19 @@ describe('Client', () => {
         const proofCodec = await ProofCodec.deploy()
         await proofCodec.deployed()
 
+        const LightClientVerify = await ethers.getContractFactory('LightClientVerify')
+        const lightClientVerify = await LightClientVerify.deploy()
+        await lightClientVerify.deployed()
+
+        const LightClientGenValHash = await ethers.getContractFactory('LightClientGenValHash')
+        const lightClientGenValHash = await LightClientGenValHash.deploy()
+        await lightClientGenValHash.deployed()
+
         const Verifier = await ethers.getContractFactory(
             'Verifier',
             {
                 signer: accounts[0],
-                libraries: { ProofCodec: proofCodec.address, },
+                libraries: { ProofCodec: proofCodec.address },
             }
         )
         const verifierLib = await Verifier.deploy()
@@ -108,6 +116,8 @@ describe('Client', () => {
                     ConsensusStateCodec: consensusStateCodec.address,
                     Verifier: verifierLib.address,
                     HeaderCodec: headerCodec.address,
+                    LightClientVerify: lightClientVerify.address,
+                    LightClientGenValHash: lightClientGenValHash.address,
                 },
             }
         )
