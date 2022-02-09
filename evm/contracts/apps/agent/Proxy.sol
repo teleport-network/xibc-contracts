@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Proxy is Initializable,OwnableUpgradeable {
+contract Proxy is Initializable, OwnableUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -32,7 +32,12 @@ contract Proxy is Initializable,OwnableUpgradeable {
         transfer = ITransfer(transferContract);
     }
 
-    event SendEvent(bytes id);
+    event SendEvent(
+        bytes id,
+        string srcChain,
+        string destChain,
+        uint256 sequence
+    );
 
     function send(
         string memory destChain,
@@ -78,7 +83,6 @@ contract Proxy is Initializable,OwnableUpgradeable {
                 data: dataList
             });
         multiCall.multiCall(multiCallData);
-        emit SendEvent(id);
     }
 
     function _getID(string memory destChain) private returns (bytes memory) {
@@ -97,8 +101,9 @@ contract Proxy is Initializable,OwnableUpgradeable {
                 Strings.uint642str(sequence)
             )
         );
-
-        return Bytes.fromBytes32(sha256(idKey));
+        bytes memory id = Bytes.fromBytes32(sha256(idKey));
+        emit SendEvent(id, sourceChain, destChain, sequence);
+        return id;
     }
 
     function _getRCCDataAbi(
