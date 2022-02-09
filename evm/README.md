@@ -20,7 +20,7 @@ pip install -r requirements.txt
 # install protobufjs
 npm install -g protobufjs
 
-# ccompile proto
+# compile proto
 pbjs -t static-module -w commonjs -o ./test/proto/compiled.js ./proto/*.proto
 
 # compile project
@@ -53,12 +53,14 @@ yarn hardhat deployTendermint --network $NETWORK_NAME
 # Deploy Routing
 yarn hardhat deployRouting --network $NETWORK_NAME
 
-
 # Deploy Packet
 yarn hardhat deployPacket --network $NETWORK_NAME
 
 # Deploy Transfer
 yarn hardhat deployTransfer --network $NETWORK_NAME
+
+# Deploy Proxy
+yarn hardhat deployProxy --network $NETWORK_NAME 
 ```
 
 **Across the chain**

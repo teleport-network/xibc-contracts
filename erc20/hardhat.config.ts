@@ -22,6 +22,7 @@ module.exports = {
             chainId: 9000,
             gas: 4100000,
             accounts: [''],
+
         },
         rinkeby: {
             url: 'https://rinkeby.infura.io/v3/023f2af0f670457d9c4ea9cb524f0810',

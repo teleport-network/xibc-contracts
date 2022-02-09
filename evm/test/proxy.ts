@@ -45,20 +45,19 @@ describe('Proxy', () => {
         await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
         let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
         expect(allowance.toNumber()).to.eq(1000)
-
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
-            receiver: "0x0000000000000000000000000000000010000007",
+            receiver: "0x0000000000000000000000000000000010000007", // agent address
             amount: 1000,
         }
         let rccTransfer = {
-            tokenAddress: "0x9999999999999999999999999999999999999999",
+            tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
             receiver: reciver,
             amount: 1000,
-            destChain: "eth-test",
+            destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer)
+        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer) // destChainName : teleport
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
 
         let ERC20TransferPacketData = {

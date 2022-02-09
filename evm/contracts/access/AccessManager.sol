@@ -37,7 +37,7 @@ contract AccessManager is AccessControlUpgradeable {
 
     function initialize(address _multiSignWallet) public initializer {
         multiSignWallet = _multiSignWallet;
-        _setupRole(DEFAULT_ADMIN_ROLE, multiSignWallet);
+        _setupRole(DEFAULT_ADMIN_ROLE, _multiSignWallet);
 
         // clientManager
         _setupRole(CREATE_CLIENT_ROLE, _multiSignWallet);

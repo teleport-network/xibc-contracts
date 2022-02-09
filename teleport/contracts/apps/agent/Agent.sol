@@ -13,6 +13,8 @@ import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Agent {
+    receive() external payable {}
+
     using Strings for *;
     using Bytes for *;
 
@@ -76,19 +78,32 @@ contract Agent {
                 transferData.amount,
             "err amount"
         );
+        if (transferData.tokenAddress != address(0)) {
+            IERC20(transferData.tokenAddress).approve(
+                address(transferContract),
+                transferData.amount
+            );
+            // call transfer to send erc20
+            ITransfer(transferContract).sendTransferERC20(transferData);
+            supplies[transferData.tokenAddress] = IERC20(
+                transferData.tokenAddress
+            ).balanceOf(address(this));
+        } else {
+            // call transfer to send base
+            ITransfer(transferContract).sendTransferBase{
+                value: transferData.amount
+            }(
+                TransferDataTypes.BaseTransferData({
+                    receiver: transferData.receiver,
+                    destChain: transferData.destChain,
+                    relayChain: transferData.relayChain
+                })
+            );
+            supplies[transferData.tokenAddress] = address(this).balance;
+        }
 
-        IERC20(transferData.tokenAddress).approve(
-            transferContract,
-            transferData.amount
-        );
-
-        // call transfer to send erc20
-        ITransfer(transferContract).sendTransferERC20(transferData);
         balances[rccPacket.sender][transferData.tokenAddress] -= transferData
             .amount;
-
-        supplies[transferData.tokenAddress] = IERC20(transferData.tokenAddress)
-            .balanceOf(address(this));
 
         uint64 sequence = IPacket(xibcModulePacket).getNextSequenceSend(
             rccPacket.destChain,
@@ -111,7 +126,7 @@ contract Agent {
             tokenAddress: transferData.tokenAddress,
             amount: transferData.amount
         });
-        
+
         emit SendEvent(
             id,
             rccPacket.destChain,
@@ -137,11 +152,19 @@ contract Agent {
             "must synchronize"
         );
         // check received
-        require(
-            IERC20(tokenAddress).balanceOf(address(this)) >=
-                supplies[tokenAddress] + transferPacket.amount.toUint256(),
-            "haven't received token"
-        );
+        if (tokenAddress != address(0)) {
+            require(
+                IERC20(tokenAddress).balanceOf(address(this)) >=
+                    supplies[tokenAddress] + transferPacket.amount.toUint256(),
+                "haven't received token"
+            );
+        } else {
+            require(
+                address(this).balance >=
+                    supplies[tokenAddress] + transferPacket.amount.toUint256(),
+                "haven't received token"
+            );
+        }
 
         balances[transferPacket.sender][tokenAddress] += transferPacket
             .amount
