@@ -33,7 +33,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
     }
 
     event SendEvent(
-        bytes id,
+        bytes indexed id,
         string srcChain,
         string destChain,
         uint256 sequence
