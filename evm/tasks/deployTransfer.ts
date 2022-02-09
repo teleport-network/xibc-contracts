@@ -18,6 +18,7 @@ task("deployTransfer", "Deploy Transfer")
         )
         await transfer.deployed()
         console.log("Transfer deployed to:", transfer.address.toLocaleLowerCase())
+        console.log("export TRANSFER_ADDRESS=%s", transfer.address.toLocaleLowerCase())
     })
 
 module.exports = {}
