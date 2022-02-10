@@ -18,7 +18,7 @@ library RCCDataTypes {
         string destChain;
     }
 
-    struct RemoteContractCall {
+    struct RCCPacketData {
         string srcChain;
         string destChain;
         string sender;

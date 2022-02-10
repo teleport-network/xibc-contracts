@@ -27,7 +27,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
 
     mapping(bytes32 => bytes) public override acks;
 
-    RCCDataTypes.RemoteContractCall public latestPacket;
+    RCCDataTypes.RCCPacketData public latestPacket;
 
     event Ack(bytes32 indexed dataHash, bytes ack);
 
@@ -67,7 +67,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
         dataList[0] = abi.encode(
-            RCCDataTypes.RemoteContractCall({
+            RCCDataTypes.RCCPacketData({
                 srcChain: sourceChain,
                 destChain: rccData.destChain,
                 sender: msg.sender.addressToString(),
@@ -104,7 +104,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
 
         return
             abi.encode(
-                RCCDataTypes.RemoteContractCall({
+                RCCDataTypes.RCCPacketData({
                     srcChain: sourceChain,
                     destChain: rccData.destChain,
                     sender: rccData.sender.addressToString(),
@@ -122,9 +122,9 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         onlyPacket
         returns (PacketTypes.Result memory)
     {
-        RCCDataTypes.RemoteContractCall memory packetData = abi.decode(
+        RCCDataTypes.RCCPacketData memory packetData = abi.decode(
             data,
-            (RCCDataTypes.RemoteContractCall)
+            (RCCDataTypes.RCCPacketData)
         );
         require(
             packetData.contractAddress.parseAddr() != address(this),
@@ -169,7 +169,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         external
         view
         override
-        returns (RCCDataTypes.RemoteContractCall memory)
+        returns (RCCDataTypes.RCCPacketData memory)
     {
         return latestPacket;
     }

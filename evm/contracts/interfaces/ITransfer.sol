@@ -40,5 +40,5 @@ interface ITransfer is IModule {
     function getLatestPacket()
         external
         view
-        returns (TransferDataTypes.TokenTransfer memory);
+        returns (TransferDataTypes.TransferPacketData memory);
 }

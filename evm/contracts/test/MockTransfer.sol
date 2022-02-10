@@ -38,7 +38,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
 
-    TransferDataTypes.TokenTransfer public latestPacket;
+    TransferDataTypes.TransferPacketData public latestPacket;
 
     uint256 public version;
 
@@ -149,7 +149,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         ports[0] = PORT;
 
         dataList[0] = abi.encode(
-            TransferDataTypes.TokenTransfer({
+            TransferDataTypes. TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -229,7 +229,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
 
         return
             abi.encode(
-                TransferDataTypes.TokenTransfer({
+                TransferDataTypes. TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
                     sender: transferData.sender.addressToString(),
@@ -258,7 +258,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
         dataList[0] = abi.encode(
-            TransferDataTypes.TokenTransfer({
+            TransferDataTypes. TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -303,7 +303,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
 
         return
             abi.encode(
-                TransferDataTypes.TokenTransfer({
+                TransferDataTypes. TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
                     sender: transferData.sender.addressToString(),
@@ -320,9 +320,9 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         override
         returns (PacketTypes.Result memory)
     {
-        TransferDataTypes.TokenTransfer memory packetData = abi.decode(
+        TransferDataTypes. TransferPacketData memory packetData = abi.decode(
             data,
-            (TransferDataTypes.TokenTransfer)
+            (TransferDataTypes. TransferPacketData)
         );
 
         latestPacket = packetData;
@@ -423,11 +423,11 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
-            _refundTokens(abi.decode(data, (TransferDataTypes.TokenTransfer)));
+            _refundTokens(abi.decode(data, (TransferDataTypes. TransferPacketData)));
         }
     }
 
-    function _refundTokens(TransferDataTypes.TokenTransfer memory data)
+    function _refundTokens(TransferDataTypes. TransferPacketData memory data)
         private
     {
         if (bytes(data.oriToken).length > 0) {
@@ -548,7 +548,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         view
         override
-        returns (TransferDataTypes.TokenTransfer memory)
+        returns (TransferDataTypes. TransferPacketData memory)
     {
         return latestPacket;
     }

@@ -39,7 +39,7 @@ library TransferDataTypes {
         string destChain;
     }
     
-    struct TokenTransfer {
+    struct TransferPacketData {
         string srcChain;
         string destChain;
         string sender;

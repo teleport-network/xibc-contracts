@@ -19,5 +19,5 @@ interface IRCC is IModule {
     function getLatestPacket()
         external
         view
-        returns (RCCDataTypes.RemoteContractCall memory);
+        returns (RCCDataTypes.RCCPacketData memory);
 }
