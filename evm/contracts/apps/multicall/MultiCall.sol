@@ -2,14 +2,12 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../proto/Ack.sol";
-import "../../proto/RemoteContractCall.sol";
-import "../../libraries/app/RCC.sol";
-import "../../libraries/packet/Packet.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
+import "../../libraries/app/RCC.sol";
 import "../../libraries/app/Transfer.sol";
 import "../../libraries/app/RCC.sol";
+import "../../libraries/packet/Packet.sol";
 import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IRCC.sol";

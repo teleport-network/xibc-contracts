@@ -1,4 +1,4 @@
-import { BigNumber, Signer } from "ethers"
+import { BigNumber, Signer, utils } from "ethers"
 import chai from "chai"
 import { RCC, Routing, ClientManager, MockTendermint, Transfer, AccessManager, ERC20, MockPacket } from '../typechain'
 import { sha256 } from "ethers/lib/utils"
@@ -51,8 +51,18 @@ describe('RCC', () => {
             contractAddress: rccData.contractAddress,
             data: rccData.data,
         }
-        let dataBytes = await client.RemoteContractCall.encode(packetData).finish()
-
+        let dataBytes = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.contractAddress,
+                    packetData.data,
+                ]
+            ]
+        );
         await rcc.sendRemoteContractCall(rccData)
         let path = "commitments/" + srcChainName + "/" + rccData.destChain + "/sequences/" + 1
         let commit = await mockPacket.commitments(Buffer.from(path, "utf-8"))
@@ -78,7 +88,18 @@ describe('RCC', () => {
             revision_number: 1,
             revision_height: 1,
         }
-        let transferByte = client.RemoteContractCall.encode(packetData).finish()
+        let transferByte = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.contractAddress,
+                    packetData.data,
+                ]
+            ]
+        );
         let sequence: BigNumber = BigNumber.from(1)
         let pac = {
             sequence: sequence,
