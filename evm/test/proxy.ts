@@ -1,4 +1,4 @@
-import { Signer } from "ethers"
+import { Signer,utils } from "ethers"
 import chai from "chai"
 import { RCC, Proxy, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager, MockPacket, ERC20, MultiCall } from '../typechain'
 import { web3 } from "hardhat"
@@ -67,9 +67,22 @@ describe('Proxy', () => {
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
             token: ERC20TransferData.tokenAddress,
-            oriToken: null
+            oriToken: ""
         }
-        let ERC20TransferPacketDataBz = await client.TokenTransfer.encode(ERC20TransferPacketData).finish()
+        let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    ERC20TransferPacketData.srcChain,
+                    ERC20TransferPacketData.destChain,
+                    ERC20TransferPacketData.sender,
+                    ERC20TransferPacketData.receiver,
+                    ERC20TransferPacketData.amount,
+                    ERC20TransferPacketData.token,
+                    ERC20TransferPacketData.oriToken
+                ]
+            ]
+        ); 
         let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(ERC20TransferPacketDataBz)))
         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1))
         const agentAbi = web3.eth.abi.encodeFunctionCall(

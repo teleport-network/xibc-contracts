@@ -88,9 +88,22 @@ describe('MultiCall', () => {
             receiver: ERC20TransferData.receiver.toString().toLocaleLowerCase(),
             amount: amount,
             token: ERC20TransferData.tokenAddress.toString().toLocaleLowerCase(),
-            oriToken: null
+            oriToken: ""
         }
-        let ERC20TransferPacketDataBz = await client.TokenTransfer.encode(ERC20TransferPacketData).finish()
+        let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    ERC20TransferPacketData.srcChain,
+                    ERC20TransferPacketData.destChain,
+                    ERC20TransferPacketData.sender,
+                    ERC20TransferPacketData.receiver,
+                    ERC20TransferPacketData.amount,
+                    ERC20TransferPacketData.token,
+                    ERC20TransferPacketData.oriToken
+                ]
+            ]
+        );
         let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(ERC20TransferPacketDataBz)))
 
         let BaseTransferPacketData = {
@@ -100,9 +113,22 @@ describe('MultiCall', () => {
             receiver: BaseTransferData.receiver,
             amount: amount,
             token: "0x0000000000000000000000000000000000000000",
-            oriToken: null
+            oriToken: ""
         }
-        let BaseTransferPacketDataBz = await client.TokenTransfer.encode(BaseTransferPacketData).finish()
+        let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    BaseTransferPacketData.srcChain,
+                    BaseTransferPacketData.destChain,
+                    BaseTransferPacketData.sender,
+                    BaseTransferPacketData.receiver,
+                    BaseTransferPacketData.amount,
+                    BaseTransferPacketData.token,
+                    BaseTransferPacketData.oriToken
+                ]
+            ]
+        );
         let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(BaseTransferPacketDataBz)))
 
         let RccPacketData = {
@@ -132,10 +158,22 @@ describe('MultiCall', () => {
             receiver: (await accounts[1].getAddress()).toLocaleLowerCase(),
             amount: amount,
             token: "0x0000000000000000000000000000000100000000",
-            oriToken: null
+            oriToken: ""
         }
-        let ERC20TransferPacketData = client.TokenTransfer.encode(ERC20TransferPacket).finish()
-
+        let ERC20TransferPacketData = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    ERC20TransferPacket.srcChain,
+                    ERC20TransferPacket.destChain,
+                    ERC20TransferPacket.sender,
+                    ERC20TransferPacket.receiver,
+                    ERC20TransferPacket.amount,
+                    ERC20TransferPacket.token,
+                    ERC20TransferPacket.oriToken
+                ]
+            ]
+        );
         let dataByte = Buffer.from("095ea7b3000000000000000000000000f5059a5d33d5853360d16c683c16e67980206f360000000000000000000000000000000000000000000000000000000000000001", "hex")
         let RCCData = {
             contractAddress: erc20.address.toString().toLocaleLowerCase(),
@@ -194,8 +232,20 @@ describe('MultiCall', () => {
             token: "",
             oriToken: erc20.address.toLowerCase()
         }
-        let BaseTransferPacketData = client.TokenTransfer.encode(BaseTransferPacket).finish()
-
+        let BaseTransferPacketData = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    BaseTransferPacket.srcChain,
+                    BaseTransferPacket.destChain,
+                    BaseTransferPacket.sender,
+                    BaseTransferPacket.receiver,
+                    BaseTransferPacket.amount,
+                    BaseTransferPacket.token,
+                    BaseTransferPacket.oriToken
+                ]
+            ]
+        );
 
         let dataByte = Buffer.from("095ea7b3000000000000000000000000f5059a5d33d5853360d16c683c16e67980206f360000000000000000000000000000000000000000000000000000000000000001", "hex")
         let RCCData = {

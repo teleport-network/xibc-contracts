@@ -104,7 +104,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
             "sourceChain can't equal to destChain"
         );
 
-        TokenTransfer.Data memory packetData;
+        string memory oriToken;
 
         // if is crossed chain token
         if (bindings[transferData.tokenAddress].bound) {
@@ -126,15 +126,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
             bindings[transferData.tokenAddress].amount -= transferData.amount;
 
-            packetData = TokenTransfer.Data({
-                srcChain: sourceChain,
-                destChain: transferData.destChain,
-                sender: msg.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: transferData.amount.toBytes(),
-                token: transferData.tokenAddress.addressToString(),
-                oriToken: bindings[transferData.tokenAddress].oriToken
-            });
+            oriToken = bindings[transferData.tokenAddress].oriToken;
         } else {
             // outgoing
             require(
@@ -155,22 +147,25 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                 transferData.destChain
             ] += transferData.amount;
 
-            packetData = TokenTransfer.Data({
+            oriToken = "";
+        }
+        // send packet
+        string[] memory ports = new string[](1);
+        bytes[] memory dataList = new bytes[](1);
+        ports[0] = PORT;
+
+        dataList[0] = abi.encode(
+            TokenTransfer.Data({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
                 receiver: transferData.receiver,
                 amount: transferData.amount.toBytes(),
                 token: transferData.tokenAddress.addressToString(),
-                oriToken: ""
-            });
-        }
+                oriToken: oriToken
+            })
+        );
 
-        // send packet
-        string[] memory ports = new string[](1);
-        bytes[] memory dataList = new bytes[](1);
-        ports[0] = PORT;
-        dataList[0] = TokenTransfer.encode(packetData);
         PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
             sequence: packet.getNextSequenceSend(
                 sourceChain,
@@ -194,7 +189,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
             "sourceChain can't equal to destChain"
         );
 
-        TokenTransfer.Data memory packetData;
+        string memory oriToken;
 
         // if is crossed chain token
         if (bindings[transferData.tokenAddress].bound) {
@@ -216,15 +211,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
             bindings[transferData.tokenAddress].amount -= transferData.amount;
 
-            packetData = TokenTransfer.Data({
-                srcChain: sourceChain,
-                destChain: transferData.destChain,
-                sender: transferData.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: transferData.amount.toBytes(),
-                token: transferData.tokenAddress.addressToString(),
-                oriToken: bindings[transferData.tokenAddress].oriToken
-            });
+            oriToken = bindings[transferData.tokenAddress].oriToken;
         } else {
             // outgoing
             require(
@@ -244,19 +231,21 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
             outTokens[transferData.tokenAddress][
                 transferData.destChain
             ] += transferData.amount;
-
-            packetData = TokenTransfer.Data({
-                srcChain: sourceChain,
-                destChain: transferData.destChain,
-                sender: transferData.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: transferData.amount.toBytes(),
-                token: transferData.tokenAddress.addressToString(),
-                oriToken: ""
-            });
+            oriToken = "";
         }
 
-        return TokenTransfer.encode(packetData);
+        return
+            abi.encode(
+                TokenTransfer.Data({
+                    srcChain: sourceChain,
+                    destChain: transferData.destChain,
+                    sender: transferData.sender.addressToString(),
+                    receiver: transferData.receiver,
+                    amount: transferData.amount.toBytes(),
+                    token: transferData.tokenAddress.addressToString(),
+                    oriToken: oriToken
+                })
+            );
     }
 
     function sendTransferBase(
@@ -271,22 +260,21 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         require(msg.value > 0, "value must be greater than 0");
 
         outTokens[address(0)][transferData.destChain] += msg.value;
-
-        TokenTransfer.Data memory packetData = TokenTransfer.Data({
-            srcChain: sourceChain,
-            destChain: transferData.destChain,
-            sender: msg.sender.addressToString(),
-            receiver: transferData.receiver,
-            amount: msg.value.toBytes(),
-            token: address(0).addressToString(),
-            oriToken: ""
-        });
-
         // send packet
         string[] memory ports = new string[](1);
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
-        dataList[0] = TokenTransfer.encode(packetData);
+        dataList[0] = abi.encode(
+            TokenTransfer.Data({
+                srcChain: sourceChain,
+                destChain: transferData.destChain,
+                sender: msg.sender.addressToString(),
+                receiver: transferData.receiver,
+                amount: msg.value.toBytes(),
+                token: address(0).addressToString(),
+                oriToken: ""
+            })
+        );
         PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
             sequence: packet.getNextSequenceSend(
                 sourceChain,
@@ -320,17 +308,17 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
         outTokens[address(0)][transferData.destChain] += msg.value;
 
-        TokenTransfer.Data memory packetData = TokenTransfer.Data({
-            srcChain: sourceChain,
-            destChain: transferData.destChain,
-            sender: transferData.sender.addressToString(),
-            receiver: transferData.receiver,
-            amount: msg.value.toBytes(),
-            token: address(0).addressToString(),
-            oriToken: ""
-        });
-
-        return TokenTransfer.encode(packetData);
+        return abi.encode(
+            TokenTransfer.Data({
+                srcChain: sourceChain,
+                destChain: transferData.destChain,
+                sender: transferData.sender.addressToString(),
+                receiver: transferData.receiver,
+                amount: msg.value.toBytes(),
+                token: address(0).addressToString(),
+                oriToken: ""
+            })
+        );
     }
 
     function onRecvPacket(bytes calldata data)
@@ -339,8 +327,10 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
         returns (PacketTypes.Result memory)
     {
-        TokenTransfer.Data memory packetData = TokenTransfer.decode(data);
-
+        TokenTransfer.Data memory packetData = abi.decode(
+            data,
+            (TokenTransfer.Data)
+        );
         latestPacket = packetData;
 
         if (bytes(packetData.oriToken).length == 0) {
