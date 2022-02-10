@@ -47,6 +47,13 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
+     * @notice returns the client type
+     */
+    function getClientType() external view override returns (IClient.Type) {
+        return IClient.Type.Light;
+    }
+
+    /**
      * @notice returns the latest height of the current light client
      */
     function getLatestHeight()

@@ -12,9 +12,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     // the name of this chain cannot be changed once initialized
     string private nativeChainName;
-    // light client currently registered in this chain
+    // client currently registered in this chain
     mapping(string => IClient) public clients;
-    // relayer registered by each light client
+    // relayer registered by each client
     mapping(string => mapping(address => bool)) public relayers;
     // access control contract
     IAccessManager public accessManager;
@@ -47,11 +47,11 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     *  @notice this function is intended to be called by owner to create a light client and initialize light client data.
+     *  @notice this function is intended to be called by owner to create a client and initialize client data.
      *  @param chainName        the counterparty chain name
-     *  @param clientAddress    light client contract address
-     *  @param clientState      light client status
-     *  @param consensusState   light client consensus status
+     *  @param clientAddress    client contract address
+     *  @param clientState      client status
+     *  @param consensusState   client consensus status
      */
     function createClient(
         string calldata chainName,
@@ -74,7 +74,7 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     *  @notice this function is called by the relayer, the purpose is to update the state of the light client
+     *  @notice this function is called by the relayer, the purpose is to update the state of the client
      *  @param chainName  the counterparty chain name
      *  @param header     block header of the counterparty chain
      */
@@ -88,10 +88,10 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     *  @notice this function is called by the owner, the purpose is to update the state of the light client
+     *  @notice this function is called by the owner, the purpose is to update the state of the client
      *  @param chainName        the counterparty chain name
-     *  @param clientState      light client status
-     *  @param consensusState   light client consensus status
+     *  @param clientState      client status
+     *  @param consensusState   client consensus status
      */
     function upgradeClient(
         string calldata chainName,
@@ -103,7 +103,34 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     *  @notice this function is called by the owner, the purpose is to register the relayer address of a light client
+     *  @notice this function is called by the owner, the purpose is to toggle client type between Light and TSS
+     *  @param chainName        the counterparty chain name
+     *  @param clientAddress    client contract address
+     *  @param clientState      client status
+     *  @param consensusState   client consensus status
+     */
+    function toggleClient(
+        string calldata chainName,
+        address clientAddress,
+        bytes calldata clientState,
+        bytes calldata consensusState
+    ) external onlyAuthorizee(UPGRADE_CLIENT_ROLE) {
+        require(
+            clients[chainName].status() == IClient.Status.Active,
+            "client not active"
+        );
+        require(
+            IClient(clientAddress).getClientType() !=
+                clients[chainName].getClientType(),
+            "could not be the same"
+        );
+        IClient client = IClient(clientAddress);
+        client.initializeState(clientState, consensusState);
+        clients[chainName] = client;
+    }
+
+    /**
+     *  @notice this function is called by the owner, the purpose is to register the relayer address of a client
      *  @param chainName  the counterparty chain name
      *  @param relayer    relayer address
      */
@@ -116,7 +143,7 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     *  @notice this function is called by the owner, the purpose is to revoke the relayer address of a light client
+     *  @notice this function is called by the owner, the purpose is to revoke the relayer address of a client
      *  @param chainName  the counterparty chain name
      *  @param relayer    relayer address
      */
@@ -138,6 +165,18 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
         returns (IClient)
     {
         return clients[chainName];
+    }
+
+    /**
+     *  @notice obtain the contract address of the client according to the registered client name
+     *  @param chainName  the counterparty chain name
+     */
+    function getClientType(string memory chainName)
+        public
+        override
+        returns (IClient.Type)
+    {
+        return clients[chainName].getClientType();
     }
 
     /**
