@@ -228,8 +228,15 @@ describe('MultiCall', () => {
         expect(balances).to.eq("999")
         let outToken = (await mockTransfer.outTokens("0x0000000000000000000000000000000000000000", chainName))
         expect(outToken.toString()).to.eq("1")
-
-        let Erc20Ack = await mockTransfer.NewAcknowledgement(false, "1: onRecvPackt: binding is not exist")
+        let Erc20Ack = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    [],
+                    "1: onRecvPackt: binding is not exist"
+                ]
+            ]
+        );
         let key = "acks/" + muticallPacket.sourceChain + "/" + muticallPacket.destChain + "/sequences/" + muticallPacket.sequence
         let ackCommit = await mockPacket.commitments(Buffer.from(key, "utf-8"))
         expect(ackCommit).to.equal(sha256(Erc20Ack))
@@ -321,8 +328,16 @@ describe('MultiCall', () => {
         }
         let key = "acks/" + muticallPacket.sourceChain + "/" + muticallPacket.destChain + "/sequences/" + muticallPacket.sequence
         let ackCommit = await mockPacket.commitments(Buffer.from(key, "utf-8"))
-        let bytesa = await mockTransfer.NewAcknowledgementTest(Data.results, Data.message)
-        expect(ackCommit).to.equal(sha256(bytesa))
+        let Ack = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    Data.results,
+                    Data.message
+                ]
+            ]
+        );
+        expect(ackCommit).to.equal(sha256(Ack))
     })
 
     const deployMockTransfer = async () => {

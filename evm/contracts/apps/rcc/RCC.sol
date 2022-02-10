@@ -2,8 +2,6 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../proto/Ack.sol";
-import "../../proto/RemoteContractCall.sol";
 import "../../core/client/ClientManager.sol";
 import "../../libraries/app/RCC.sol";
 import "../../libraries/packet/Packet.sol";
@@ -29,7 +27,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
 
     mapping(bytes32 => bytes) public override acks;
 
-    RemoteContractCall.Data public latestPacket;
+    RCCDataTypes.RemoteContractCall public latestPacket;
 
     event Ack(bytes32 indexed dataHash, bytes ack);
 
@@ -69,7 +67,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
         dataList[0] = abi.encode(
-            RemoteContractCall.Data({
+            RCCDataTypes.RemoteContractCall({
                 srcChain: sourceChain,
                 destChain: rccData.destChain,
                 sender: msg.sender.addressToString(),
@@ -106,7 +104,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
 
         return
             abi.encode(
-                RemoteContractCall.Data({
+                RCCDataTypes.RemoteContractCall({
                     srcChain: sourceChain,
                     destChain: rccData.destChain,
                     sender: rccData.sender.addressToString(),
@@ -124,9 +122,9 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         onlyPacket
         returns (PacketTypes.Result memory)
     {
-        RemoteContractCall.Data memory packetData = abi.decode(
+        RCCDataTypes.RemoteContractCall memory packetData = abi.decode(
             data,
-            (RemoteContractCall.Data)
+            (RCCDataTypes.RemoteContractCall)
         );
         require(
             packetData.contractAddress.parseAddr() != address(this),
@@ -171,7 +169,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         external
         view
         override
-        returns (RemoteContractCall.Data memory)
+        returns (RCCDataTypes.RemoteContractCall memory)
     {
         return latestPacket;
     }

@@ -17,4 +17,12 @@ library RCCDataTypes {
         bytes data;
         string destChain;
     }
+
+    struct RemoteContractCall {
+        string srcChain;
+        string destChain;
+        string sender;
+        string contractAddress;
+        bytes data;
+    }
 }

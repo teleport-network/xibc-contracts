@@ -17,4 +17,9 @@ library PacketTypes {
         bytes result;
         string message;
     }
+    
+    struct Acknowledgement {
+        bytes[] results;
+        string message;
+    }
 }

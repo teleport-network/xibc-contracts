@@ -3,9 +3,6 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../core/client/ClientManager.sol";
-import "../proto/Ack.sol";
-import "../proto/Types.sol";
 import "../libraries/client/Client.sol";
 import "../libraries/packet/Packet.sol";
 import "../libraries/host/Host.sol";
@@ -234,13 +231,19 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
         bytes calldata proof,
         Height.Data calldata height
     ) external override {
-        Acknowledgement.Data memory ack;
+        PacketTypes.Acknowledgement memory ack;
         try this.executePacket(packet) returns (bytes[] memory results) {
             ack.results = results;
         } catch Error(string memory message) {
             ack.message = message;
         }
-        bytes memory ackBytes = Acknowledgement.encode(ack);
+        bytes memory ackBytes = abi.encode(
+            PacketTypes.Acknowledgement({
+                results: ack.results,
+                message: ack.message
+            })
+        );
+
         writeAcknowledgement(
             packet.sequence,
             packet.sourceChain,
@@ -406,8 +409,9 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
         emit AckPacket(packet, acknowledgement);
 
         if (Strings.equals(packet.sourceChain, clientManager.getChainName())) {
-            Acknowledgement.Data memory ack = Acknowledgement.decode(
-                acknowledgement
+            PacketTypes.Acknowledgement memory ack = abi.decode(
+                acknowledgement,
+                (PacketTypes.Acknowledgement)
             );
 
             if (ack.results.length > 0) {

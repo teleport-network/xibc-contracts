@@ -33,7 +33,6 @@ describe('Packet', () => {
     })
 
     it("send transfer ERC20 packet and receive ack", async () => {
-
         let transferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
@@ -80,7 +79,15 @@ describe('Packet', () => {
             ports: ["FT"],
             dataList: [packetDataBz],
         }
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -136,7 +143,15 @@ describe('Packet', () => {
             ports: ["FT"],
             dataList: [packetDataBz],
         }
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -172,7 +187,15 @@ describe('Packet', () => {
                 ]
             ]
         );        
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,

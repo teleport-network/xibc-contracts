@@ -38,4 +38,14 @@ library TransferDataTypes {
         string receiver;
         string destChain;
     }
+    
+    struct TokenTransfer {
+        string srcChain;
+        string destChain;
+        string sender;
+        string receiver;
+        bytes amount;
+        string token;
+        string oriToken;
+    }
 }

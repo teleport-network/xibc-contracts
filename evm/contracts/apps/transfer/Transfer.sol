@@ -3,13 +3,11 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../proto/TokenTransfer.sol";
-import "../../proto/Ack.sol";
-import "../../core/client/ClientManager.sol";
 import "../../libraries/packet/Packet.sol";
 import "../../libraries/app/Transfer.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
+import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IERC20XIBC.sol";
@@ -40,7 +38,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
 
-    TokenTransfer.Data public latestPacket;
+    TransferDataTypes.TokenTransfer public latestPacket;
 
     modifier onlyPacket() {
         require(msg.sender == address(packet), "caller not packet contract");
@@ -155,7 +153,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         ports[0] = PORT;
 
         dataList[0] = abi.encode(
-            TokenTransfer.Data({
+            TransferDataTypes.TokenTransfer({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -236,7 +234,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
         return
             abi.encode(
-                TokenTransfer.Data({
+                TransferDataTypes.TokenTransfer({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
                     sender: transferData.sender.addressToString(),
@@ -265,7 +263,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
         dataList[0] = abi.encode(
-            TokenTransfer.Data({
+            TransferDataTypes.TokenTransfer({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -309,7 +307,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         outTokens[address(0)][transferData.destChain] += msg.value;
 
         return abi.encode(
-            TokenTransfer.Data({
+            TransferDataTypes.TokenTransfer({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: transferData.sender.addressToString(),
@@ -327,9 +325,9 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
         returns (PacketTypes.Result memory)
     {
-        TokenTransfer.Data memory packetData = abi.decode(
+        TransferDataTypes.TokenTransfer memory packetData = abi.decode(
             data,
-            (TokenTransfer.Data)
+            (TransferDataTypes.TokenTransfer)
         );
         latestPacket = packetData;
 
@@ -430,11 +428,11 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
-            _refundTokens(TokenTransfer.decode(data));
+            _refundTokens(abi.decode(data,(TransferDataTypes.TokenTransfer)));
         }
     }
 
-    function _refundTokens(TokenTransfer.Data memory data) private {
+    function _refundTokens(TransferDataTypes.TokenTransfer memory data) private {
         if (bytes(data.oriToken).length > 0) {
             // refund crossed chain token
             require(
@@ -514,7 +512,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         view
         override
-        returns (TokenTransfer.Data memory)
+        returns (TransferDataTypes.TokenTransfer memory)
     {
         return latestPacket;
     }

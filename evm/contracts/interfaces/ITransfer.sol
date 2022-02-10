@@ -4,7 +4,6 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "./IModule.sol";
-import "../proto/TokenTransfer.sol";
 import "../libraries/app/Transfer.sol";
 
 interface ITransfer is IModule {
@@ -41,5 +40,5 @@ interface ITransfer is IModule {
     function getLatestPacket()
         external
         view
-        returns (TokenTransfer.Data memory);
+        returns (TransferDataTypes.TokenTransfer memory);
 }
