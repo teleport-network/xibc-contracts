@@ -64,19 +64,20 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
             "sourceChain can't equal to destChain"
         );
 
-        RemoteContractCall.Data memory packetData = RemoteContractCall.Data({
-            srcChain: sourceChain,
-            destChain: rccData.destChain,
-            sender: msg.sender.addressToString(),
-            contractAddress: rccData.contractAddress,
-            data: rccData.data
-        });
-
         // send packet
         string[] memory ports = new string[](1);
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
-        dataList[0] = RemoteContractCall.encode(packetData);
+        dataList[0] = abi.encode(
+            RemoteContractCall.Data({
+                srcChain: sourceChain,
+                destChain: rccData.destChain,
+                sender: msg.sender.addressToString(),
+                contractAddress: rccData.contractAddress,
+                data: rccData.data
+            })
+        );
+
         PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
             sequence: packet.getNextSequenceSend(
                 sourceChain,
@@ -103,15 +104,16 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
             "sourceChain can't equal to destChain"
         );
 
-        RemoteContractCall.Data memory packetData = RemoteContractCall.Data({
-            srcChain: sourceChain,
-            destChain: rccData.destChain,
-            sender: rccData.sender.addressToString(),
-            contractAddress: rccData.contractAddress,
-            data: rccData.data
-        });
-
-        return RemoteContractCall.encode(packetData);
+        return
+            abi.encode(
+                RemoteContractCall.Data({
+                    srcChain: sourceChain,
+                    destChain: rccData.destChain,
+                    sender: rccData.sender.addressToString(),
+                    contractAddress: rccData.contractAddress,
+                    data: rccData.data
+                })
+            );
     }
 
     // ===========================================================================
@@ -122,10 +124,10 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         onlyPacket
         returns (PacketTypes.Result memory)
     {
-        RemoteContractCall.Data memory packetData = RemoteContractCall.decode(
-            data
+        RemoteContractCall.Data memory packetData = abi.decode(
+            data,
+            (RemoteContractCall.Data)
         );
-
         require(
             packetData.contractAddress.parseAddr() != address(this),
             "illegal operation"
@@ -174,3 +176,4 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         return latestPacket;
     }
 }
+    

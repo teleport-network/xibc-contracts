@@ -131,7 +131,18 @@ describe('Proxy', () => {
             contractAddress: "0x0000000000000000000000000000000010000007",
             data: web3.utils.hexToBytes(agentAbi),
         }
-        let RccPacketDataBz = await client.RemoteContractCall.encode(RccPacketData).finish()
+        let RccPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    RccPacketData.srcChain,
+                    RccPacketData.destChain,
+                    RccPacketData.sender,
+                    RccPacketData.contractAddress,
+                    RccPacketData.data,
+                ]
+            ]
+        );
         let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
 
         let lengthSum = ERC20TransferPacketDataBzHash.length + RccPacketDataBzHash.length

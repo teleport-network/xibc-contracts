@@ -131,14 +131,25 @@ describe('MultiCall', () => {
         );
         let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(BaseTransferPacketDataBz)))
 
-        let RccPacketData = {
+        let RccPacket = {
             srcChain: srcChainName,
             destChain: chainName,
             sender: account.toLocaleLowerCase(),
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
-        let RccPacketDataBz = await client.RemoteContractCall.encode(RccPacketData).finish()
+        let RccPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    RccPacket.srcChain,
+                    RccPacket.destChain,
+                    RccPacket.sender,
+                    RccPacket.contractAddress,
+                    RccPacket.data,
+                ]
+            ]
+        );
         let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
         let lengthSum = ERC20TransferPacketDataBzHash.length + BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
         let sum = Buffer.concat([ERC20TransferPacketDataBzHash, BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
@@ -186,7 +197,18 @@ describe('MultiCall', () => {
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
-        let RccPacketData = client.RemoteContractCall.encode(RccPacket).finish()
+        let RccPacketData = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    RccPacket.srcChain,
+                    RccPacket.destChain,
+                    RccPacket.sender,
+                    RccPacket.contractAddress,
+                    RccPacket.data,
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -259,7 +281,18 @@ describe('MultiCall', () => {
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
-        let RccPacketData = client.RemoteContractCall.encode(RccPacket).finish()
+        let RccPacketData = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    RccPacket.srcChain,
+                    RccPacket.destChain,
+                    RccPacket.sender,
+                    RccPacket.contractAddress,
+                    RccPacket.data,
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
