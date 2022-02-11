@@ -14,6 +14,7 @@ interface IClient {
     }
 
     enum Type {
+        Unknown,
         Light,
         TSS
     }
