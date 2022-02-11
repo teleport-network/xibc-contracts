@@ -116,10 +116,6 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
         bytes calldata consensusState
     ) external onlyAuthorizee(UPGRADE_CLIENT_ROLE) {
         require(
-            clients[chainName].status() == IClient.Status.Active,
-            "client not active"
-        );
-        require(
             IClient(clientAddress).getClientType() !=
                 clients[chainName].getClientType(),
             "could not be the same"
