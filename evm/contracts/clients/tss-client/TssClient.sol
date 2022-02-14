@@ -43,7 +43,14 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice returns the latest height of the current light client
+     * @notice returns the client type
+     */
+    function getClientType() external view override returns (IClient.Type) {
+        return IClient.Type.TSS;
+    }
+
+    /**
+     * @notice returns the latest height of the current TSS client
      */
     function getLatestHeight()
         external
@@ -55,16 +62,16 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice return the status of the current light client
+     * @notice return the status of the current TSS client
      */
     function status() external view override returns (Status) {
         return Status.Active;
     }
 
     /**
-     * @notice this function is called by the ClientManager contract, the purpose is to initialize light client state
-     * @param clientStateBz light client status
-     * @param consensusStateBz light client consensus status
+     * @notice this function is called by the ClientManager contract, the purpose is to initialize TSS client state
+     * @param clientStateBz TSS client status
+     * @param consensusStateBz TSS client consensus status
      */
     function initializeState(
         bytes calldata clientStateBz,
@@ -77,9 +84,9 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice this function is called by the ClientManager contract, the purpose is to update the state of the light client
-     * @param clientStateBz light client status
-     * @param consensusStateBz light client consensus status
+     * @notice this function is called by the ClientManager contract, the purpose is to update the state of the TSS client
+     * @param clientStateBz TSS client status
+     * @param consensusStateBz TSS client consensus status
      */
     function upgrade(
         address caller,
@@ -98,7 +105,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice this function is called by the relayer, the purpose is to update and verify the state of the light client
+     * @notice this function is called by the relayer, the purpose is to update and verify the state of the TSS client
      * @param headerBz block header of the counterparty chain
      */
     function checkHeaderAndUpdateState(address caller, bytes calldata headerBz)
@@ -120,7 +127,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice this function is called by the relayer, the purpose is to use the current state of the light client to verify cross-chain data packets
+     * @notice this function is called by the relayer, the purpose is to use the current state of the TSS client to verify cross-chain data packets
      * @param caller the msg.sender of manager contract
      * @param height the height of cross-chain data packet proof
      * @param proof proof of the existence of cross-chain data packets
@@ -145,7 +152,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     }
 
     /**
-     * @notice this function is called by the relayer, the purpose is to use the current state of the light client to verify the acknowledgement of cross-chain data packets
+     * @notice this function is called by the relayer, the purpose is to use the current state of the TSS client to verify the acknowledgement of cross-chain data packets
      * @param caller the msg.sender of manager contract
      * @param height the height of cross-chain data packet proof
      * @param proof proof of the existence of cross-chain data packets
