@@ -1,4 +1,4 @@
-import { Signer, BigNumber } from "ethers"
+import { Signer, BigNumber,utils } from "ethers"
 import chai from "chai"
 import { MockTransfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { sha256, keccak256 } from "ethers/lib/utils"
@@ -33,7 +33,6 @@ describe('Packet', () => {
     })
 
     it("send transfer ERC20 packet and receive ack", async () => {
-
         let transferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
@@ -49,9 +48,22 @@ describe('Packet', () => {
             receiver: transferData.receiver,
             amount: amount,
             token: transferData.tokenAddress,
-            oriToken: null
+            oriToken: ""
         }
-        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
+        let packetDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
         await transfer.sendTransferERC20(transferData)
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
@@ -67,7 +79,15 @@ describe('Packet', () => {
             ports: ["FT"],
             dataList: [packetDataBz],
         }
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -92,9 +112,22 @@ describe('Packet', () => {
             receiver: transferData.receiver,
             amount: amount,
             token: "0x0000000000000000000000000000000000000000",
-            oriToken: null
+            oriToken: ""
         }
-        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
+        let packetDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
         await transfer.sendTransferBase(transferData, { value: 1 })
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
@@ -110,7 +143,15 @@ describe('Packet', () => {
             ports: ["FT"],
             dataList: [packetDataBz],
         }
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -132,8 +173,29 @@ describe('Packet', () => {
             token: "",
             oriToken: "0x0000000000000000000000000000000000000000"
         }
-        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
-        let ackByte = await transfer.NewAcknowledgement(true, "")
+        let packetDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );        
+        let ackByte = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string)"],
+            [
+                [
+                    ["0x01"],
+                    ""
+                ]
+            ]
+        );
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,

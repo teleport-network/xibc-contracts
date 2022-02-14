@@ -13,6 +13,18 @@ interface IClient {
         Unknown
     }
 
+    enum Type {
+        Unknown,
+        Light,
+        TSS
+    }
+
+    /**
+     * @notice return the client type
+     * @return the client type
+     */
+    function getClientType() external view returns (Type);
+
     /**
      * @notice return the current latest height of the light client
      * @return the current latest height of the light client

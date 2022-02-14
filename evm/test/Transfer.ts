@@ -1,11 +1,9 @@
-import { Signer, BigNumber } from "ethers"
+import { Signer, BigNumber, utils } from "ethers"
 import chai from "chai"
 import { Transfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
-import { randomBytes } from "crypto"
 
 const { expect } = chai
 const { web3, ethers, upgrades } = require("hardhat")
-const keccak256 = require('keccak256')
 
 let client = require("./proto/compiled.js")
 
@@ -87,7 +85,20 @@ describe('Transfer', () => {
             token: erc20.address.toLocaleLowerCase(),
             oriToken: erc20.address.toLocaleLowerCase(),
         }
-        let packetDataBz = client.TokenTransfer.encode(packetData).finish()
+        let packetDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );
         let sequence: BigNumber = BigNumber.from(1)
         let pac = {
             sequence: sequence,
@@ -131,14 +142,27 @@ describe('Transfer', () => {
             receiver: receiver,
             amount: amount,
             token: erc20.address.toLocaleLowerCase(),
-            oriToken: null
+            oriToken: ""
         }
         await transfer.bindToken(erc20.address, packetData.token, packetData.srcChain)
 
         let trace = await transfer.bindingTraces(packetData.srcChain + "/" + packetData.token)
         expect(trace.toString()).to.eq(erc20.address)
-        let transferByte = client.TokenTransfer.encode(packetData).finish()
 
+        let transferByte = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );
         await upgradedTransfer.onRecvPacket(transferByte)
         let balances = (await erc20.balanceOf(receiver)).toString()
         let binds = await upgradedTransfer.bindings(erc20.address)

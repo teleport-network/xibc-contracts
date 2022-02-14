@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 
 import "./IModule.sol";
 import "../libraries/app/RCC.sol";
-import "../proto/RemoteContractCall.sol";
 
 interface IRCC is IModule {
     function sendRemoteContractCall(RCCDataTypes.RCCData calldata rccData)
@@ -20,5 +19,5 @@ interface IRCC is IModule {
     function getLatestPacket()
         external
         view
-        returns (RemoteContractCall.Data memory);
+        returns (RCCDataTypes.RCCPacketData memory);
 }
