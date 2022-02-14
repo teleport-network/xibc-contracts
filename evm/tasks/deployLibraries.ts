@@ -18,7 +18,7 @@ task("deployLibraries", "Deploy All Libraries")
         const LightClientVerify = await hre.ethers.getContractFactory('LightClientVerify')
         const lightClientVerify = await LightClientVerify.deploy()
         await lightClientVerify.deployed()
-        
+
         const LightClientGenValHash = await hre.ethers.getContractFactory('LightClientGenValHash')
         const lightClientGenValHash = await LightClientGenValHash.deploy()
         await lightClientGenValHash.deployed()

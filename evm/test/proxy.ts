@@ -38,7 +38,7 @@ describe('Proxy', () => {
         await deployProxy()
     })
 
-    it("send", async () => {
+    it("send ERC20", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
 
@@ -150,6 +150,124 @@ describe('Proxy', () => {
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))
+    })
+
+    it("send Base", async () => {
+        let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
+        let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let address0 = "0x0000000000000000000000000000000000000000"
+
+        let ERC20TransferData = {
+            tokenAddress: address0,
+            receiver: "0x0000000000000000000000000000000010000007", // agent address
+            amount: 1000,
+        }
+        let rccTransfer = {
+            tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
+            receiver: reciver,
+            amount: 1000,
+            destChain: "eth-test",// double jump destChain
+            relayChain: "",
+        }
+        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer,{value:1000}) // destChainName : teleport
+        let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
+
+        let BaseTransferPacketData = {
+            srcChain: srcChainName,
+            destChain: destChainName,
+            sender: proxy.address.toLocaleLowerCase(),
+            receiver: "0x0000000000000000000000000000000010000007",
+            amount: amount,
+            token: address0,
+            oriToken: ""
+        }
+        let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    BaseTransferPacketData.srcChain,
+                    BaseTransferPacketData.destChain,
+                    BaseTransferPacketData.sender,
+                    BaseTransferPacketData.receiver,
+                    BaseTransferPacketData.amount,
+                    BaseTransferPacketData.token,
+                    BaseTransferPacketData.oriToken
+                ]
+            ]
+        ); 
+        let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(BaseTransferPacketDataBz)))
+        let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 2))
+        const agentAbi = web3.eth.abi.encodeFunctionCall(
+            {
+                name: 'send',
+                type: 'function',
+                inputs: [
+                    {
+                        "internalType": "bytes",
+                        "name": "id",
+                        "type": "bytes"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "tokenAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "receiver",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "destChain",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "relayChain",
+                        "type": "string"
+                    }
+                ],
+            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
+        )
+
+        let RccPacketData = {
+            srcChain: srcChainName,
+            destChain: destChainName,
+            sender: proxy.address.toLocaleLowerCase(),
+            contractAddress: "0x0000000000000000000000000000000010000007",
+            data: web3.utils.hexToBytes(agentAbi),
+        }
+        let RccPacketDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes)"],
+            [
+                [
+                    RccPacketData.srcChain,
+                    RccPacketData.destChain,
+                    RccPacketData.sender,
+                    RccPacketData.contractAddress,
+                    RccPacketData.data,
+                ]
+            ]
+        );
+        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
+
+        let lengthSum = BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
+        let sum = Buffer.concat([BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
+        let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
+        let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
+        expect(commitment.toString()).to.eq(sha256(sum))
+    })
+
+    it("upgradeTest", async () => {
+        const ProxyrFactory = await ethers.getContractFactory("Proxy")
+        const upgradeProxy = await upgrades.upgradeProxy(String(proxy.address), ProxyrFactory)
+        console.log(upgradeProxy.address)
     })
 
     const deployMockTransfer = async () => {

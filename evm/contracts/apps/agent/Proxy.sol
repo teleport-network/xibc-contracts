@@ -44,35 +44,51 @@ contract Proxy is Initializable, OwnableUpgradeable {
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
         string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
-    ) public {
-        IERC20(erc20transfer.tokenAddress).transferFrom(
-            msg.sender,
-            address(this),
-            erc20transfer.amount
-        );
-        IERC20(erc20transfer.tokenAddress).approve(
-            address(transfer),
-            erc20transfer.amount
-        );
+    ) public payable {
         bytes memory id = _getID(destChain);
-        bytes memory ERC20TransferDataAbi = abi.encode(
-            MultiCallDataTypes.ERC20TransferData({
-                tokenAddress: erc20transfer.tokenAddress,
-                receiver: erc20transfer.receiver,
-                amount: erc20transfer.amount
-            })
-        );
+        bytes[] memory dataList = new bytes[](2);
+        uint8[] memory functions = new uint8[](2);
         bytes memory RCCDataAbi = _getRCCDataAbi(
             id,
             rccTransfer,
             contractAddress
         );
-        bytes[] memory dataList = new bytes[](2);
-        dataList[0] = ERC20TransferDataAbi;
-        dataList[1] = RCCDataAbi;
 
-        uint8[] memory functions = new uint8[](2);
-        functions[0] = 0;
+        if (erc20transfer.tokenAddress != address(0)) {
+            // send erc20
+            IERC20(erc20transfer.tokenAddress).transferFrom(
+                msg.sender,
+                address(this),
+                erc20transfer.amount
+            );
+            IERC20(erc20transfer.tokenAddress).approve(
+                address(transfer),
+                erc20transfer.amount
+            );
+            bytes memory ERC20TransferDataAbi = abi.encode(
+                MultiCallDataTypes.ERC20TransferData({
+                    tokenAddress: erc20transfer.tokenAddress,
+                    receiver: erc20transfer.receiver,
+                    amount: erc20transfer.amount
+                })
+            );
+            dataList[0] = ERC20TransferDataAbi;
+            functions[0] = 0;
+        } else {
+            // send native token
+            require(msg.value > 0, "value must be greater than 0");
+            require(address(this).balance == msg.value, "err amount");
+            require(msg.value == erc20transfer.amount);
+            bytes memory BaseTransferDataAbi = abi.encode(
+                MultiCallDataTypes.BaseTransferData({
+                    receiver: erc20transfer.receiver,
+                    amount: erc20transfer.amount
+                })
+            );
+            dataList[0] = BaseTransferDataAbi;
+            functions[0] = 1;
+        }
+        dataList[1] = RCCDataAbi;
         functions[1] = 2;
 
         MultiCallDataTypes.MultiCallData
@@ -82,7 +98,12 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 functions: functions,
                 data: dataList
             });
-        multiCall.multiCall(multiCallData);
+
+        if (erc20transfer.tokenAddress != address(0)) {
+            multiCall.multiCall(multiCallData);
+        } else {
+            multiCall.multiCall{value: msg.value}(multiCallData);
+        }
     }
 
     function _getID(string memory destChain) private returns (bytes memory) {

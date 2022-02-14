@@ -16,17 +16,18 @@ library LightClientVerify {
         int64 maxClockDrift,
         Fraction.Data memory trustLevel
     ) public pure {
-        LightClient.verify(
-            trustedHeader,
-            trustedVals,
-            untrustedHeader,
-            untrustedVals,
-            trustingPeriod,
-            nowTime,
-            maxClockDrift,
-            trustLevel
-        );
+        // LightClient.verify(
+        //     trustedHeader,
+        //     trustedVals,
+        //     untrustedHeader,
+        //     untrustedVals,
+        //     trustingPeriod,
+        //     nowTime,
+        //     maxClockDrift,
+        //     trustLevel
+        // );
     }
+
 }
 
 library LightClientGenValHash {

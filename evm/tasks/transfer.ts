@@ -152,15 +152,16 @@ task("queryAllowance", "Deploy Token")
 
 task("queryOutToken", "Token")
     .addParam("transfer", "transfer address ")
+    .addParam("token", "token address ")
     .addParam("chainname", "chainName")
     .setAction(async (taskArgs, hre) => {
         const transferFactory = await hre.ethers.getContractFactory('Transfer')
         const transfer = await transferFactory.attach(taskArgs.transfer)
 
-        let outToken = (await transfer.outTokens("0x0000000000000000000000000000000000000000", taskArgs.chainname))
+        let outToken = (await transfer.outTokens(taskArgs.token, taskArgs.chainname))
         console.log(outToken)
     });
-
+    
 task("queryTrace", "Token")
     .addParam("transfer", "transfer address")
     .addParam("srcchain", "srcchain name")
