@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Proxy is Initializable,OwnableUpgradeable {
+contract Proxy is Initializable, OwnableUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -32,42 +32,63 @@ contract Proxy is Initializable,OwnableUpgradeable {
         transfer = ITransfer(transferContract);
     }
 
-    event SendEvent(bytes id);
+    event SendEvent(
+        bytes indexed id,
+        string srcChain,
+        string destChain,
+        uint256 sequence
+    );
 
     function send(
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
         string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
-    ) public {
-        IERC20(erc20transfer.tokenAddress).transferFrom(
-            msg.sender,
-            address(this),
-            erc20transfer.amount
-        );
-        IERC20(erc20transfer.tokenAddress).approve(
-            address(transfer),
-            erc20transfer.amount
-        );
+    ) public payable {
         bytes memory id = _getID(destChain);
-        bytes memory ERC20TransferDataAbi = abi.encode(
-            MultiCallDataTypes.ERC20TransferData({
-                tokenAddress: erc20transfer.tokenAddress,
-                receiver: erc20transfer.receiver,
-                amount: erc20transfer.amount
-            })
-        );
+        bytes[] memory dataList = new bytes[](2);
+        uint8[] memory functions = new uint8[](2);
         bytes memory RCCDataAbi = _getRCCDataAbi(
             id,
             rccTransfer,
             contractAddress
         );
-        bytes[] memory dataList = new bytes[](2);
-        dataList[0] = ERC20TransferDataAbi;
-        dataList[1] = RCCDataAbi;
 
-        uint8[] memory functions = new uint8[](2);
-        functions[0] = 0;
+        if (erc20transfer.tokenAddress != address(0)) {
+            // send erc20
+            IERC20(erc20transfer.tokenAddress).transferFrom(
+                msg.sender,
+                address(this),
+                erc20transfer.amount
+            );
+            IERC20(erc20transfer.tokenAddress).approve(
+                address(transfer),
+                erc20transfer.amount
+            );
+            bytes memory ERC20TransferDataAbi = abi.encode(
+                MultiCallDataTypes.ERC20TransferData({
+                    tokenAddress: erc20transfer.tokenAddress,
+                    receiver: erc20transfer.receiver,
+                    amount: erc20transfer.amount
+                })
+            );
+            dataList[0] = ERC20TransferDataAbi;
+            functions[0] = 0;
+        } else {
+            // send native token
+            require(msg.value > 0, "value must be greater than 0");
+            require(address(this).balance == msg.value, "err amount");
+            require(msg.value == erc20transfer.amount);
+            bytes memory BaseTransferDataAbi = abi.encode(
+                MultiCallDataTypes.BaseTransferData({
+                    receiver: erc20transfer.receiver,
+                    amount: erc20transfer.amount
+                })
+            );
+            dataList[0] = BaseTransferDataAbi;
+            functions[0] = 1;
+        }
+        dataList[1] = RCCDataAbi;
         functions[1] = 2;
 
         MultiCallDataTypes.MultiCallData
@@ -77,8 +98,12 @@ contract Proxy is Initializable,OwnableUpgradeable {
                 functions: functions,
                 data: dataList
             });
-        multiCall.multiCall(multiCallData);
-        emit SendEvent(id);
+
+        if (erc20transfer.tokenAddress != address(0)) {
+            multiCall.multiCall(multiCallData);
+        } else {
+            multiCall.multiCall{value: msg.value}(multiCallData);
+        }
     }
 
     function _getID(string memory destChain) private returns (bytes memory) {
@@ -97,8 +122,9 @@ contract Proxy is Initializable,OwnableUpgradeable {
                 Strings.uint642str(sequence)
             )
         );
-
-        return Bytes.fromBytes32(sha256(idKey));
+        bytes memory id = Bytes.fromBytes32(sha256(idKey));
+        emit SendEvent(id, sourceChain, destChain, sequence);
+        return id;
     }
 
     function _getRCCDataAbi(
