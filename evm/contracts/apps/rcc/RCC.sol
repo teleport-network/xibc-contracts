@@ -144,11 +144,17 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
             .parseAddr()
             .call(packetData.data);
         if (!success) {
-            result.message = "onRecvPackt: execute packet failed";
-        } else if (res.length == 0) {
-            result.result = hex"01";
+            if (res.length != 0) {
+                result.message = string(res);
+            } else {
+                result.message = "onRecvPackt: execute packet failed";
+            }
         } else {
-            result.result = res;
+            if (res.length == 0) {
+                result.result = hex"01";
+            } else {
+                result.result = res;
+            }
         }
 
         return result;
@@ -174,4 +180,3 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         return latestPacket;
     }
 }
-    
