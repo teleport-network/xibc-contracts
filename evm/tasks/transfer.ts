@@ -40,7 +40,6 @@ task("transferERC20", "Sender ERC20 Token")
         console.log(await res.wait())
     })
 
-
 task("transferBase", "Sender Base token")
     .addParam("transfer", "transfer contract address")
     .addParam("receiver", "receiver address")

@@ -19,10 +19,10 @@ module.exports = {
         teleport: {
             url: 'http://localhost:8545',
             gasPrice: 2000000000,
-            chainId: 9999999999999,
+            chainId: 9000,
             gas: 4100000,
             accounts: [
-                "",
+                "f679139cd3b70ee08f6be85ebd1f6aacffcc57e0cbe3edf3770f34e6a6641a67",
             ],
         },
     },
