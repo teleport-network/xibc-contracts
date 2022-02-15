@@ -33,7 +33,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
     }
 
     event SendEvent(
-        bytes indexed id,
+        bytes id,
         string srcChain,
         string destChain,
         uint256 sequence
@@ -77,8 +77,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         } else {
             // send native token
             require(msg.value > 0, "value must be greater than 0");
-            require(address(this).balance == msg.value, "err amount");
-            require(msg.value == erc20transfer.amount);
+            require(msg.value == erc20transfer.amount,"err amount");
             bytes memory BaseTransferDataAbi = abi.encode(
                 MultiCallDataTypes.BaseTransferData({
                     receiver: erc20transfer.receiver,
