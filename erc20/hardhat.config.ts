@@ -28,14 +28,14 @@ module.exports = {
             gasPrice: 1500000000,
             chainId: 4,
             gas: 4100000,
-            accounts: [''],
+            accounts: ['91e9f90b378f45a41ff6e7b31d029067073085977b849f29ac817fdc379d547a'],
         },
         bsctest: {
             url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
             gasPrice: 10000000000,
             chainId: 97,
             gas: 4100000,
-            accounts: [''],
+            accounts: ['f679139cd3b70ee08f6be85ebd1f6aacffcc57e0cbe3edf3770f34e6a6641a67'],
         },
     },
     solidity: {

@@ -45,7 +45,7 @@ contract Agent {
     }
 
     event SendEvent(
-        bytes indexed id,
+        bytes id,
         string srcChain,
         string destChain,
         uint64 sequence
