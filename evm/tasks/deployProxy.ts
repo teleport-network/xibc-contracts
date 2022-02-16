@@ -59,8 +59,15 @@ task("send", "Send Proxy")
             destChain: taskArgs.rccdestchain,
             relayChain: taskArgs.rccrelaychain,
         }
-
-        let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer)
-        console.log(res)
+        if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000"){
+            console.log("transfer base")
+            let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer,{value:taskArgs.amount})
+            console.log(res)
+        }else {
+            console.log("transfer erc20")
+            let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer)
+            console.log(res)
+        }
+        
     })
 module.exports = {}
