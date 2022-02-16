@@ -48,7 +48,7 @@ contract Agent {
         bytes id,
         string srcChain,
         string destChain,
-        uint64 sequence
+        uint256 sequence
     );
 
     function send(
