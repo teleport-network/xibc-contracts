@@ -21,6 +21,7 @@ module.exports = {
             gasPrice: 2000000000,
             chainId: 9000,
             gas: 4100000,
+            accounts: [''],
 
         },
         rinkeby: {
@@ -31,7 +32,7 @@ module.exports = {
             accounts: [''],
         },
         bsctest: {
-            url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+            url: 'https://data-seed-prebsc-2-s2.binance.org:8545',
             gasPrice: 10000000000,
             chainId: 97,
             gas: 4100000,

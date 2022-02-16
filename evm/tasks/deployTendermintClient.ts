@@ -8,6 +8,8 @@ const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const LIGHT_CLIENT_VERIFY_ADDRESS = process.env.LIGHT_CLIENT_VERIFY_ADDRESS
 const LIGHT_CLIENT_GEN_VALHASH_ADDRESS = process.env.LIGHT_CLIENT_GEN_VALHASH_ADDRESS
 
+const TENDERMINT_CLIENT = process.env.TENDERMINT_CLIENT
+
 task("deployTendermint", "Deploy Tendermint Client")
     .setAction(async (taskArgs, hre) => {
         const HeaderCodec = await hre.ethers.getContractFactory('HeaderCodec')
@@ -37,4 +39,31 @@ task("deployTendermint", "Deploy Tendermint Client")
         console.log("export TENDERMINT_CLIENT=%s", tendermint.address.toLocaleLowerCase())
     })
 
+
+
+task("upgradeTendermint", "Deploy Tendermint Client")
+    .setAction(async (taskArgs, hre) => {
+        const HeaderCodec = await hre.ethers.getContractFactory('HeaderCodec')
+        const headerCodec = await HeaderCodec.deploy()
+        await headerCodec.deployed()
+        const tendermintFactory = await hre.ethers.getContractFactory(
+            'Tendermint',
+            {
+                libraries: {
+                    ClientStateCodec: String(CLIENT_STATE_CODEC_ADDRESS),
+                    ConsensusStateCodec: String(CONSENSUS_STATE_CODEC_ADDRESS),
+                    Verifier: String(VERIFIER_ADDRESS),
+                    HeaderCodec: String(headerCodec.address),
+                    LightClientVerify: String(LIGHT_CLIENT_VERIFY_ADDRESS),
+                    LightClientGenValHash: String(LIGHT_CLIENT_GEN_VALHASH_ADDRESS),
+                }
+            },
+        )
+        const tendermint = await hre.upgrades.upgradeProxy(
+            String(TENDERMINT_CLIENT),
+            tendermintFactory,
+        )
+        console.log("Tendermint deployed to:", tendermint.address.toLocaleLowerCase())
+        console.log("export TENDERMINT_CLIENT=%s", tendermint.address.toLocaleLowerCase())
+    })
 module.exports = {}

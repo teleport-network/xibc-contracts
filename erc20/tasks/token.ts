@@ -16,6 +16,17 @@ task("deployToken", "Deploy Token")
         console.log("export ERC20_TOKEN=%s", token.address.toLocaleLowerCase());
     });
 
+task("mintToken", "Deploy Token")
+    .addParam("address", "token address")
+    .addParam("to", "reciver")
+    .addParam("amount", "token mint amount")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('ERC20MinterBurnerDecimals')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        console.log(await token.mint(taskArgs.to, taskArgs.amount))
+    });
+
 task("deployTestToken", "Deploy Testnet ERC20 Token")
     .addParam("name", "token name")
     .addParam("symbol", "token symbol")

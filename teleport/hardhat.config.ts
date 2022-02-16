@@ -19,11 +19,9 @@ module.exports = {
         teleport: {
             url: 'http://localhost:8545',
             gasPrice: 2000000000,
-            chainId: 9999999999999,
+            chainId: 9000,
             gas: 4100000,
-            accounts: [
-                "",
-            ],
+            accounts: [''],
         },
     },
     solidity: {

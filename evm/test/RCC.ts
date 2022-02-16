@@ -142,12 +142,6 @@ describe('RCC', () => {
         await routing.addRouting("CONTRACT", rcc.address)
     }
 
-    const createClient = async function (chainName: string, lightClientAddress: any, clientState: any, consensusState: any) {
-        let clientStateBuf = client.ClientState.encode(clientState).finish()
-        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
-        await clientManager.createClient(chainName, lightClientAddress, clientStateBuf, consensusStateBuf)
-    }
-
     const deployAccessManager = async () => {
         const accessFactory = await ethers.getContractFactory('AccessManager')
         accessManager = (await upgrades.deployProxy(accessFactory, [await accounts[0].getAddress()])) as AccessManager

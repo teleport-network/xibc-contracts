@@ -5,7 +5,7 @@ const transferContractAddress = "0x0000000000000000000000000000000010000003"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
-    .addParam("node","node url")
+    .addParam("node", "node url")
     .setAction(async (taskArgs, hre) => {
         const provider = new hre.ethers.providers.JsonRpcProvider(taskArgs.node)
 
@@ -37,7 +37,7 @@ task("transferERC20", "Sender ERC20 Token")
             destChain: taskArgs.destchain,
             relayChain: taskArgs.relaychain,
         }
-        let res = await transfer.sendTransfer(transferdata)
+        let res = await transfer.sendTransferERC20(transferdata)
         console.log(await res.wait())
     })
 
@@ -63,4 +63,27 @@ task("transferBase", "Sender Base token")
         console.log(await res.wait())
     })
 
+task("queryBindings", "query ERC20 token trace")
+    .addParam("transfer", "transfer contract address")
+    .addParam("address", "ERC20 contract address")
+    .setAction(async (taskArgs, hre) => {
+        const transferFactory = await hre.ethers.getContractFactory('Transfer')
+        const transfer = await transferFactory.attach(taskArgs.transfer)
+
+        let res = await transfer.bindings(taskArgs.address)
+        console.log(await res)
+    })
+
+
+task("queryTrace", "Token")
+    .addParam("transfer", "transfer address")
+    .addParam("srcchain", "srcchain name")
+    .addParam("token", "token address")
+    .setAction(async (taskArgs, hre) => {
+        const transferFactory = await hre.ethers.getContractFactory('Transfer')
+        const transfer = await transferFactory.attach(taskArgs.transfer)
+
+        let trace = await transfer.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
+        console.log(trace)
+    });
 module.exports = {}
