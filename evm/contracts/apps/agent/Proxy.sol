@@ -20,6 +20,16 @@ contract Proxy is Initializable, OwnableUpgradeable {
     IPacket public packet;
     ITransfer public transfer;
 
+    struct ProxyData {
+        bool sent;
+        string sender;
+        address tokenAddress;
+        uint256 amount;
+        bool refunded;
+    }
+
+    mapping(bytes => ProxyData) public sequences; //map[sha256(srcChain/destChain/sequence)]ProxyData
+
     function initialize(
         address clientMgrContract,
         address multiCallContract,
@@ -54,6 +64,11 @@ contract Proxy is Initializable, OwnableUpgradeable {
             contractAddress
         );
 
+        require(
+            erc20transfer.amount == rccTransfer.amount,
+            "amount must be equal to rcc amount"
+        );
+
         if (erc20transfer.tokenAddress != address(0)) {
             // send erc20
             IERC20(erc20transfer.tokenAddress).transferFrom(
@@ -77,7 +92,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         } else {
             // send native token
             require(msg.value > 0, "value must be greater than 0");
-            require(msg.value == erc20transfer.amount,"err amount");
+            require(msg.value == erc20transfer.amount, "err amount");
             bytes memory BaseTransferDataAbi = abi.encode(
                 MultiCallDataTypes.BaseTransferData({
                     receiver: erc20transfer.receiver,
@@ -97,6 +112,14 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 functions: functions,
                 data: dataList
             });
+
+        sequences[id] = ProxyData({
+            sent: true,
+            sender: msg.sender.addressToString(),
+            tokenAddress: erc20transfer.tokenAddress,
+            amount: erc20transfer.amount,
+            refunded: false
+        });
 
         if (erc20transfer.tokenAddress != address(0)) {
             multiCall.multiCall(multiCallData);
@@ -148,5 +171,58 @@ contract Proxy is Initializable, OwnableUpgradeable {
                     data: agentSendData
                 })
             );
+    }
+
+    function claimRefund(
+        string calldata srcChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external {
+        bytes memory idKey = bytes(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(srcChain, "/"),
+                        destChain
+                    ),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            )
+        );
+        bytes memory id = Bytes.fromBytes32(sha256(idKey));
+
+        require(sequences[id].sent, "not exist");
+        require(!sequences[id].refunded, "refunded");
+        require(
+            packet.getAckStatus(srcChain, destChain, sequence) == 2,
+            "not err ack"
+        );
+
+        if (sequences[id].tokenAddress != address(0)) {
+            require(
+                IERC20(sequences[id].tokenAddress).balanceOf(address(this)) >=
+                    sequences[id].amount,
+                "Insufficient balance"
+            );
+            require(
+                IERC20(sequences[id].tokenAddress).transfer(
+                    sequences[id].sender.parseAddr(),
+                    sequences[id].amount
+                ),
+                "err to send erc20 token back"
+            );
+        } else {
+            require(
+                address(this).balance >= sequences[id].amount,
+                "Insufficient balance"
+            );
+            require(
+                payable(sequences[id].sender.parseAddr()).send(
+                    sequences[id].amount
+                ),
+                "err to send native token back"
+            );
+        }
     }
 }
