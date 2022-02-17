@@ -274,7 +274,6 @@ task("getClient", "Deploy Client Manager")
     })
 
 task("getChainName", "Deploy Client Manager")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))

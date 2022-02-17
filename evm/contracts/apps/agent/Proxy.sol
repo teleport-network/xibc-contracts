@@ -224,5 +224,6 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 "err to send native token back"
             );
         }
+        sequences[id].refunded = true;
     }
 }
