@@ -100,6 +100,7 @@ contract Transfer is ITransfer {
 
         boundTokens.push(tokenAddress);
         boundTokenSources[tokenAddress].push(oriChain);
+
         bindings[bindingKey] = TransferDataTypes.InToken({
             oriToken: oriToken,
             amount: 0,

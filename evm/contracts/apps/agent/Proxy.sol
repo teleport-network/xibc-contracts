@@ -12,6 +12,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract Proxy is Initializable, OwnableUpgradeable {
+    receive() external payable {}
+
     using Strings for *;
     using Bytes for *;
 
