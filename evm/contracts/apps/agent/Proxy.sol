@@ -202,6 +202,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         );
 
         if (sequences[id].tokenAddress != address(0)) {
+            // refund erc20 token
             require(
                 IERC20(sequences[id].tokenAddress).balanceOf(address(this)) >=
                     sequences[id].amount,
@@ -215,6 +216,8 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 "err to send erc20 token back"
             );
         } else {
+            // refund native token
+            // todo : native token refund is not available yet
             require(
                 address(this).balance >= sequences[id].amount,
                 "Insufficient balance"

@@ -4,6 +4,7 @@ import { task } from "hardhat/config"
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
+const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 
 task("deployPacket", "Deploy Packet")
     .setAction(async (taskArgs, hre) => {
@@ -55,6 +56,18 @@ task("queryRole", "Packet")
 
         let roleHash = await packet.MULTISEND_ROLE()
         console.log(roleHash)
+    })
+
+task("getAckStatus", "Packet")
+    .addParam("sourcechain", "sourceChain")
+    .addParam("destchain", "sourceChain")
+    .addParam("sequence", "sourceChain")
+    .setAction(async (taskArgs, hre) => {
+        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
+
+        let state = await packet.getAckStatus(taskArgs.sourcechain, taskArgs.destchain, taskArgs.sequence)
+        console.log(state)
     })
 
 module.exports = {}
