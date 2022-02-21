@@ -83,12 +83,15 @@ contract Transfer is ITransfer {
         string calldata oriChain
     ) external onlyXIBCModuleAggregate {
         require(tokenAddress != address(0), "invalid ERC20 address");
-
-        if (bindings[tokenAddress].bound) {
+        string memory bindingKey = Strings.strConcat(
+            Strings.strConcat(tokenAddress.addressToString(), "/"),
+            oriChain
+        );
+        if (bindings[bindingKey].bound) {
             // rebind
             string memory reBindKey = Strings.strConcat(
-                Strings.strConcat(bindings[tokenAddress].oriChain, "/"),
-                bindings[tokenAddress].oriToken
+                Strings.strConcat(oriChain, "/"),
+                bindings[bindingKey].oriToken
             );
             bindingTraces[reBindKey] = address(0);
         }
@@ -96,10 +99,6 @@ contract Transfer is ITransfer {
         boundTokens.push(tokenAddress);
         boundTokenSources[tokenAddress].push(oriChain);
 
-        string memory bindingKey = Strings.strConcat(
-            Strings.strConcat(tokenAddress.addressToString(), "/"),
-            oriChain
-        );
         string memory traceKey = Strings.strConcat(
             Strings.strConcat(oriChain, "/"),
             oriToken
