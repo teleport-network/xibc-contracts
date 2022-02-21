@@ -17,6 +17,7 @@ import "./tasks/deployMultiCall"
 import "./tasks/deployRcc"
 import "./tasks/deployProxy"
 import "./tasks/deployAccessManager"
+import "./tasks/deployTestPayable"
 import "./tasks/transfer"
 
 module.exports = {
@@ -29,26 +30,33 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: true,
         },
+        localhost: {
+            url: 'http://localhost:8545',
+            gasPrice: 5000000000,
+            chainId: 9000,
+            gas: 4100000,
+            accounts: [''],
+        },
         teleport: {
             url: 'https://seed0.testnet.teleport.network',
             gasPrice: 5000000000,
             chainId: 8001,
             gas: 4100000,
-            accounts: ['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
+            accounts: [''],
         },
         rinkeby: {
             url: 'https://rinkeby.infura.io/v3/023f2af0f670457d9c4ea9cb524f0810',
             gasPrice: 1500000000,
             chainId: 4,
             gas: 4100000,
-            accounts: ['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
+            accounts: [''],
         },
         bsctest: {
             url: 'https://data-seed-prebsc-2-s2.binance.org:8545',
             gasPrice: 10000000000,
             chainId: 97,
             gas: 4100000,
-            accounts: ['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
+            accounts: [''],
         },
     },
     solidity: {

@@ -21,7 +21,7 @@ module.exports = {
             gasPrice: 5000000000,
             chainId: 8001,
             gas: 4100000,
-            accounts: ['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
+            accounts: [''],
         },
     },
     solidity: {
