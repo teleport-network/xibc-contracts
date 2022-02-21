@@ -81,15 +81,15 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                 bindings[tokenAddress].oriToken
             );
             bindingTraces[reBindKey] = address(0);
+        } else {
+            boundTokens.push(tokenAddress);
         }
-
-        boundTokens.push(tokenAddress);
 
         string memory key = Strings.strConcat(
             Strings.strConcat(oriChain, "/"),
             oriToken
         );
-        
+
         bindings[tokenAddress] = TransferDataTypes.InToken({
             oriChain: oriChain,
             oriToken: oriToken,

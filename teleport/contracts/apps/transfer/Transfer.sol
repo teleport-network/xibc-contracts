@@ -94,10 +94,10 @@ contract Transfer is ITransfer {
                 bindings[bindingKey].oriToken
             );
             bindingTraces[reBindKey] = address(0);
+        } else {
+            boundTokens.push(tokenAddress);
+            boundTokenSources[tokenAddress].push(oriChain);
         }
-
-        boundTokens.push(tokenAddress);
-        boundTokenSources[tokenAddress].push(oriChain);
 
         string memory traceKey = Strings.strConcat(
             Strings.strConcat(oriChain, "/"),
