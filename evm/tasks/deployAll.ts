@@ -125,14 +125,6 @@ task("deployall", "Deploy Client Manager")
         )
         await proxy.deployed()
         console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
-
-        let result = await routing.addRouting("FT", transfer.address.toLocaleLowerCase())
-        console.log("add routing for transfer txHash:", result.hash)
-        result = await routing.addRouting("CONTRACT", rcc.address.toLocaleLowerCase())
-        console.log("add routing for rcc txHash:", result.hash)
-        let role = Buffer.from("MULTISEND_ROLE", "utf-8")
-        result = await accessManager.grantRole(keccak256(role), multiCall.address.toLocaleLowerCase())
-        console.log("grantRole to multicall txHash:", result.hash)
     })
 
 module.exports = {}

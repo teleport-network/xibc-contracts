@@ -23,4 +23,13 @@ task("addRouting", "Add module routing")
         console.log(result)
     })
 
+task("getModule", "Add module routing")
+    .addParam("module", "module name")
+    .setAction(async (taskArgs, hre) => {
+        const routingFactory = await hre.ethers.getContractFactory('Routing')
+        const routing = await routingFactory.attach(String(ROUTING_ADDRESS))
+        const result = await routing.getModule(taskArgs.module)
+        console.log(result)
+    })
+
 module.exports = {}

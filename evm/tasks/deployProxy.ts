@@ -25,15 +25,6 @@ task("deployProxy", "Deploy Proxy")
         console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
     })
 
-task("upgradeProxy", "upgradeProxy")
-    .setAction(async (taskArgs, hre) => {
-        const ProxyrFactory = await hre.ethers.getContractFactory("Proxy");
-        const upgradeProxy = await hre.upgrades.upgradeProxy(String(PROXY_ADDRESS), ProxyrFactory, {
-            unsafeAllowCustomTypes: true,
-          });
-        console.log(upgradeProxy.address)
-    })
-
 task("send", "Send Proxy")
     .addParam("proxy", "proxy address")
     .addParam("destchain", "destChain name")
@@ -59,15 +50,15 @@ task("send", "Send Proxy")
             destChain: taskArgs.rccdestchain,
             relayChain: taskArgs.rccrelaychain,
         }
-        if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000"){
+        if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000") {
             console.log("transfer base")
-            let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer,{value:taskArgs.amount})
+            let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer, { value: taskArgs.amount })
             console.log(res)
-        }else {
+        } else {
             console.log("transfer erc20")
             let res = await proxy.send(taskArgs.destchain, ERC20TransferData, ERC20TransferData.receiver, rccTransfer)
             console.log(res)
         }
-        
+
     })
 module.exports = {}
