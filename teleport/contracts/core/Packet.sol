@@ -7,7 +7,7 @@ import "../interfaces/IPacket.sol";
 import "../libraries/utils/Strings.sol";
 
 contract Packet is IPacket {
-    address public constant xibcModulePacket =
+    address public constant packetContractAddress =
         address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
 
     mapping(bytes => uint64) public sequences;
@@ -15,7 +15,7 @@ contract Packet is IPacket {
 
     modifier onlyXIBCModulePacket() {
         require(
-            msg.sender == address(xibcModulePacket),
+            msg.sender == address(packetContractAddress),
             "caller must be xibc packet module"
         );
         _;
