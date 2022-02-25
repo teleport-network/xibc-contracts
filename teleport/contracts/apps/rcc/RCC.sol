@@ -14,11 +14,11 @@ contract RCC is IRCC {
 
     string private constant nativeChainName = "teleport";
 
-    address public constant xibcModuleRCC =
+    address public constant rccContractAddress =
         address(0xfef812Ed2Bf63E7eE056931d54A6292fcbbaDFaA);
 
-    address public constant multiCallAddress =
-        address(0x0000000000000000000000000000000010000005);
+    address public constant multiCallContractAddress =
+        address(0x0000000000000000000000000000000030000003);
 
     mapping(bytes32 => bytes) public override acks;
 
@@ -36,13 +36,16 @@ contract RCC is IRCC {
     event Ack(bytes32 indexed dataHash, bytes ack);
 
     modifier onlyXIBCModuleRCC() {
-        require(msg.sender == xibcModuleRCC, "caller must be XIBC RCC module");
+        require(
+            msg.sender == rccContractAddress,
+            "caller must be XIBC RCC module"
+        );
         _;
     }
 
     modifier onlyMultiCall() {
         require(
-            msg.sender == multiCallAddress,
+            msg.sender == multiCallContractAddress,
             "caller must be multiCall contract address"
         );
         _;

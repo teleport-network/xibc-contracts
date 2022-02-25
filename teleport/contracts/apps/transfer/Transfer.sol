@@ -16,12 +16,12 @@ contract Transfer is ITransfer {
 
     string private constant nativeChainName = "teleport";
 
-    address public constant xibcModuleTransfer =
-        address(0xDE152Fc3Bc10A8878677FD17c44aE633D9EBF737);
-    address public constant xibcModuleAggregate =
+    address public constant aggregateContractAddress =
         address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
-    address public constant multiCallAddress =
-        address(0x0000000000000000000000000000000010000005);
+    address public constant transferContractAddress =
+        address(0xDE152Fc3Bc10A8878677FD17c44aE633D9EBF737);
+    address public constant multiCallContractAddress =
+        address(0x0000000000000000000000000000000030000003);
 
     // token come in
     address[] public override boundTokens;
@@ -49,7 +49,7 @@ contract Transfer is ITransfer {
 
     modifier onlyXIBCModuleAggregate() {
         require(
-            msg.sender == address(xibcModuleAggregate),
+            msg.sender == address(aggregateContractAddress),
             "caller must be xibc aggregate module"
         );
         _;
@@ -57,7 +57,7 @@ contract Transfer is ITransfer {
 
     modifier onlyXIBCModuleTransfer() {
         require(
-            msg.sender == address(xibcModuleTransfer),
+            msg.sender == address(transferContractAddress),
             "caller must be XIBC transfer module"
         );
         _;
@@ -65,7 +65,7 @@ contract Transfer is ITransfer {
 
     modifier onlyMultiCall() {
         require(
-            msg.sender == multiCallAddress,
+            msg.sender == multiCallContractAddress,
             "caller must be multiCall contract address"
         );
         _;

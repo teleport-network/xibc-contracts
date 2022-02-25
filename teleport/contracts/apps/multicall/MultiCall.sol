@@ -18,10 +18,9 @@ contract MultiCall is IMultiCall {
     string private constant nativeChainName = "teleport";
 
     address public constant transferContractAddress =
-        address(0x0000000000000000000000000000000010000003);
-
+        address(0x0000000000000000000000000000000030000001);
     address public constant rccContractAddress =
-        address(0x0000000000000000000000000000000010000004);
+        address(0x0000000000000000000000000000000030000002);
 
     event SendPacket(
         address sender,
