@@ -22,7 +22,7 @@ task("deployTransfer", "Deploy Transfer")
         console.log("export TRANSFER_ADDRESS=%s", transfer.address.toLocaleLowerCase())
     })
 
-task("upgradeTransfer", "upgradeProxy")
+task("upgradeTransfer", "upgrade transfer")
     .setAction(async (taskArgs, hre) => {
         const MockTransferFactory = await hre.ethers.getContractFactory("MockTransfer");
         const mockTransferProxy = await hre.upgrades.upgradeProxy(
@@ -36,7 +36,7 @@ task("upgradeTransfer", "upgradeProxy")
         console.log(mockTransferProxy.address)
     })
 
-task("setVersion", "upgradeProxy")
+task("setVersion", "set version for mocktransfer")
     .setAction(async (taskArgs, hre) => {
         const transferFactory = await hre.ethers.getContractFactory('MockTransfer')
         const transfer = await transferFactory.attach(String(TRANSFER_ADDRESS))
@@ -44,7 +44,7 @@ task("setVersion", "upgradeProxy")
         await transfer.setVersion(2)
     })
 
-task("getVersion", "upgradeProxy")
+task("getVersion", "get version for mocktransfer")
     .setAction(async (taskArgs, hre) => {
         const transferFactory = await hre.ethers.getContractFactory('MockTransfer')
         const transfer = await transferFactory.attach(String(TRANSFER_ADDRESS))

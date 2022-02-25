@@ -13,7 +13,7 @@ task("deployTestPayable", "Deploy Payable")
         console.log("export TEST_PAYABLE_ADDRESS=%s", TestPayable.address.toLocaleLowerCase())
     })
 
-task("getbalance", "Deploy Payable")
+task("getbalance", "get payable balance ")
     .setAction(async (taskArgs, hre) => {
         const TestPayableFactory = await hre.ethers.getContractFactory('TestPayable')
         const recv = TestPayableFactory.attach(String(TEST_PAYABLE_ADDRESS))

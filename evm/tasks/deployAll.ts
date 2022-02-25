@@ -2,7 +2,7 @@ import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 import { keccak256 } from "ethers/lib/utils"
 
-task("deployall", "Deploy Client Manager")
+task("deployall", "Deploy all base contract")
     .addParam("chain", "Chain Name")
     .addParam("wallet", "multi sign address")
     .setAction(async (taskArgs, hre) => {
@@ -127,4 +127,22 @@ task("deployall", "Deploy Client Manager")
         console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
     })
 
+task("transferoOwnership", "Deploy all base contract")
+    .addParam("gnosissafe", "gnosisSafe address")
+    .setAction(async (taskArgs, hre) => {
+        console.log('Transferring ownership of ProxyAdmin...');
+        // The owner of the ProxyAdmin can upgrade our contracts
+        await hre.upgrades.admin.transferProxyAdminOwnership(taskArgs.gnosisSafe);
+        console.log('Transferred ownership of ProxyAdmin to:', taskArgs.gnosisSafe);
+    })
+
+task("upgradeByDefender", "Deploy all base contract")
+    .addParam("proxyaddress", "proxy address")
+    .addParam("factory", "factory name")
+    .setAction(async (taskArgs, hre) => {
+        const upgradeFac = await hre.ethers.getContractFactory(taskArgs.factory);
+        console.log("Preparing proposal...");
+        const proposal = await hre.defender.proposeUpgrade(taskArgs.proxyAddress, upgradeFac);
+        console.log("Upgrade proposal created at:", proposal.url);
+    })
 module.exports = {}

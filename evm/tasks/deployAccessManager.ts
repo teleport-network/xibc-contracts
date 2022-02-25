@@ -27,14 +27,14 @@ task("grantRole", "grant Role")
         console.log(result)
     })
 
-task("roleBytes", "grant Role")
+task("roleBytes", "get role bytes")
     .addParam("role", "grant Role")
     .setAction(async (taskArgs, hre) => {
         let role = Buffer.from(taskArgs.role, "utf-8")
         console.log(keccak256(role))
     })
 
-task("hasRole", "grant Role")
+task("hasRole", "check address has Role")
     .addParam("role", "grant Role")
     .addParam("to", "grant Role to contract")
     .setAction(async (taskArgs, hre) => {

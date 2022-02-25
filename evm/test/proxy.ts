@@ -395,7 +395,7 @@ describe('Proxy', () => {
         balances = await erc20.balanceOf(ERC20TransferPacketData.sender)
         expect(balances).to.eq(1000)
 
-        let proxySequences = await proxy.sequences(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
+        let proxySequences = await proxy.proxyDatas(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
         expect(proxySequences.sent).to.eq(true)
         expect(proxySequences.sender).to.eq(sender)
         expect(proxySequences.tokenAddress).to.eq(erc20.address)
@@ -408,7 +408,7 @@ describe('Proxy', () => {
         expect(balances).to.eq(0)
         balances = await erc20.balanceOf(sender)
         expect(balances).to.eq(1048576)
-        proxySequences = await proxy.sequences(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
+        proxySequences = await proxy.proxyDatas(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
         expect(proxySequences.refunded).to.eq(true)
     })
 

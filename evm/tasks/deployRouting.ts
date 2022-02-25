@@ -23,7 +23,7 @@ task("addRouting", "Add module routing")
         console.log(result)
     })
 
-task("getModule", "Add module routing")
+task("getModule", "Get module routing")
     .addParam("module", "module name")
     .setAction(async (taskArgs, hre) => {
         const routingFactory = await hre.ethers.getContractFactory('Routing')

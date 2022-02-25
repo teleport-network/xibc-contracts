@@ -30,7 +30,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         bool refunded;
     }
 
-    mapping(bytes => ProxyData) public sequences; //map[sha256(srcChain/destChain/sequence)]ProxyData
+    mapping(bytes => ProxyData) public proxyDatas; //map[sha256(srcChain/destChain/sequence)]ProxyData
 
     function initialize(
         address clientMgrContract,
@@ -115,7 +115,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 data: dataList
             });
 
-        sequences[id] = ProxyData({
+        proxyDatas[id] = ProxyData({
             sent: true,
             sender: msg.sender.addressToString(),
             tokenAddress: erc20transfer.tokenAddress,
@@ -194,24 +194,19 @@ contract Proxy is Initializable, OwnableUpgradeable {
         );
         bytes memory id = Bytes.fromBytes32(sha256(idKey));
 
-        require(sequences[id].sent, "not exist");
-        require(!sequences[id].refunded, "refunded");
+        require(proxyDatas[id].sent, "not exist");
+        require(!proxyDatas[id].refunded, "refunded");
         require(
             packet.getAckStatus(srcChain, destChain, sequence) == 2,
             "not err ack"
         );
 
-        if (sequences[id].tokenAddress != address(0)) {
+        if (proxyDatas[id].tokenAddress != address(0)) {
             // refund erc20 token
             require(
-                IERC20(sequences[id].tokenAddress).balanceOf(address(this)) >=
-                    sequences[id].amount,
-                "Insufficient balance"
-            );
-            require(
-                IERC20(sequences[id].tokenAddress).transfer(
-                    sequences[id].sender.parseAddr(),
-                    sequences[id].amount
+                IERC20(proxyDatas[id].tokenAddress).transfer(
+                    proxyDatas[id].sender.parseAddr(),
+                    proxyDatas[id].amount
                 ),
                 "err to send erc20 token back"
             );
@@ -219,16 +214,12 @@ contract Proxy is Initializable, OwnableUpgradeable {
             // refund native token
             // todo : native token refund is not available yet
             require(
-                address(this).balance >= sequences[id].amount,
-                "Insufficient balance"
-            );
-            require(
-                payable(sequences[id].sender.parseAddr()).send(
-                    sequences[id].amount
+                payable(proxyDatas[id].sender.parseAddr()).send(
+                    proxyDatas[id].amount
                 ),
                 "err to send native token back"
             );
         }
-        sequences[id].refunded = true;
+        proxyDatas[id].refunded = true;
     }
 }

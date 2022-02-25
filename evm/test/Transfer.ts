@@ -34,9 +34,10 @@ describe('Transfer', () => {
     })
 
     it("bind token", async () => {
+        let address0= "0x0000000000000000000000000000000000000000"
         let tokenAddress = "0x1000000000000000000000000000000010000000"
         let bindDestChain = "test"
-        let reBindDestChain = "test"
+        let reBindDestChain = "retest"
 
         let bindOriToken = "testbind"
         let reBindOriToken = "testrebind"
@@ -52,18 +53,25 @@ describe('Transfer', () => {
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDestChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
+        let reBindKey = bindDestChain+"/"+bindOriToken
+        expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
 
         await transfer.bindToken(tokenAddress, reBindOriToken, reBindDestChain)
         bind = await transfer.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(reBindDestChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
-
+        reBindKey = bindDestChain+"/"+reBindOriToken
+        expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
+        
         await transfer.bindToken(tokenAddress, bindOriToken, bindDestChain)
         bind = await transfer.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDestChain)
         expect(bind.oriToken).to.eq(bindOriToken)
+        reBindKey = reBindDestChain+"/"+reBindOriToken
+        expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
+        
     })
 
     it("test transfer ERC20", async () => {

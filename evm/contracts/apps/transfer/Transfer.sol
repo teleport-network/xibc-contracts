@@ -80,7 +80,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                 Strings.strConcat(bindings[tokenAddress].oriChain, "/"),
                 bindings[tokenAddress].oriToken
             );
-            bindingTraces[reBindKey] = address(0);
+            delete bindingTraces[reBindKey];
         } else {
             boundTokens.push(tokenAddress);
         }

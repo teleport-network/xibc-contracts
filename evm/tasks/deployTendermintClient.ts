@@ -41,7 +41,7 @@ task("deployTendermint", "Deploy Tendermint Client")
 
 
 
-task("upgradeTendermint", "Deploy Tendermint Client")
+task("upgradeTendermint", "upgrade Tendermint Client")
     .setAction(async (taskArgs, hre) => {
         const HeaderCodec = await hre.ethers.getContractFactory('HeaderCodec')
         const headerCodec = await HeaderCodec.deploy()

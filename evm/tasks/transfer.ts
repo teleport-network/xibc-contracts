@@ -18,7 +18,7 @@ task("queryBalance", "Query Balance")
     })
 
 
-task("transferERC20", "Sender ERC20 Token")
+task("transferERC20", "send ERC20 Token")
     .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .addParam("receiver", "receiver address")
@@ -40,7 +40,7 @@ task("transferERC20", "Sender ERC20 Token")
         console.log(await res.wait())
     })
 
-task("transferBase", "Sender Base token")
+task("transferBase", "send Base token")
     .addParam("transfer", "transfer contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
@@ -103,7 +103,7 @@ task("deployToken", "Deploy Token")
 
     });
 
-task("mintToken", "Deploy Token")
+task("mintToken", "Mint Token")
     .addParam("address", "token address")
     .addParam("to", "reciver")
     .addParam("amount", "token mint amount")
@@ -114,7 +114,7 @@ task("mintToken", "Deploy Token")
         await token.mint(taskArgs.to, taskArgs.amount)
     });
 
-task("queryErc20balances", "Deploy Token")
+task("queryErc20balances", "Query ERC20 balances")
     .addParam("address", "token address")
     .addParam("user", "user address ")
     .setAction(async (taskArgs, hre) => {
@@ -125,7 +125,7 @@ task("queryErc20balances", "Deploy Token")
         console.log(balances)
     });
 
-task("approve", "Deploy Token")
+task("approve", "approve ERC20 token to others")
     .addParam("address", "erc20 address")
     .addParam("transfer", "transfer address ")
     .addParam("amount", "approve amount")
@@ -137,7 +137,7 @@ task("approve", "Deploy Token")
         console.log(res)
     });
 
-task("queryAllowance", "Deploy Token")
+task("queryAllowance", "Query ERC20 allowance")
     .addParam("address", "erc20 address")
     .addParam("transfer", "transfer address ")
     .addParam("account", "account address")
@@ -149,7 +149,7 @@ task("queryAllowance", "Deploy Token")
         console.log(allowances)
     });
 
-task("queryOutToken", "Token")
+task("queryOutToken", "Query out token")
     .addParam("transfer", "transfer address ")
     .addParam("token", "token address ")
     .addParam("chainname", "chainName")
@@ -161,7 +161,7 @@ task("queryOutToken", "Token")
         console.log(outToken)
     });
     
-task("queryTrace", "Token")
+task("queryTrace", "Query trace")
     .addParam("transfer", "transfer address")
     .addParam("srcchain", "srcchain name")
     .addParam("token", "token address")

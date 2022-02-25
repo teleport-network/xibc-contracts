@@ -93,7 +93,7 @@ contract Transfer is ITransfer {
                 Strings.strConcat(oriChain, "/"),
                 bindings[bindingKey].oriToken
             );
-            bindingTraces[reBindKey] = address(0);
+            delete bindingTraces[reBindKey];
         } else {
             boundTokens.push(tokenAddress);
             boundTokenSources[tokenAddress].push(oriChain);
