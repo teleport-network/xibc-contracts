@@ -21,13 +21,20 @@ task("grantRole", "grant Role")
     .addParam("to", "grant Role to contract")
     .setAction(async (taskArgs, hre) => {
         const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
-        const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS),)
+        const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
         let role = Buffer.from(taskArgs.role, "utf-8")
         const result = await accessManager.grantRole(keccak256(role), taskArgs.to)
         console.log(result)
     })
 
-task("hasRole", "grant Role")
+task("roleBytes", "get role bytes")
+    .addParam("role", "grant Role")
+    .setAction(async (taskArgs, hre) => {
+        let role = Buffer.from(taskArgs.role, "utf-8")
+        console.log(keccak256(role))
+    })
+
+task("hasRole", "check address has Role")
     .addParam("role", "grant Role")
     .addParam("to", "grant Role to contract")
     .setAction(async (taskArgs, hre) => {

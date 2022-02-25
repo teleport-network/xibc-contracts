@@ -27,8 +27,8 @@ contract Agent {
 
     mapping(string => mapping(address => uint256)) public balances; // map[sender]map[token]amount
     mapping(address => uint256) public supplies; //map[token]amount
-    mapping(string => AgentData) public sequences; //map[srcChain/destChain/sequence]transferPacketData
-    mapping(string => bool) public refunded;
+    mapping(string => AgentData) public sequences; //map[srcChain/destChain/sequence]AgentData
+    mapping(string => bool) public refunded;//map[srcChain/destChain/sequence]refunded
 
     address public constant transferContract =
         address(0x0000000000000000000000000000000010000003);
@@ -48,7 +48,7 @@ contract Agent {
         bytes id,
         string srcChain,
         string destChain,
-        uint64 sequence
+        uint256 sequence
     );
 
     function send(

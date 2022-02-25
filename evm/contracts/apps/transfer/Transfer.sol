@@ -74,16 +74,22 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(tokenAddress != address(0), "invalid ERC20 address");
 
-        require(!bindings[tokenAddress].bound, "token already bound");
+        if (bindings[tokenAddress].bound) {
+            // rebind
+            string memory reBindKey = Strings.strConcat(
+                Strings.strConcat(bindings[tokenAddress].oriChain, "/"),
+                bindings[tokenAddress].oriToken
+            );
+            delete bindingTraces[reBindKey];
+        } else {
+            boundTokens.push(tokenAddress);
+        }
 
         string memory key = Strings.strConcat(
             Strings.strConcat(oriChain, "/"),
             oriToken
         );
 
-        require(bindingTraces[key] == address(0), "trace already bound");
-
-        boundTokens.push(tokenAddress);
         bindings[tokenAddress] = TransferDataTypes.InToken({
             oriChain: oriChain,
             oriToken: oriToken,
@@ -306,17 +312,18 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
         outTokens[address(0)][transferData.destChain] += msg.value;
 
-        return abi.encode(
-            TransferDataTypes.TransferPacketData({
-                srcChain: sourceChain,
-                destChain: transferData.destChain,
-                sender: transferData.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: msg.value.toBytes(),
-                token: address(0).addressToString(),
-                oriToken: ""
-            })
-        );
+        return
+            abi.encode(
+                TransferDataTypes.TransferPacketData({
+                    srcChain: sourceChain,
+                    destChain: transferData.destChain,
+                    sender: transferData.sender.addressToString(),
+                    receiver: transferData.receiver,
+                    amount: msg.value.toBytes(),
+                    token: address(0).addressToString(),
+                    oriToken: ""
+                })
+            );
     }
 
     function onRecvPacket(bytes calldata data)
@@ -428,11 +435,15 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
-            _refundTokens(abi.decode(data,(TransferDataTypes.TransferPacketData)));
+            _refundTokens(
+                abi.decode(data, (TransferDataTypes.TransferPacketData))
+            );
         }
     }
 
-    function _refundTokens(TransferDataTypes.TransferPacketData memory data) private {
+    function _refundTokens(TransferDataTypes.TransferPacketData memory data)
+        private
+    {
         if (bytes(data.oriToken).length > 0) {
             // refund crossed chain token
             require(
@@ -451,7 +462,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                     data.sender.parseAddr(),
                     data.amount.toUint256()
                 ),
-                "unlock to sender failed"
+                "unlock ERC20 token to sender failed"
             );
             outTokens[data.token.parseAddr()][data.destChain] -= data
                 .amount
@@ -460,7 +471,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
             // refund base token
             require(
                 payable(data.sender.parseAddr()).send(data.amount.toUint256()),
-                "unlock to sender failed"
+                "unlock base token to sender failed"
             );
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }

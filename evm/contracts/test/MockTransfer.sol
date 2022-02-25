@@ -68,25 +68,35 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
     }
 
     function bindToken(
-        address tokenAddres,
+        address tokenAddress,
         string calldata oriToken,
         string calldata oriChain
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
-        require(
-            !bindings[tokenAddres].bound,
-            "source chain should not be bound before"
+        require(tokenAddress != address(0), "invalid ERC20 address");
+
+        if (bindings[tokenAddress].bound) {
+            // rebind
+            string memory reBindKey = Strings.strConcat(
+                Strings.strConcat(bindings[tokenAddress].oriChain, "/"),
+                bindings[tokenAddress].oriToken
+            );
+            delete bindingTraces[reBindKey];
+        } else {
+            boundTokens.push(tokenAddress);
+        }
+
+        string memory key = Strings.strConcat(
+            Strings.strConcat(oriChain, "/"),
+            oriToken
         );
 
-        boundTokens.push(tokenAddres);
-        bindings[tokenAddres] = TransferDataTypes.InToken({
+        bindings[tokenAddress] = TransferDataTypes.InToken({
             oriChain: oriChain,
             oriToken: oriToken,
             amount: 0,
             bound: true
         });
-        bindingTraces[
-            Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken)
-        ] = tokenAddres;
+        bindingTraces[key] = tokenAddress;
     }
 
     function sendTransferERC20(
@@ -149,7 +159,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         ports[0] = PORT;
 
         dataList[0] = abi.encode(
-            TransferDataTypes. TransferPacketData({
+            TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -229,7 +239,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
 
         return
             abi.encode(
-                TransferDataTypes. TransferPacketData({
+                TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
                     sender: transferData.sender.addressToString(),
@@ -258,7 +268,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
         dataList[0] = abi.encode(
-            TransferDataTypes. TransferPacketData({
+            TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
                 sender: msg.sender.addressToString(),
@@ -303,7 +313,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
 
         return
             abi.encode(
-                TransferDataTypes. TransferPacketData({
+                TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
                     sender: transferData.sender.addressToString(),
@@ -320,9 +330,9 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         override
         returns (PacketTypes.Result memory)
     {
-        TransferDataTypes. TransferPacketData memory packetData = abi.decode(
+        TransferDataTypes.TransferPacketData memory packetData = abi.decode(
             data,
-            (TransferDataTypes. TransferPacketData)
+            (TransferDataTypes.TransferPacketData)
         );
 
         latestPacket = packetData;
@@ -423,11 +433,13 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
-            _refundTokens(abi.decode(data, (TransferDataTypes. TransferPacketData)));
+            _refundTokens(
+                abi.decode(data, (TransferDataTypes.TransferPacketData))
+            );
         }
     }
 
-    function _refundTokens(TransferDataTypes. TransferPacketData memory data)
+    function _refundTokens(TransferDataTypes.TransferPacketData memory data)
         private
     {
         if (bytes(data.oriToken).length > 0) {
@@ -448,7 +460,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
                     data.sender.parseAddr(),
                     data.amount.toUint256()
                 ),
-                "unlock to sender failed"
+                "unlock ERC20 token to sender failed"
             );
             outTokens[data.token.parseAddr()][data.destChain] -= data
                 .amount
@@ -457,7 +469,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
             // refund base token
             require(
                 payable(data.sender.parseAddr()).send(data.amount.toUint256()),
-                "unlock to sender failed"
+                "unlock base token to sender failed"
             );
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }
@@ -548,7 +560,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         view
         override
-        returns (TransferDataTypes. TransferPacketData memory)
+        returns (TransferDataTypes.TransferPacketData memory)
     {
         return latestPacket;
     }

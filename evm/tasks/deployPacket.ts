@@ -4,6 +4,7 @@ import { task } from "hardhat/config"
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
+const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 
 task("deployPacket", "Deploy Packet")
     .setAction(async (taskArgs, hre) => {
@@ -21,7 +22,7 @@ task("deployPacket", "Deploy Packet")
         console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
     })
 
-task("queryRecipt", "Packet")
+task("queryRecipt", "query recipt")
     .addParam("packet", "packet address")
     .addParam("sourcechain", "sourceChain")
     .addParam("destchain", "sourceChain")
@@ -34,7 +35,7 @@ task("queryRecipt", "Packet")
         console.log(packetRec)
     })
 
-task("queryCommit", "Packet")
+task("queryCommit", "query commit")
     .addParam("packet", "packet address")
     .addParam("sourcechain", "sourceChain")
     .addParam("destchain", "sourceChain")
@@ -47,7 +48,7 @@ task("queryCommit", "Packet")
         console.log(packetRec)
     })
 
-task("queryRole", "Packet")
+task("queryRole", "query role")
     .addParam("packet", "packet address")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
@@ -55,6 +56,18 @@ task("queryRole", "Packet")
 
         let roleHash = await packet.MULTISEND_ROLE()
         console.log(roleHash)
+    })
+
+task("getAckStatus", "get ack status")
+    .addParam("sourcechain", "sourceChain")
+    .addParam("destchain", "sourceChain")
+    .addParam("sequence", "sourceChain")
+    .setAction(async (taskArgs, hre) => {
+        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
+
+        let state = await packet.getAckStatus(taskArgs.sourcechain, taskArgs.destchain, taskArgs.sequence)
+        console.log(state)
     })
 
 module.exports = {}

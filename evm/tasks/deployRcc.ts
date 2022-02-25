@@ -5,7 +5,7 @@ const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 
-task("deployRcc", "Deploy MultiCall")
+task("deployRcc", "Deploy Rcc")
     .setAction(async (taskArgs, hre) => {
         const RCCFactory = await hre.ethers.getContractFactory('RCC')
         const rcc = await hre.upgrades.deployProxy(

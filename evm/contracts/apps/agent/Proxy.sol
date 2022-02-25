@@ -12,6 +12,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract Proxy is Initializable, OwnableUpgradeable {
+    receive() external payable {}
+
     using Strings for *;
     using Bytes for *;
 
@@ -19,6 +21,16 @@ contract Proxy is Initializable, OwnableUpgradeable {
     IMultiCall public multiCall;
     IPacket public packet;
     ITransfer public transfer;
+
+    struct ProxyData {
+        bool sent;
+        string sender;
+        address tokenAddress;
+        uint256 amount;
+        bool refunded;
+    }
+
+    mapping(bytes => ProxyData) public proxyDatas; //map[sha256(srcChain/destChain/sequence)]ProxyData
 
     function initialize(
         address clientMgrContract,
@@ -54,6 +66,11 @@ contract Proxy is Initializable, OwnableUpgradeable {
             contractAddress
         );
 
+        require(
+            erc20transfer.amount == rccTransfer.amount,
+            "amount must be equal to rcc amount"
+        );
+
         if (erc20transfer.tokenAddress != address(0)) {
             // send erc20
             IERC20(erc20transfer.tokenAddress).transferFrom(
@@ -77,7 +94,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         } else {
             // send native token
             require(msg.value > 0, "value must be greater than 0");
-            require(msg.value == erc20transfer.amount,"err amount");
+            require(msg.value == erc20transfer.amount, "err amount");
             bytes memory BaseTransferDataAbi = abi.encode(
                 MultiCallDataTypes.BaseTransferData({
                     receiver: erc20transfer.receiver,
@@ -97,6 +114,14 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 functions: functions,
                 data: dataList
             });
+
+        proxyDatas[id] = ProxyData({
+            sent: true,
+            sender: msg.sender.addressToString(),
+            tokenAddress: erc20transfer.tokenAddress,
+            amount: erc20transfer.amount,
+            refunded: false
+        });
 
         if (erc20transfer.tokenAddress != address(0)) {
             multiCall.multiCall(multiCallData);
@@ -148,5 +173,53 @@ contract Proxy is Initializable, OwnableUpgradeable {
                     data: agentSendData
                 })
             );
+    }
+
+    function claimRefund(
+        string calldata srcChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external {
+        bytes memory idKey = bytes(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(srcChain, "/"),
+                        destChain
+                    ),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            )
+        );
+        bytes memory id = Bytes.fromBytes32(sha256(idKey));
+
+        require(proxyDatas[id].sent, "not exist");
+        require(!proxyDatas[id].refunded, "refunded");
+        require(
+            packet.getAckStatus(srcChain, destChain, sequence) == 2,
+            "not err ack"
+        );
+
+        if (proxyDatas[id].tokenAddress != address(0)) {
+            // refund erc20 token
+            require(
+                IERC20(proxyDatas[id].tokenAddress).transfer(
+                    proxyDatas[id].sender.parseAddr(),
+                    proxyDatas[id].amount
+                ),
+                "err to send erc20 token back"
+            );
+        } else {
+            // refund native token
+            // todo : native token refund is not available yet
+            require(
+                payable(proxyDatas[id].sender.parseAddr()).send(
+                    proxyDatas[id].amount
+                ),
+                "err to send native token back"
+            );
+        }
+        proxyDatas[id].refunded = true;
     }
 }

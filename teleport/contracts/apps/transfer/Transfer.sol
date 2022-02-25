@@ -82,24 +82,28 @@ contract Transfer is ITransfer {
         string calldata oriToken,
         string calldata oriChain
     ) external onlyXIBCModuleAggregate {
+        require(tokenAddress != address(0), "invalid ERC20 address");
         string memory bindingKey = Strings.strConcat(
             Strings.strConcat(tokenAddress.addressToString(), "/"),
             oriChain
         );
-
-        require(tokenAddress != address(0), "invalid ERC20 address");
-
-        require(!bindings[bindingKey].bound, "trace already bound");
+        if (bindings[bindingKey].bound) {
+            // rebind
+            string memory reBindKey = Strings.strConcat(
+                Strings.strConcat(oriChain, "/"),
+                bindings[bindingKey].oriToken
+            );
+            delete bindingTraces[reBindKey];
+        } else {
+            boundTokens.push(tokenAddress);
+            boundTokenSources[tokenAddress].push(oriChain);
+        }
 
         string memory traceKey = Strings.strConcat(
             Strings.strConcat(oriChain, "/"),
             oriToken
         );
 
-        require(bindingTraces[traceKey] == address(0), "trace already bound");
-
-        boundTokens.push(tokenAddress);
-        boundTokenSources[tokenAddress].push(oriChain);
         bindings[bindingKey] = TransferDataTypes.InToken({
             oriToken: oriToken,
             amount: 0,
