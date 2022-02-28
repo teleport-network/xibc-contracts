@@ -132,8 +132,8 @@ task("transferoOwnership", "Deploy all base contract")
     .setAction(async (taskArgs, hre) => {
         console.log('Transferring ownership of ProxyAdmin...');
         // The owner of the ProxyAdmin can upgrade our contracts
-        await hre.upgrades.admin.transferProxyAdminOwnership(taskArgs.gnosisSafe);
-        console.log('Transferred ownership of ProxyAdmin to:', taskArgs.gnosisSafe);
+        await hre.upgrades.admin.transferProxyAdminOwnership(taskArgs.gnosissafe);
+        console.log('Transferred ownership of ProxyAdmin to:', taskArgs.gnosissafe);
     })
 
 task("upgradeByDefender", "Deploy all base contract")

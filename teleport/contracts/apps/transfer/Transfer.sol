@@ -83,6 +83,10 @@ contract Transfer is ITransfer {
         string calldata oriChain
     ) external onlyXIBCModuleAggregate {
         require(tokenAddress != address(0), "invalid ERC20 address");
+        require(
+            !nativeChainName.equals(oriChain),
+            "oriChain can't equal to nativeChainName"
+        );
         string memory bindingKey = Strings.strConcat(
             Strings.strConcat(tokenAddress.addressToString(), "/"),
             oriChain
