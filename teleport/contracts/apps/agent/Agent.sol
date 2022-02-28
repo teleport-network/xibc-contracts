@@ -26,9 +26,9 @@ contract Agent {
     }
 
     mapping(string => mapping(address => uint256)) public balances; // map[sender]map[token]amount
-    mapping(address => uint256) public supplies; //map[token]amount
-    mapping(string => AgentData) public sequences; //map[srcChain/destChain/sequence]AgentData
-    mapping(string => bool) public refunded; //map[srcChain/destChain/sequence]refunded
+    mapping(address => uint256) public supplies; // map[token]amount
+    mapping(string => AgentData) public sequences; // map[srcChain/destChain/sequence]AgentData
+    mapping(string => bool) public refunded; // map[srcChain/destChain/sequence]refunded
 
     address public constant packetContractAddress =
         address(0x0000000000000000000000000000000020000001);

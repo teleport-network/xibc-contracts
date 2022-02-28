@@ -26,15 +26,6 @@ contract AccessManager is AccessControlUpgradeable {
     // multi-signature contract address
     address public multiSignWallet;
 
-    // check if caller is multi-signature contract address
-    modifier onlyMultiSignWallet() {
-        require(
-            msg.sender == multiSignWallet,
-            "caller not multi-signature contract address"
-        );
-        _;
-    }
-
     function initialize(address _multiSignWallet) public initializer {
         multiSignWallet = _multiSignWallet;
         _setupRole(DEFAULT_ADMIN_ROLE, _multiSignWallet);
@@ -80,7 +71,7 @@ contract AccessManager is AccessControlUpgradeable {
     function batchGrantRole(
         bytes32[] calldata roles,
         address[] calldata accounts
-    ) external onlyMultiSignWallet {
+    ) external {
         require(
             roles.length == accounts.length,
             "batchGrant: roles and accounts length mismatch"
@@ -99,7 +90,7 @@ contract AccessManager is AccessControlUpgradeable {
     function batchRevokeRole(
         bytes32[] calldata roles,
         address[] calldata accounts
-    ) external onlyMultiSignWallet {
+    ) external {
         require(
             roles.length == accounts.length,
             "batchRevoke: roles and accounts length mismatch"

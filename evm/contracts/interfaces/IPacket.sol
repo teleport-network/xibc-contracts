@@ -9,13 +9,13 @@ import "../proto/Types.sol";
 interface IPacket {
     /**
      * @notice send cross-chain data packets
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendPacket(PacketTypes.Packet calldata packet) external;
 
     /**
      * @notice send cross-chain data packets
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendMultiPacket(PacketTypes.Packet calldata packet) external;
 
