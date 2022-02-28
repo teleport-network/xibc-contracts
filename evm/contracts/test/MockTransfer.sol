@@ -73,7 +73,12 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
         string calldata oriChain
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(tokenAddress != address(0), "invalid ERC20 address");
-
+        string memory sourceChain = clientManager.getChainName();
+        require(
+            !sourceChain.equals(oriChain),
+            "sourceChain can't equal to destChain"
+        );
+        
         if (bindings[tokenAddress].bound) {
             // rebind
             string memory reBindKey = Strings.strConcat(
