@@ -77,7 +77,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(oriChain),
-            "sourceChain can't equal to destChain"
+            "sourceChain can't equal to oriChain"
         );
 
         if (bindings[tokenAddress].bound) {
