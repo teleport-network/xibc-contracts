@@ -100,10 +100,6 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
         );
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
-            packet.dataList[0].length > 0,
-            "packet data bytes cannot be empty"
-        );
-        require(
             address(routing.getModule(packet.ports[0])) == _msgSender(),
             "module has not been registered to routing contract"
         );
