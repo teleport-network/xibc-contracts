@@ -28,19 +28,20 @@ contract Agent {
     mapping(string => mapping(address => uint256)) public balances; // map[sender]map[token]amount
     mapping(address => uint256) public supplies; //map[token]amount
     mapping(string => AgentData) public sequences; //map[srcChain/destChain/sequence]AgentData
-    mapping(string => bool) public refunded;//map[srcChain/destChain/sequence]refunded
+    mapping(string => bool) public refunded; //map[srcChain/destChain/sequence]refunded
 
-    address public constant transferContract =
-        address(0x0000000000000000000000000000000010000003);
-
-    address public constant rccContract =
-        address(0x0000000000000000000000000000000010000004);
-
-    address public constant xibcModulePacket =
-        address(0x0000000000000000000000000000000010000008);
+    address public constant packetContractAddress =
+        address(0x0000000000000000000000000000000020000001);
+    address public constant transferContractAddress =
+        address(0x0000000000000000000000000000000030000001);
+    address public constant rccContractAddress =
+        address(0x0000000000000000000000000000000030000002);
 
     modifier onlyXIBCModuleRCC() {
-        require(msg.sender == rccContract, "caller must be XIBC RCC module");
+        require(
+            msg.sender == rccContractAddress,
+            "caller must be XIBC RCC module"
+        );
         _;
     }
 
@@ -68,7 +69,7 @@ contract Agent {
                 relayChain: relayChain
             });
 
-        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContract)
+        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContractAddress)
             .getLatestPacket();
 
         _comingIn(rccPacket, transferData.tokenAddress);
@@ -80,17 +81,17 @@ contract Agent {
         );
         if (transferData.tokenAddress != address(0)) {
             IERC20(transferData.tokenAddress).approve(
-                address(transferContract),
+                address(transferContractAddress),
                 transferData.amount
             );
             // call transfer to send erc20
-            ITransfer(transferContract).sendTransferERC20(transferData);
+            ITransfer(transferContractAddress).sendTransferERC20(transferData);
             supplies[transferData.tokenAddress] = IERC20(
                 transferData.tokenAddress
             ).balanceOf(address(this));
         } else {
             // call transfer to send base
-            ITransfer(transferContract).sendTransferBase{
+            ITransfer(transferContractAddress).sendTransferBase{
                 value: transferData.amount
             }(
                 TransferDataTypes.BaseTransferData({
@@ -105,7 +106,7 @@ contract Agent {
         balances[rccPacket.sender][transferData.tokenAddress] -= transferData
             .amount;
 
-        uint64 sequence = IPacket(xibcModulePacket).getNextSequenceSend(
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             rccPacket.destChain,
             transferData.destChain
         );
@@ -141,7 +142,7 @@ contract Agent {
         address tokenAddress
     ) private {
         TransferDataTypes.PacketData memory transferPacket = ITransfer(
-            transferContract
+            transferContractAddress
         ).getLatestPacket();
 
         require(
@@ -187,7 +188,7 @@ contract Agent {
         require(sequences[sequencesKey].sent, "not exist");
         require(!refunded[sequencesKey], "refunded");
         require(
-            IPacket(xibcModulePacket).getAckStatus(
+            IPacket(packetContractAddress).getAckStatus(
                 srcChain,
                 destChain,
                 sequence
