@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -61,7 +62,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         bytes memory id = _getID(destChain);
         bytes[] memory dataList = new bytes[](2);
         uint8[] memory functions = new uint8[](2);
-        bytes memory RCCDataAbi = _getRCCDataAbi(
+        bytes memory RCCDataAbi = _getRCCDataABI(
             id,
             rccTransfer,
             contractAddress
@@ -152,7 +153,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         return id;
     }
 
-    function _getRCCDataAbi(
+    function _getRCCDataABI(
         bytes memory id,
         TransferDataTypes.ERC20TransferData memory rccTransfer,
         string memory contractAddress

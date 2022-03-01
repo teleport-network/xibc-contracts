@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -10,7 +11,7 @@ contract TestPayable {
     }
 
     function call(address cat, uint256 amount) external returns (bool) {
-        (bool success, bytes memory res) = cat.call{value: amount}("");
+        (bool success, ) = cat.call{value: amount}("");
         return success;
     }
 
