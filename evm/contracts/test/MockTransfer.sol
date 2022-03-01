@@ -472,10 +472,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
                 .toUint256();
         } else {
             // refund base token
-            require(
-                payable(data.sender.parseAddr()).send(data.amount.toUint256()),
-                "unlock base token to sender failed"
-            );
+            if (!payable(data.sender.parseAddr()).send(data.amount.toUint256())) {
+                (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
+                require(success, "unlock base token to sender failed");
+            }
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }
     }

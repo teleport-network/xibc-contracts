@@ -1,17 +1,17 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../libraries/utils/Bytes.sol";
-import "../../libraries/utils/Strings.sol";
-import "../../interfaces/IMultiCall.sol";
-import "../../interfaces/IClientManager.sol";
-import "../../interfaces/ITransfer.sol";
-import "../../interfaces/IPacket.sol";
+import "../libraries/utils/Bytes.sol";
+import "../libraries/utils/Strings.sol";
+import "../interfaces/IMultiCall.sol";
+import "../interfaces/IClientManager.sol";
+import "../interfaces/ITransfer.sol";
+import "../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Proxy is Initializable, OwnableUpgradeable {
+contract MockProxy is Initializable, OwnableUpgradeable {
     receive() external payable {}
 
     using Strings for *;
@@ -31,6 +31,10 @@ contract Proxy is Initializable, OwnableUpgradeable {
     }
 
     mapping(bytes => ProxyData) public proxyDatas; //map[sha256(srcChain/destChain/sequence)]ProxyData
+
+    function getVersion() public view returns (uint64) {
+        return 2;
+    }
 
     function initialize(
         address clientMgrContract,

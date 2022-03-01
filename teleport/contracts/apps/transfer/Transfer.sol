@@ -428,12 +428,10 @@ contract Transfer is ITransfer {
                     .toUint256();
             } else {
                 // refund base token out
-                require(
-                    payable(packet.sender.parseAddr()).send(
-                        packet.amount.toUint256()
-                    ),
-                    "unlock to sender failed"
-                );
+                if (!payable(data.sender.parseAddr()).send(data.amount.toUint256())) {
+                    (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
+                    require(success, "unlock base token to sender failed");
+                }
                 outTokens[address(0)][packet.destChain] -= packet
                     .amount
                     .toUint256();
