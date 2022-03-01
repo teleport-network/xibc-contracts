@@ -20,6 +20,7 @@ import "./tasks/deployAccessManager"
 import "./tasks/deployTestPayable"
 import "./tasks/transfer"
 import "./tasks/deployAll"
+import "./tasks/deployTestContracts"
 
 module.exports = {
     defaultNetwork: 'hardhat',

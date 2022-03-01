@@ -12,8 +12,9 @@ import "../../interfaces/IPacket.sol";
 import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract RCC is Initializable, IRCC, OwnableUpgradeable {
+contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuard {
     using Strings for *;
     using Bytes for *;
 
@@ -120,6 +121,7 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable {
         external
         override
         onlyPacket
+        nonReentrant
         returns (PacketTypes.Result memory)
     {
         RCCDataTypes.RCCPacketData memory packetData = abi.decode(

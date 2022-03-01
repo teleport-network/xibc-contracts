@@ -15,8 +15,14 @@ import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
+contract Transfer is
+    Initializable,
+    ITransfer,
+    OwnableUpgradeable,
+    ReentrancyGuard
+{
     using Strings for *;
     using Bytes for *;
 
@@ -107,7 +113,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
     function sendTransferERC20(
         TransferDataTypes.ERC20TransferData calldata transferData
-    ) external override {
+    ) external override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -192,7 +198,13 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
     function transferERC20(
         TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external override onlyAuthorizee(MULTISEND_ROLE) returns (bytes memory) {
+    )
+        external
+        override
+        onlyAuthorizee(MULTISEND_ROLE)
+        nonReentrant
+        returns (bytes memory)
+    {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -260,7 +272,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
     function sendTransferBase(
         TransferDataTypes.BaseTransferData calldata transferData
-    ) external payable override {
+    ) external payable override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -305,6 +317,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         payable
         override
+        nonReentrant
         onlyAuthorizee(MULTISEND_ROLE)
         returns (bytes memory)
     {
@@ -336,6 +349,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         override
         onlyPacket
+        nonReentrant
         returns (PacketTypes.Result memory)
     {
         TransferDataTypes.TransferPacketData memory packetData = abi.decode(
@@ -414,7 +428,9 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-            (bool success, ) = packetData.receiver.parseAddr().call{value: packetData.amount.toUint256()}("");
+            (bool success, ) = packetData.receiver.parseAddr().call{
+                value: packetData.amount.toUint256()
+            }("");
             if (!success) {
                 return
                     _newAcknowledgement(
@@ -435,6 +451,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
         external
         override
         onlyPacket
+        nonReentrant
     {
         if (!Bytes.equals(result, hex"01")) {
             _refundTokens(
@@ -471,7 +488,9 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                 .toUint256();
         } else {
             // refund base token
-            (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
+            (bool success, ) = data.sender.parseAddr().call{
+                value: data.amount.toUint256()
+            }("");
             require(success, "unlock base token to sender failed");
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }

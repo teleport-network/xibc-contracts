@@ -10,8 +10,9 @@ import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Proxy is Initializable, OwnableUpgradeable {
+contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuard {
     receive() external payable {}
 
     using Strings for *;
@@ -56,7 +57,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
         string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
-    ) public payable {
+    ) public payable nonReentrant {
         bytes memory id = _getID(destChain);
         bytes[] memory dataList = new bytes[](2);
         uint8[] memory functions = new uint8[](2);
@@ -179,7 +180,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         string calldata srcChain,
         string calldata destChain,
         uint64 sequence
-    ) external {
+    ) external nonReentrant {
         bytes memory idKey = bytes(
             Strings.strConcat(
                 Strings.strConcat(
@@ -200,6 +201,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
             packet.getAckStatus(srcChain, destChain, sequence) == 2,
             "not err ack"
         );
+        proxyDatas[id].refunded = true;
 
         if (proxyDatas[id].tokenAddress != address(0)) {
             // refund erc20 token
@@ -211,12 +213,8 @@ contract Proxy is Initializable, OwnableUpgradeable {
                 "err to send erc20 token back"
             );
         } else {
-            (bool success, ) = proxyDatas[id].sender.parseAddr().call{value:  proxyDatas[id].amount}("");
-            require(
-               success,
-                "err to send native token back"
-            );
+            (bool success, ) = proxyDatas[id].sender.parseAddr().call{value: proxyDatas[id].amount}("");
+            require(success, "err to send native token back");
         }
-        proxyDatas[id].refunded = true;
     }
 }
