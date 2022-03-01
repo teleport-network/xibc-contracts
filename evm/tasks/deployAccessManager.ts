@@ -27,6 +27,50 @@ task("grantRole", "grant Role")
         console.log(result)
     })
 
+task("revokeRole", "revoke Role")
+    .addParam("role", "revoke Role")
+    .addParam("to", "revoke Role to contract")
+    .setAction(async (taskArgs, hre) => {
+        const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
+        const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
+        let role = Buffer.from(taskArgs.role, "utf-8")
+        const result = await accessManager.revokeRole(keccak256(role), taskArgs.to)
+        console.log(result)
+    })
+
+task("batchGrantRole", "batch grant Role")
+  .addParam("roles", "batch grant Roles")
+  .addParam("tos", "batch grant Role to contracts")
+  .setAction(async (taskArgs, hre) => {
+    const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
+    const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
+
+    let rs= new Array();
+    let roles = taskArgs.roles.split(",")
+    for(let i=0; i<roles.length; i++){
+      rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
+    }
+    const result = await accessManager.batchGrantRole(rs, taskArgs.tos.split(","))
+    console.log(result)
+})
+
+task("batchRevokeRole", "batch revoke Role")
+  .addParam("roles", "batch revoke Roles")
+  .addParam("tos", "batch revoke Role to contracts")
+  .setAction(async (taskArgs, hre) => {
+    const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
+    const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
+
+    let rs= new Array();
+    let roles = taskArgs.roles.split(",")
+    for(let i=0; i<roles.length; i++){
+      rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
+    }
+    const result = await accessManager.batchRevokeRole(rs, taskArgs.tos.split(","))
+    console.log(result)
+})
+
+
 task("roleBytes", "get role bytes")
     .addParam("role", "grant Role")
     .setAction(async (taskArgs, hre) => {
