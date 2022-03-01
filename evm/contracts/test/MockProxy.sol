@@ -215,10 +215,9 @@ contract MockProxy is Initializable, OwnableUpgradeable {
                 "err to send erc20 token back"
             );
         } else {
+            (bool success, ) = proxyDatas[id].sender.parseAddr().call{value:  proxyDatas[id].amount}("");
             require(
-                payable(proxyDatas[id].sender.parseAddr()).send(
-                    proxyDatas[id].amount
-                ),
+               success,
                 "err to send native token back"
             );
         }

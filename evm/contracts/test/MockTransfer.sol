@@ -411,12 +411,8 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-
-            if (
-                !payable(packetData.receiver.parseAddr()).send(
-                    packetData.amount.toUint256()
-                )
-            ) {
+            (bool success, ) = packetData.receiver.parseAddr().call{value: packetData.amount.toUint256()}("");
+            if (!success ) {
                 return
                     _newAcknowledgement(
                         false,
@@ -472,10 +468,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable {
                 .toUint256();
         } else {
             // refund base token
-            if (!payable(data.sender.parseAddr()).send(data.amount.toUint256())) {
-                (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
-                require(success, "unlock base token to sender failed");
-            }
+            (bool success, ) = data.sender.parseAddr().call{
+                value: data.amount.toUint256()
+            }("");
+            require(success, "unlock base token to sender failed");
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }
     }

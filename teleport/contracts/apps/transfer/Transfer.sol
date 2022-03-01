@@ -374,12 +374,8 @@ contract Transfer is ITransfer {
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-
-            if (
-                !payable(packet.receiver.parseAddr()).send(
-                    packet.amount.toUint256()
-                )
-            ) {
+            (bool success, ) = packet.receiver.parseAddr().call{value: packet.amount.toUint256()}("");
+            if (!success) {
                 return
                     _newAcknowledgement(
                         false,
@@ -428,10 +424,8 @@ contract Transfer is ITransfer {
                     .toUint256();
             } else {
                 // refund base token out
-                if (!payable(data.sender.parseAddr()).send(data.amount.toUint256())) {
-                    (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
-                    require(success, "unlock base token to sender failed");
-                }
+                (bool success, ) = data.sender.parseAddr().call{value: data.amount.toUint256()}("");
+                require(success, "unlock base token to sender failed");
                 outTokens[address(0)][packet.destChain] -= packet
                     .amount
                     .toUint256();
