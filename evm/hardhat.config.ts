@@ -36,7 +36,6 @@ module.exports = {
             gasPrice: 5000000000,
             chainId: 9000,
             gas: 4100000,
-            accounts:['EFA2A7687CB0F819A3DA64A07333B860AF12E79564F26C43CF2A6CEEB6C7CCD8'],
         },
         teleport: {
             url: 'https://seed0.testnet.teleport.network',
