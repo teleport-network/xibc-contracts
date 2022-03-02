@@ -12,8 +12,9 @@ import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
 import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Agent {
+contract Agent is ReentrancyGuardUpgradeable {
     receive() external payable {}
 
     using Strings for *;
@@ -60,7 +61,7 @@ contract Agent {
         uint256 amount,
         string calldata destChain,
         string calldata relayChain
-    ) external onlyXIBCModuleRCC returns (bool) {
+    ) external nonReentrant onlyXIBCModuleRCC returns (bool) {
         TransferDataTypes.ERC20TransferData
             memory transferData = TransferDataTypes.ERC20TransferData({
                 tokenAddress: tokenAddress,
@@ -177,7 +178,7 @@ contract Agent {
         string calldata srcChain,
         string calldata destChain,
         uint64 sequence
-    ) external {
+    ) external nonReentrant {
         string memory sequencesKey = Strings.strConcat(
             Strings.strConcat(
                 Strings.strConcat(Strings.strConcat(srcChain, "/"), destChain),
@@ -204,11 +205,10 @@ contract Agent {
                     sequences[sequencesKey].amount,
             "haven't received token"
         );
-
+        refunded[sequencesKey] = true;
         balances[sequences[sequencesKey].sender][
             sequences[sequencesKey].tokenAddress
         ] += sequences[sequencesKey].amount;
-        refunded[sequencesKey] = true;
 
         supplies[sequences[sequencesKey].tokenAddress] = IERC20(
             sequences[sequencesKey].tokenAddress

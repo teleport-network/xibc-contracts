@@ -8,8 +8,9 @@ import "../../libraries/app/RCC.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IRCC.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract RCC is IRCC {
+contract RCC is IRCC, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -91,6 +92,7 @@ contract RCC is IRCC {
     function onRecvPacket(RCCDataTypes.PacketData calldata packet)
         external
         override
+        nonReentrant
         onlyXIBCModuleRCC
         returns (Result.Data memory)
     {

@@ -15,8 +15,14 @@ import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
+contract Transfer is
+    Initializable,
+    ITransfer,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using Strings for *;
     using Bytes for *;
 
@@ -107,7 +113,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
     function sendTransferERC20(
         TransferDataTypes.ERC20TransferData calldata transferData
-    ) external override {
+    ) external override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -192,7 +198,13 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
 
     function transferERC20(
         TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external override onlyAuthorizee(MULTISEND_ROLE) returns (bytes memory) {
+    )
+        external
+        override
+        onlyAuthorizee(MULTISEND_ROLE)
+        nonReentrant
+        returns (bytes memory)
+    {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -335,6 +347,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     function onRecvPacket(bytes calldata data)
         external
         override
+        nonReentrant
         onlyPacket
         returns (PacketTypes.Result memory)
     {
@@ -414,12 +427,10 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-
-            if (
-                !payable(packetData.receiver.parseAddr()).send(
-                    packetData.amount.toUint256()
-                )
-            ) {
+            (bool success, ) = packetData.receiver.parseAddr().call{
+                value: packetData.amount.toUint256()
+            }("");
+            if (!success) {
                 return
                     _newAcknowledgement(
                         false,
@@ -438,6 +449,7 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
     function onAcknowledgementPacket(bytes calldata data, bytes calldata result)
         external
         override
+        nonReentrant
         onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
@@ -475,10 +487,10 @@ contract Transfer is Initializable, ITransfer, OwnableUpgradeable {
                 .toUint256();
         } else {
             // refund base token
-            require(
-                payable(data.sender.parseAddr()).send(data.amount.toUint256()),
-                "unlock base token to sender failed"
-            );
+            (bool success, ) = data.sender.parseAddr().call{
+                value: data.amount.toUint256()
+            }("");
+            require(success, "unlock base token to sender failed");
             outTokens[address(0)][data.destChain] -= data.amount.toUint256();
         }
     }

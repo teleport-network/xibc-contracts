@@ -14,8 +14,9 @@ import "../../interfaces/IRouting.sol";
 import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Packet is Initializable, OwnableUpgradeable, IPacket {
+contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUpgradeable {
     using Strings for *;
 
     IClientManager public clientManager;
@@ -221,7 +222,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override {
+    ) external override nonReentrant {
         bytes memory packetReceiptKey = Host.packetReceiptKey(
             packet.sourceChain,
             packet.destChain,
@@ -408,7 +409,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket {
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override {
+    ) external override nonReentrant {
         bytes memory dataSum;
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(

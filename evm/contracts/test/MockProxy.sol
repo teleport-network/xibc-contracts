@@ -3,18 +3,22 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../libraries/utils/Bytes.sol";
-import "../../libraries/utils/Strings.sol";
-import "../../interfaces/IMultiCall.sol";
-import "../../interfaces/IClientManager.sol";
-import "../../interfaces/ITransfer.sol";
-import "../../interfaces/IPacket.sol";
+import "../libraries/utils/Bytes.sol";
+import "../libraries/utils/Strings.sol";
+import "../interfaces/IMultiCall.sol";
+import "../interfaces/IClientManager.sol";
+import "../interfaces/ITransfer.sol";
+import "../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract MockProxy is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     receive() external payable {}
 
     using Strings for *;
@@ -33,7 +37,11 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable 
         bool refunded;
     }
 
-    mapping(bytes => ProxyData) public proxyDatas; // map[sha256(srcChain/destChain/sequence)]ProxyData
+    mapping(bytes => ProxyData) public proxyDatas; //map[sha256(srcChain/destChain/sequence)]ProxyData
+
+    function getVersion() public view returns (uint64) {
+        return 2;
+    }
 
     function initialize(
         address clientMgrContract,
@@ -63,7 +71,7 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable 
         bytes memory id = _getID(destChain);
         bytes[] memory dataList = new bytes[](2);
         uint8[] memory functions = new uint8[](2);
-        bytes memory RCCDataAbi = _getRCCDataABI(
+        bytes memory RCCDataAbi = _getRCCDataAbi(
             id,
             rccTransfer,
             contractAddress
@@ -158,7 +166,6 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable 
             packet.getAckStatus(srcChain, destChain, sequence) == 2,
             "not err ack"
         );
-        proxyDatas[id].refunded = true;
 
         if (proxyDatas[id].tokenAddress != address(0)) {
             // refund erc20 token
@@ -172,9 +179,10 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable 
         } else {
             (bool success, ) = proxyDatas[id].sender.parseAddr().call{
                 value: proxyDatas[id].amount
-             }("");
+            }("");
             require(success, "err to send native token back");
         }
+        proxyDatas[id].refunded = true;
     }
 
     function _getID(string memory destChain) private returns (bytes memory) {
@@ -198,11 +206,11 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable 
         return id;
     }
 
-    function _getRCCDataABI(
+    function _getRCCDataAbi(
         bytes memory id,
         TransferDataTypes.ERC20TransferData memory rccTransfer,
         string memory contractAddress
-    ) private pure returns (bytes memory) {
+    ) private returns (bytes memory) {
         bytes memory agentSendData = abi.encodeWithSignature(
             "send(bytes,address,string,uint256,string,string)",
             id,

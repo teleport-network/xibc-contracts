@@ -16,6 +16,12 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: true,
         },
+        localhost: {
+            url: 'http://localhost:8545',
+            gasPrice: 5000000000,
+            chainId: 9000,
+            gas: 4100000,
+        },
         teleport: {
             url: 'https://seed0.testnet.teleport.network',
             gasPrice: 5000000000,

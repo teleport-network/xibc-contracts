@@ -10,8 +10,9 @@ import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IERC20XIBC.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Transfer is ITransfer {
+contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -121,7 +122,7 @@ contract Transfer is ITransfer {
 
     function sendTransferERC20(
         TransferDataTypes.ERC20TransferData calldata transferData
-    ) external override {
+    ) external override nonReentrant {
         require(
             !nativeChainName.equals(transferData.destChain),
             "sourceChain can't equal to destChain"
@@ -196,7 +197,7 @@ contract Transfer is ITransfer {
 
     function transferERC20(
         TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external override onlyMultiCall {
+    ) external override nonReentrant onlyMultiCall {
         require(
             !nativeChainName.equals(transferData.destChain),
             "sourceChain can't equal to destChain"
@@ -293,6 +294,7 @@ contract Transfer is ITransfer {
     function onRecvPacket(TransferDataTypes.PacketData calldata packet)
         external
         override
+        nonReentrant
         onlyXIBCModuleTransfer
         returns (Result.Data memory)
     {
@@ -378,12 +380,10 @@ contract Transfer is ITransfer {
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-
-            if (
-                !payable(packet.receiver.parseAddr()).send(
-                    packet.amount.toUint256()
-                )
-            ) {
+            (bool success, ) = packet.receiver.parseAddr().call{
+                value: packet.amount.toUint256()
+            }("");
+            if (!success) {
                 return
                     _newAcknowledgement(
                         false,
@@ -400,7 +400,7 @@ contract Transfer is ITransfer {
     function onAcknowledgementPacket(
         TransferDataTypes.PacketData calldata packet,
         bytes calldata result
-    ) external override onlyXIBCModuleTransfer {
+    ) external override nonReentrant onlyXIBCModuleTransfer {
         if (!Bytes.equals(result, hex"01")) {
             if (bytes(packet.oriToken).length > 0) {
                 // refund crossed chain token back to origin
@@ -436,12 +436,10 @@ contract Transfer is ITransfer {
                     .toUint256();
             } else {
                 // refund base token out
-                require(
-                    payable(packet.sender.parseAddr()).send(
-                        packet.amount.toUint256()
-                    ),
-                    "unlock to sender failed"
-                );
+                (bool success, ) = data.sender.parseAddr().call{
+                    value: data.amount.toUint256()
+                }("");
+                require(success, "unlock base token to sender failed");
                 outTokens[address(0)][packet.destChain] -= packet
                     .amount
                     .toUint256();

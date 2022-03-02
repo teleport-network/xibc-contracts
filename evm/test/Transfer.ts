@@ -1,9 +1,10 @@
 import { Signer, BigNumber, utils } from "ethers"
 import chai from "chai"
 import { Transfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { web3 } from "hardhat"
 
 const { expect } = chai
-const { web3, ethers, upgrades } = require("hardhat")
+const { ethers, upgrades } = require("hardhat")
 
 let client = require("./proto/compiled.js")
 
@@ -34,7 +35,7 @@ describe('Transfer', () => {
     })
 
     it("bind token", async () => {
-        let address0= "0x0000000000000000000000000000000000000000"
+        let address0 = "0x0000000000000000000000000000000000000000"
         let tokenAddress = "0x1000000000000000000000000000000010000000"
         let bindDestChain = "test"
         let reBindDestChain = "retest"
@@ -53,7 +54,7 @@ describe('Transfer', () => {
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDestChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
-        let reBindKey = bindDestChain+"/"+bindOriToken
+        let reBindKey = bindDestChain + "/" + bindOriToken
         expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
 
         await transfer.bindToken(tokenAddress, reBindOriToken, reBindDestChain)
@@ -61,17 +62,17 @@ describe('Transfer', () => {
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(reBindDestChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
-        reBindKey = bindDestChain+"/"+reBindOriToken
+        reBindKey = bindDestChain + "/" + reBindOriToken
         expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
-        
+
         await transfer.bindToken(tokenAddress, bindOriToken, bindDestChain)
         bind = await transfer.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDestChain)
         expect(bind.oriToken).to.eq(bindOriToken)
-        reBindKey = reBindDestChain+"/"+reBindOriToken
+        reBindKey = reBindDestChain + "/" + reBindOriToken
         expect(await transfer.bindingTraces(reBindKey)).to.eq(address0)
-        
+
     })
 
     it("test transfer ERC20", async () => {
@@ -108,7 +109,7 @@ describe('Transfer', () => {
         expect(outToken.toString()).to.eq("10000")
     })
 
-    it("test receive packet", async () => {
+    it("test receive ERC20 packet", async () => {
         let account = (await accounts[2].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[0].getAddress()).toLocaleLowerCase()
         let proof = Buffer.from("proof", "utf-8")
@@ -157,6 +158,56 @@ describe('Transfer', () => {
         expect(balances.toString()).to.eq("10000000000000")
     })
 
+    it("test receive native token packet", async () => {
+        let account = (await accounts[2].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[3].getAddress()).toLocaleLowerCase()
+        let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let packetData = {
+            srcChain: destChainName,
+            destChain: srcChainName,
+            sender: account,
+            receiver: receiver,
+            amount: amount,
+            token: erc20.address.toLocaleLowerCase(),
+            oriToken: "0x0000000000000000000000000000000000000000"
+        }
+
+        let transferByte = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,string,string,bytes,string,string)"],
+            [
+                [
+                    packetData.srcChain,
+                    packetData.destChain,
+                    packetData.sender,
+                    packetData.receiver,
+                    packetData.amount,
+                    packetData.token,
+                    packetData.oriToken
+                ]
+            ]
+        );
+        let balances = await web3.eth.getBalance(packetData.receiver)
+        expect(balances).to.eq("10000000000000000000000")
+        let sequence: BigNumber = BigNumber.from(2)
+        let proof = Buffer.from("proof", "utf-8")
+        let height = {
+            revision_number: 1,
+            revision_height: 1,
+        }
+        let pac = {
+            sequence: sequence,
+            sourceChain: destChainName,
+            destChain: srcChainName,
+            relayChain: relayChainName,
+            ports: ["FT"],
+            dataList: [transferByte],
+        }
+        await packet.recvPacket(pac, proof, height)
+
+        balances = await web3.eth.getBalance(packetData.receiver)
+        expect(balances).to.eq("10000000000000000000001")
+    })
+
     it("upgrade transfer", async () => {
         // upgrade transfer contract and check the contract address    
         const mockTransferFactory = await ethers.getContractFactory("MockTransfer");
@@ -165,7 +216,7 @@ describe('Transfer', () => {
 
         // Verify that old data can be accessed
         let outToken = (await upgradedTransfer.outTokens("0x0000000000000000000000000000000000000000", destChainName))
-        expect(outToken.toString()).to.eq("10000")
+        expect(outToken.toString()).to.eq("9999")
 
         // Verify new func in upgradeTransfer 
         await upgradedTransfer.setVersion(1)

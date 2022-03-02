@@ -263,12 +263,6 @@ describe('Proxy', () => {
         expect(commitment.toString()).to.eq(sha256(sum))
     })
 
-    it("upgradeTest", async () => {
-        const ProxyrFactory = await ethers.getContractFactory("Proxy")
-        const upgradeProxy = await upgrades.upgradeProxy(String(proxy.address), ProxyrFactory)
-        expect(proxy.address).to.eq(upgradeProxy.address)
-    })
-
     it("refund erc20 token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
@@ -529,8 +523,20 @@ describe('Proxy', () => {
             revision_number: 1,
             revision_height: 1,
         }
-        // todo : refund native token is not available yet
-        // await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
+        await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
+        let balances = await web3.eth.getBalance(proxy.address.toLocaleLowerCase())
+        expect(balances).to.eq("1000")
+
+        await proxy.claimRefund(pkt.sourceChain, pkt.destChain, pkt.sequence)
+        balances = await web3.eth.getBalance(proxy.address.toLocaleLowerCase())
+        expect(balances).to.eq("0")
+    })
+
+    it("upgradeTest", async () => {
+        const ProxyrFactory = await ethers.getContractFactory("MockProxy")
+        const upgradeProxy = await upgrades.upgradeProxy(String(proxy.address), ProxyrFactory)
+        expect(proxy.address).to.eq(upgradeProxy.address)
+        expect(await upgradeProxy.getVersion()).to.eq(2)
     })
 
     const deployMockTransfer = async () => {

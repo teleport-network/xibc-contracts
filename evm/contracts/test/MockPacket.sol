@@ -13,8 +13,14 @@ import "../interfaces/IRouting.sol";
 import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
+contract MockPacket is
+    Initializable,
+    OwnableUpgradeable,
+    IPacket,
+    ReentrancyGuardUpgradeable
+{
     using Strings for *;
 
     IClientManager public clientManager;
@@ -229,7 +235,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override {
+    ) external override nonReentrant{
         PacketTypes.Acknowledgement memory ack;
         try this.executePacket(packet) returns (bytes[] memory results) {
             ack.results = results;
@@ -366,7 +372,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override {
+    ) external override nonReentrant{
         bytes memory dataSum;
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
