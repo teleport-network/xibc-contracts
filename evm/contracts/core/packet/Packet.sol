@@ -301,6 +301,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuard {
     function executePacket(PacketTypes.Packet calldata packet)
         external
         onlySelf
+        nonReentrant
         returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](packet.ports.length);

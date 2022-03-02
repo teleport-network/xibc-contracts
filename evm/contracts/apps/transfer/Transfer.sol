@@ -272,7 +272,7 @@ contract Transfer is
 
     function sendTransferBase(
         TransferDataTypes.BaseTransferData calldata transferData
-    ) external payable override nonReentrant {
+    ) external payable override {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -317,7 +317,6 @@ contract Transfer is
         external
         payable
         override
-        nonReentrant
         onlyAuthorizee(MULTISEND_ROLE)
         returns (bytes memory)
     {

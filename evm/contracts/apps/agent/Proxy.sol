@@ -131,6 +131,50 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuard {
         }
     }
 
+    function claimRefund(
+        string calldata srcChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external nonReentrant {
+        bytes memory idKey = bytes(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(srcChain, "/"),
+                        destChain
+                    ),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            )
+        );
+        bytes memory id = Bytes.fromBytes32(sha256(idKey));
+
+        require(proxyDatas[id].sent, "not exist");
+        require(!proxyDatas[id].refunded, "refunded");
+        require(
+            packet.getAckStatus(srcChain, destChain, sequence) == 2,
+            "not err ack"
+        );
+        proxyDatas[id].refunded = true;
+
+        if (proxyDatas[id].tokenAddress != address(0)) {
+            // refund erc20 token
+            require(
+                IERC20(proxyDatas[id].tokenAddress).transfer(
+                    proxyDatas[id].sender.parseAddr(),
+                    proxyDatas[id].amount
+                ),
+                "err to send erc20 token back"
+            );
+        } else {
+            (bool success, ) = proxyDatas[id].sender.parseAddr().call{
+                value: proxyDatas[id].amount
+             }("");
+            require(success, "err to send native token back");
+        }
+    }
+
     function _getID(string memory destChain) private returns (bytes memory) {
         string memory sourceChain = clientManager.getChainName();
         uint64 sequence = packet.getNextSequenceSend(sourceChain, destChain);
@@ -174,47 +218,5 @@ contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuard {
                     data: agentSendData
                 })
             );
-    }
-
-    function claimRefund(
-        string calldata srcChain,
-        string calldata destChain,
-        uint64 sequence
-    ) external nonReentrant {
-        bytes memory idKey = bytes(
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(srcChain, "/"),
-                        destChain
-                    ),
-                    "/"
-                ),
-                Strings.uint642str(sequence)
-            )
-        );
-        bytes memory id = Bytes.fromBytes32(sha256(idKey));
-
-        require(proxyDatas[id].sent, "not exist");
-        require(!proxyDatas[id].refunded, "refunded");
-        require(
-            packet.getAckStatus(srcChain, destChain, sequence) == 2,
-            "not err ack"
-        );
-        proxyDatas[id].refunded = true;
-
-        if (proxyDatas[id].tokenAddress != address(0)) {
-            // refund erc20 token
-            require(
-                IERC20(proxyDatas[id].tokenAddress).transfer(
-                    proxyDatas[id].sender.parseAddr(),
-                    proxyDatas[id].amount
-                ),
-                "err to send erc20 token back"
-            );
-        } else {
-            (bool success, ) = proxyDatas[id].sender.parseAddr().call{value: proxyDatas[id].amount}("");
-            require(success, "err to send native token back");
-        }
     }
 }

@@ -17,8 +17,9 @@ import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
+contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable ,ReentrancyGuard{
     using Strings for *;
     using Bytes for *;
 
@@ -43,6 +44,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
         external
         payable
         override
+        nonReentrant
     {
         require(
             multiCallData.functions.length > 0 &&

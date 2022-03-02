@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "./testRecl.sol";
-import "hardhat/console.sol";
 
 contract TestPayable {
     receive() external payable {
-        console.log("in TestPayable receive");
         num++;
         if (num != 10) {
-            console.log("num : ", num);
             recl.getether();
         }
     }
