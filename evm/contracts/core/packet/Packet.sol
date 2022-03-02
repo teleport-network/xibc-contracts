@@ -92,7 +92,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
 
     /**
      * @notice SendPacket is called by a module in order to send an XIBC packet with single data.
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendPacket(PacketTypes.Packet calldata packet) external override {
         require(
@@ -142,7 +142,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
 
     /**
      * @notice sendMultiPacket is called by a module in order to send an XIBC packet with multi data.
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendMultiPacket(PacketTypes.Packet calldata packet)
         external

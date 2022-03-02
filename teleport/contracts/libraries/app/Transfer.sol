@@ -35,6 +35,7 @@ library TransferDataTypes {
     struct InToken {
         string oriToken; // token ID, address if ERC20
         uint256 amount;
+        uint8 scale; // real_amount = packet_amount * (10 ** scale)
         bool bound;
     }
 

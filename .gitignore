@@ -107,6 +107,9 @@ dist
 .vscode
 .idea
 
+# OS
+.DS_Store
+
 # Hardhat files
 cache
 artifacts
