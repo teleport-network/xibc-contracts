@@ -14,9 +14,9 @@ import "../../interfaces/IRouting.sol";
 import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuard {
+contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUpgradeable {
     using Strings for *;
 
     IClientManager public clientManager;
@@ -301,7 +301,6 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuard {
     function executePacket(PacketTypes.Packet calldata packet)
         external
         onlySelf
-        nonReentrant
         returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](packet.ports.length);

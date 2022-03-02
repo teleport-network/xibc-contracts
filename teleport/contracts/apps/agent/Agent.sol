@@ -11,9 +11,9 @@ import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
 import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Agent is ReentrancyGuard {
+contract Agent is ReentrancyGuardUpgradeable {
     receive() external payable {}
 
     using Strings for *;

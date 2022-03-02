@@ -15,13 +15,13 @@ import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract Transfer is
     Initializable,
     ITransfer,
     OwnableUpgradeable,
-    ReentrancyGuard
+    ReentrancyGuardUpgradeable
 {
     using Strings for *;
     using Bytes for *;
@@ -347,8 +347,8 @@ contract Transfer is
     function onRecvPacket(bytes calldata data)
         external
         override
-        onlyPacket
         nonReentrant
+        onlyPacket
         returns (PacketTypes.Result memory)
     {
         TransferDataTypes.TransferPacketData memory packetData = abi.decode(
@@ -449,8 +449,8 @@ contract Transfer is
     function onAcknowledgementPacket(bytes calldata data, bytes calldata result)
         external
         override
-        onlyPacket
         nonReentrant
+        onlyPacket
     {
         if (!Bytes.equals(result, hex"01")) {
             _refundTokens(

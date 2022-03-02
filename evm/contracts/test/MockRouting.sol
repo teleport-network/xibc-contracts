@@ -10,7 +10,6 @@ import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
-
 contract MockRouting is Initializable, OwnableUpgradeable, IRouting {
     using Strings for *;
 

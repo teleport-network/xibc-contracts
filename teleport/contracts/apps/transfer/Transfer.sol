@@ -9,9 +9,9 @@ import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IERC20XIBC.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Transfer is ITransfer, ReentrancyGuard {
+contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 

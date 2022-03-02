@@ -12,9 +12,9 @@ import "../../interfaces/IPacket.sol";
 import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuard {
+contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 

@@ -10,9 +10,9 @@ import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuard {
+contract Proxy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     receive() external payable {}
 
     using Strings for *;

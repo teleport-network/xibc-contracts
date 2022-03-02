@@ -10,9 +10,8 @@ import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract MultiCall is IMultiCall,ReentrancyGuard {
+contract MultiCall is IMultiCall {
     using Strings for *;
     using Bytes for *;
 
@@ -32,7 +31,6 @@ contract MultiCall is IMultiCall,ReentrancyGuard {
         external
         payable
         override
-        nonReentrant
     {
         require(
             multiCallData.functions.length > 0 &&
