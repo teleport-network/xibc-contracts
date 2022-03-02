@@ -1,7 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task, types } from "hardhat/config"
 
-const transferContractAddress = "0x0000000000000000000000000000000010000003"
+const transferContractAddress = "0x0000000000000000000000000000000030000001"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")

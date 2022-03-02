@@ -95,7 +95,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
 
     /**
      * @notice SendPacket is called by a module in order to send an XIBC packet with single data.
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendPacket(PacketTypes.Packet calldata packet) external override {
         require(
@@ -149,7 +149,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket {
 
     /**
      * @notice sendMultiPacket is called by a module in order to send an XIBC packet with multi data.
-     * @param packet tibc packet
+     * @param packet xibc packet
      */
     function sendMultiPacket(PacketTypes.Packet calldata packet)
         external

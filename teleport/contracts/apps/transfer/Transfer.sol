@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -80,7 +81,8 @@ contract Transfer is ITransfer {
     function bindToken(
         address tokenAddress,
         string calldata oriToken,
-        string calldata oriChain
+        string calldata oriChain,
+        uint8 scale
     ) external onlyXIBCModuleAggregate {
         require(tokenAddress != address(0), "invalid ERC20 address");
         require(
@@ -93,11 +95,11 @@ contract Transfer is ITransfer {
         );
         if (bindings[bindingKey].bound) {
             // rebind
-            string memory reBindKey = Strings.strConcat(
+            string memory rebindKey = Strings.strConcat(
                 Strings.strConcat(oriChain, "/"),
                 bindings[bindingKey].oriToken
             );
-            delete bindingTraces[reBindKey];
+            delete bindingTraces[rebindKey];
         } else {
             boundTokens.push(tokenAddress);
             boundTokenSources[tokenAddress].push(oriChain);
@@ -111,6 +113,7 @@ contract Transfer is ITransfer {
         bindings[bindingKey] = TransferDataTypes.InToken({
             oriToken: oriToken,
             amount: 0,
+            scale: scale,
             bound: true
         });
         bindingTraces[traceKey] = tokenAddress;
@@ -132,21 +135,21 @@ contract Transfer is ITransfer {
         // if is crossed chain token
         if (bindings[bindingKey].bound) {
             // back to origin
+
+            uint256 realAmount = transferData.amount *
+                10**uint256(bindings[bindingKey].scale);
+
             require(
-                bindings[bindingKey].amount >= transferData.amount,
+                bindings[bindingKey].amount >= realAmount,
                 "insufficient liquidity"
             );
 
             require(
-                _burn(
-                    transferData.tokenAddress,
-                    msg.sender,
-                    transferData.amount
-                ),
+                _burn(transferData.tokenAddress, msg.sender, realAmount),
                 "burn token failed"
             );
 
-            bindings[bindingKey].amount -= transferData.amount;
+            bindings[bindingKey].amount -= realAmount;
 
             emit SendPacket(
                 nativeChainName,
@@ -207,8 +210,12 @@ contract Transfer is ITransfer {
         // if is crossed chain token
         if (bindings[bindingKey].bound) {
             // back to origin
+
+            uint256 realAmount = transferData.amount *
+                10**uint256(bindings[bindingKey].scale);
+
             require(
-                bindings[bindingKey].amount >= transferData.amount,
+                bindings[bindingKey].amount >= realAmount,
                 "insufficient liquidity"
             );
 
@@ -216,12 +223,12 @@ contract Transfer is ITransfer {
                 _burn(
                     transferData.tokenAddress,
                     transferData.sender,
-                    transferData.amount
+                    realAmount
                 ),
                 "burn token failed"
             );
 
-            bindings[bindingKey].amount -= transferData.amount;
+            bindings[bindingKey].amount -= realAmount;
         } else {
             // outgoing
             require(
@@ -313,6 +320,9 @@ contract Transfer is ITransfer {
                 packet.srcChain
             );
 
+            uint256 realAmount = packet.amount.toUint256() *
+                10**uint256(bindings[bindingKey].scale);
+
             // check bindings
             if (!bindings[bindingKey].bound) {
                 return
@@ -322,17 +332,11 @@ contract Transfer is ITransfer {
                     );
             }
 
-            if (
-                !_mint(
-                    tokenAddress,
-                    packet.receiver.parseAddr(),
-                    packet.amount.toUint256()
-                )
-            ) {
+            if (!_mint(tokenAddress, packet.receiver.parseAddr(), realAmount)) {
                 return _newAcknowledgement(false, "onRecvPackt: mint failed");
             }
 
-            bindings[bindingKey].amount += packet.amount.toUint256();
+            bindings[bindingKey].amount += realAmount;
         } else if (packet.oriToken.parseAddr() != address(0)) {
             // ERC20 token back to origin
             if (
@@ -400,20 +404,24 @@ contract Transfer is ITransfer {
         if (!Bytes.equals(result, hex"01")) {
             if (bytes(packet.oriToken).length > 0) {
                 // refund crossed chain token back to origin
+
+                string memory bindingKey = Strings.strConcat(
+                    Strings.strConcat(packet.token, "/"),
+                    packet.destChain
+                );
+
+                uint256 realAmount = packet.amount.toUint256() *
+                    10**uint256(bindings[bindingKey].scale);
+
                 require(
                     _mint(
                         packet.token.parseAddr(),
                         packet.sender.parseAddr(),
-                        packet.amount.toUint256()
+                        realAmount
                     ),
                     "mint back to sender failed"
                 );
-                bindings[
-                    Strings.strConcat(
-                        Strings.strConcat(packet.token, "/"),
-                        packet.destChain
-                    )
-                ].amount += packet.amount.toUint256();
+                bindings[bindingKey].amount += realAmount;
             } else if (packet.token.parseAddr() != address(0)) {
                 // refund native ERC20 token out
                 require(
