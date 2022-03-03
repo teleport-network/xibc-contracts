@@ -47,10 +47,12 @@ contract ERC20MinterBurnerDecimals is
     ) ERC20(name, symbol) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-        _setupRole(MINTER_ROLE, transfer);
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
         _setupRole(BURNER_ROLE, _msgSender());
+
+        _setupRole(MINTER_ROLE, transfer);
+        _setupRole(BURNER_ROLE, transfer);
         _setupDecimals(decimals_);
     }
 
