@@ -118,9 +118,11 @@ describe('Transfer', () => {
             revision_height: 1,
         }
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let sequ64 = 1
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
+            sequence: sequ64,
             sender: account,
             receiver: receiver,
             amount: amount,
@@ -128,11 +130,12 @@ describe('Transfer', () => {
             oriToken: erc20.address.toLocaleLowerCase(),
         }
         let packetDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,
@@ -162,9 +165,11 @@ describe('Transfer', () => {
         let account = (await accounts[2].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[3].getAddress()).toLocaleLowerCase()
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let sequ64 = 2
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
+            sequence: sequ64,
             sender: account,
             receiver: receiver,
             amount: amount,
@@ -173,11 +178,12 @@ describe('Transfer', () => {
         }
 
         let transferByte = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,
@@ -227,9 +233,11 @@ describe('Transfer', () => {
         let account = (await accounts[2].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let seqU64 = 2
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
+            sequence: seqU64,
             sender: account,
             receiver: receiver,
             amount: amount,
@@ -242,11 +250,12 @@ describe('Transfer', () => {
         expect(trace.toString()).to.eq(erc20.address)
 
         let transferByte = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,

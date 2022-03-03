@@ -21,6 +21,7 @@ library RCCDataTypes {
     struct RCCPacketData {
         string srcChain;
         string destChain;
+        uint64 sequence;
         string sender;
         string contractAddress;
         bytes data;

@@ -104,6 +104,7 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
         latestPacket = RCCDataTypes.PacketData({
             srcChain: packet.srcChain,
             destChain: packet.destChain,
+            sequence: packet.sequence,
             sender: packet.sender,
             contractAddress: packet.contractAddress,
             data: packet.data

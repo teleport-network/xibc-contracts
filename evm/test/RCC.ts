@@ -44,19 +44,22 @@ describe('RCC', () => {
             relayChain: relayChainName,
         }
         let sourceChain = await clientManager.getChainName();
+        let seqU64 = 1
         let packetData = {
             srcChain: sourceChain,
             destChain: rccData.destChain,
+            sequence: seqU64,
             sender: (await accounts[0].getAddress()).toString().toLowerCase(),
             contractAddress: rccData.contractAddress,
             data: rccData.data,
         }
         let dataBytes = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.contractAddress,
                     packetData.data,
@@ -76,9 +79,11 @@ describe('RCC', () => {
         // approve to rcc.address 
         let dataByte = Buffer.from("095ea7b3000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000001", "hex")
         let sourceChain = await clientManager.getChainName();
+        let seqU64 = 1
         let packetData = {
             srcChain: destChainName,
             destChain: sourceChain,
+            sequence: seqU64,
             sender: account.toLowerCase(),
             contractAddress: erc20.address,
             data: dataByte,
@@ -89,11 +94,12 @@ describe('RCC', () => {
             revision_height: 1,
         }
         let transferByte = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.contractAddress,
                     packetData.data,

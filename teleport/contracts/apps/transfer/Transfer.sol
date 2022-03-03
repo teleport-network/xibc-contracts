@@ -301,6 +301,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
         latestPacket = TransferDataTypes.PacketData({
             srcChain: packet.srcChain,
             destChain: packet.destChain,
+            sequence: packet.sequence,
             sender: packet.sender,
             receiver: packet.receiver,
             amount: packet.amount,
@@ -436,8 +437,8 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                     .toUint256();
             } else {
                 // refund base token out
-                (bool success, ) = data.sender.parseAddr().call{
-                    value: data.amount.toUint256()
+                (bool success, ) = packet.sender.parseAddr().call{
+                    value: packet.amount.toUint256()
                 }("");
                 require(success, "unlock base token to sender failed");
                 outTokens[address(0)][packet.destChain] -= packet

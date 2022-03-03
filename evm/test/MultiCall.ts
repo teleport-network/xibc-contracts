@@ -84,6 +84,7 @@ describe('MultiCall', () => {
         let ERC20TransferPacketData = {
             srcChain: srcChainName.toString().toLocaleLowerCase(),
             destChain: MultiCallData.destChain.toString().toLocaleLowerCase(),
+            sequence: 1,
             sender: account.toString().toLocaleLowerCase(),
             receiver: ERC20TransferData.receiver.toString().toLocaleLowerCase(),
             amount: amount,
@@ -91,11 +92,12 @@ describe('MultiCall', () => {
             oriToken: ""
         }
         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     ERC20TransferPacketData.srcChain,
                     ERC20TransferPacketData.destChain,
+                    ERC20TransferPacketData.sequence,
                     ERC20TransferPacketData.sender,
                     ERC20TransferPacketData.receiver,
                     ERC20TransferPacketData.amount,
@@ -109,6 +111,7 @@ describe('MultiCall', () => {
         let BaseTransferPacketData = {
             srcChain: srcChainName,
             destChain: chainName,
+            sequence: 1,
             sender: account.toLocaleLowerCase(),
             receiver: BaseTransferData.receiver,
             amount: amount,
@@ -116,11 +119,12 @@ describe('MultiCall', () => {
             oriToken: ""
         }
         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     BaseTransferPacketData.srcChain,
                     BaseTransferPacketData.destChain,
+                    BaseTransferPacketData.sequence,
                     BaseTransferPacketData.sender,
                     BaseTransferPacketData.receiver,
                     BaseTransferPacketData.amount,
@@ -134,16 +138,18 @@ describe('MultiCall', () => {
         let RccPacket = {
             srcChain: srcChainName,
             destChain: chainName,
+            sequence: 1,
             sender: account.toLocaleLowerCase(),
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacket.srcChain,
                     RccPacket.destChain,
+                    RccPacket.sequence,
                     RccPacket.sender,
                     RccPacket.contractAddress,
                     RccPacket.data,
@@ -162,9 +168,11 @@ describe('MultiCall', () => {
         expect(balances.toString()).to.eq("999")
 
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let sequenceUint64 = 1
         let ERC20TransferPacket = {
             srcChain: "",
             destChain: "",
+            sequence: sequenceUint64,
             sender: "",
             receiver: (await accounts[1].getAddress()).toLocaleLowerCase(),
             amount: amount,
@@ -172,11 +180,12 @@ describe('MultiCall', () => {
             oriToken: ""
         }
         let ERC20TransferPacketData = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     ERC20TransferPacket.srcChain,
                     ERC20TransferPacket.destChain,
+                    ERC20TransferPacket.sequence,
                     ERC20TransferPacket.sender,
                     ERC20TransferPacket.receiver,
                     ERC20TransferPacket.amount,
@@ -193,16 +202,18 @@ describe('MultiCall', () => {
         let RccPacket = {
             srcChain: "",
             destChain: "",
+            sequence: sequenceUint64,
             sender: account.toLocaleLowerCase(),
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
         let RccPacketData = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacket.srcChain,
                     RccPacket.destChain,
+                    RccPacket.sequence,
                     RccPacket.sender,
                     RccPacket.contractAddress,
                     RccPacket.data,
@@ -251,10 +262,11 @@ describe('MultiCall', () => {
 
         let outToken = (await mockTransfer.outTokens("0x0000000000000000000000000000000000000000", chainName))
         expect(outToken.toString()).to.eq("1")
-
+        let sequenceUint64 = 2
         let BaseTransferPacket = {
             srcChain: chainName,
             destChain: srcChainName,
+            sequence: sequenceUint64,
             sender: "",
             receiver: (await accounts[1].getAddress()).toLocaleLowerCase(),
             amount: amount,
@@ -262,11 +274,12 @@ describe('MultiCall', () => {
             oriToken: erc20.address.toLowerCase()
         }
         let BaseTransferPacketData = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     BaseTransferPacket.srcChain,
                     BaseTransferPacket.destChain,
+                    BaseTransferPacket.sequence,
                     BaseTransferPacket.sender,
                     BaseTransferPacket.receiver,
                     BaseTransferPacket.amount,
@@ -284,16 +297,18 @@ describe('MultiCall', () => {
         let RccPacket = {
             srcChain: "",
             destChain: "",
+            sequence: sequenceUint64,
             sender: account.toLocaleLowerCase(),
             contractAddress: RCCData.contractAddress,
             data: RCCData.data
         }
         let RccPacketData = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacket.srcChain,
                     RccPacket.destChain,
+                    RccPacket.sequence,
                     RccPacket.sender,
                     RccPacket.contractAddress,
                     RccPacket.data,
@@ -418,7 +433,7 @@ describe('MultiCall', () => {
         await erc20.deployed()
 
         erc20.mint(await accounts[0].getAddress(), 1000)
-        erc20.approve(mockTransfer.address, 100000)
+        await erc20.approve(mockTransfer.address, 100000)
         expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
     }
 
@@ -456,7 +471,7 @@ describe('MultiCall', () => {
         const LightClientVerify = await ethers.getContractFactory('LightClientVerify')
         const lightClientVerify = await LightClientVerify.deploy()
         await lightClientVerify.deployed()
-        
+
         const LightClientGenValHash = await ethers.getContractFactory('LightClientGenValHash')
         const lightClientGenValHash = await LightClientGenValHash.deploy()
         await lightClientGenValHash.deployed()
