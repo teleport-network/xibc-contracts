@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-web3"
 import { task, types } from "hardhat/config"
+import fs = require('fs');
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const MULTICALl_ADDRESS = process.env.MULTICALl_ADDRESS
@@ -23,6 +24,7 @@ task("deployProxy", "Deploy Proxy")
 
         console.log("Proxy deployed to:", proxy.address.toLocaleLowerCase())
         console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export PROXY_ADDRESS='+proxy.address.toLocaleLowerCase()+'\n')
     })
 
 task("upgradeProxy", "upgradeProxy")

@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
+import fs = require('fs');
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
@@ -19,6 +20,7 @@ task("deployTransfer", "Deploy Transfer")
         await transfer.deployed()
         console.log("Transfer deployed to:", transfer.address.toLocaleLowerCase())
         console.log("export TRANSFER_ADDRESS=%s", transfer.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export TRANSFER_ADDRESS='+transfer.address.toLocaleLowerCase()+'\n')
     })
 
 module.exports = {}

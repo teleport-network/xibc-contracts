@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 import { utils } from "ethers"
 import { readFileSync } from 'fs'
+import fs = require('fs');
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
@@ -22,6 +23,7 @@ task("deployClientManager", "Deploy Client Manager")
         await clientManager.deployed()
         console.log("Client Manager deployed to:", clientManager.address.toLocaleLowerCase())
         console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export CLIENT_MANAGER_ADDRESS='+clientManager.address.toLocaleLowerCase()+'\n')
     })
 
 task("upgradeClientManager", "Upgrade Client Manager")

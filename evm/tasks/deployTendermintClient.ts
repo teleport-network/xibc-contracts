@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
+import fs = require('fs');
 
 const CLIENT_STATE_CODEC_ADDRESS = process.env.CLIENT_STATE_CODEC_ADDRESS
 const CONSENSUS_STATE_CODEC_ADDRESS = process.env.CONSENSUS_STATE_CODEC_ADDRESS
@@ -37,6 +38,7 @@ task("deployTendermint", "Deploy Tendermint Client")
         await tendermint.deployed()
         console.log("Tendermint deployed to:", tendermint.address.toLocaleLowerCase())
         console.log("export TENDERMINT_CLIENT=%s", tendermint.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export TENDERMINT_CLIENT='+tendermint.address.toLocaleLowerCase()+'\n')
     })
 
 
