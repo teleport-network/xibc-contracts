@@ -4,7 +4,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -26,7 +25,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 contract ERC20MinterBurnerDecimals is
     Context,
     AccessControlEnumerable,
-    ERC20Burnable,
+    ERC20,
     ERC20Pausable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -102,6 +101,16 @@ contract ERC20MinterBurnerDecimals is
         );
         _burn(from, amount);
     }
+
+    function burnFrom(address account, uint256 amount) public virtual {
+        require(
+            hasRole(BURNER_ROLE, _msgSender()),
+            "ERC20MinterBurnerDecimals: must have burner role to burn"
+        );
+        _spendAllowance(account, _msgSender(), amount);
+        _burn(account, amount);
+    }
+
 
     /**
      * @dev Pauses all token transfers.
