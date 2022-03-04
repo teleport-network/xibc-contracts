@@ -50,3 +50,14 @@ task("hasMinterRole", "Deploy Token")
 
         console.log(await token.hasRole(keccak256("MINTER_ROLE"), taskArgs.transfer))
     });
+
+task("burnToken", "Burn Token")
+    .addParam("address", "token address")
+    .addParam("from", "reciver")
+    .addParam("amount", "token mint amount")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('ERC20MinterBurnerDecimals')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        console.log(await token.burnCoins(taskArgs.from, taskArgs.amount))
+    });
