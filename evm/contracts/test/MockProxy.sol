@@ -46,7 +46,7 @@ contract MockProxy is Initializable, OwnableUpgradeable {
     );
 
     function send(
-        address refunder,
+        address refundAddressOnTeleport,
         string memory contractAddress,
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
@@ -57,7 +57,7 @@ contract MockProxy is Initializable, OwnableUpgradeable {
         uint8[] memory functions = new uint8[](2);
         bytes memory RCCDataAbi = _getRCCDataABI(
             id,
-            refunder,
+            refundAddressOnTeleport,
             contractAddress,
             rccTransfer
         );
@@ -129,7 +129,7 @@ contract MockProxy is Initializable, OwnableUpgradeable {
 
     function _getRCCDataABI(
         bytes memory id,
-        address refunder,
+        address refundAddressOnTeleport,
         string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
     ) private pure returns (bytes memory) {
@@ -137,7 +137,7 @@ contract MockProxy is Initializable, OwnableUpgradeable {
             "send(bytes,address,address,string,uint256,string,string)",
             id,
             rccTransfer.tokenAddress,
-            refunder,
+            refundAddressOnTeleport,
             rccTransfer.receiver,
             rccTransfer.amount,
             rccTransfer.destChain,

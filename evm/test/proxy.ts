@@ -41,7 +41,7 @@ describe('Proxy', () => {
     it("send ERC20", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refunder = await accounts[2].getAddress()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
         await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
         let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
         expect(allowance.toNumber()).to.eq(1000)
@@ -57,7 +57,7 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refunder, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
         await erc20.approve(transfer.address, rccTransfer.amount)
         await multiCall.multiCall(multicallData)
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
@@ -106,7 +106,7 @@ describe('Proxy', () => {
                     },
                     {
                         "internalType": "address",
-                        "name": "refunder",
+                        "name": "refundAddressOnTeleport",
                         "type": "address"
                     },
                     {
@@ -125,7 +125,7 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refunder, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
         let RccPacketData = {
             srcChain: srcChainName,
@@ -163,7 +163,7 @@ describe('Proxy', () => {
     it("send Base", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refunder = await accounts[2].getAddress()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
         let address0 = "0x0000000000000000000000000000000000000000"
 
         let ERC20TransferData = {
@@ -178,7 +178,7 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refunder, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
         await multiCall.multiCall(multicallData, { value: rccTransfer.amount })
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 2
@@ -226,7 +226,7 @@ describe('Proxy', () => {
                     },
                     {
                         "internalType": "address",
-                        "name": "refunder",
+                        "name": "refundAddressOnTeleport",
                         "type": "address"
                     },
                     {
@@ -245,7 +245,7 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refunder, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {
@@ -283,7 +283,7 @@ describe('Proxy', () => {
     it("refund erc20 token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refunder = await accounts[2].getAddress()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
 
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
@@ -344,7 +344,7 @@ describe('Proxy', () => {
                     },
                     {
                         "internalType": "address",
-                        "name": "refunder",
+                        "name": "refundAddressOnTeleport",
                         "type": "address"
                     },
                     {
@@ -363,7 +363,7 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refunder, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {
@@ -419,7 +419,7 @@ describe('Proxy', () => {
     it("refund native token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refunder = await accounts[2].getAddress()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
 
         let address0 = "0x0000000000000000000000000000000000000000"
         let rccTransfer = {
@@ -474,7 +474,7 @@ describe('Proxy', () => {
                     },
                     {
                         "internalType": "address",
-                        "name": "refunder",
+                        "name": "refundAddressOnTeleport",
                         "type": "address"
                     },
                     {
@@ -493,7 +493,7 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refunder, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {

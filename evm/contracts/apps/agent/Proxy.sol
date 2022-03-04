@@ -35,7 +35,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
     }
 
     function send(
-        address refunder,
+        address refundAddressOnTeleport,
         string memory contractAddress,
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
@@ -46,7 +46,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         uint8[] memory functions = new uint8[](2);
         bytes memory RCCDataAbi = _getRCCDataABI(
             id,
-            refunder,
+            refundAddressOnTeleport,
             contractAddress,
             rccTransfer
         );
@@ -118,7 +118,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
 
     function _getRCCDataABI(
         bytes memory id,
-        address refunder,
+        address refundAddressOnTeleport,
         string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
     ) private pure returns (bytes memory) {
@@ -126,7 +126,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
             "send(bytes,address,address,string,string,string)",
             id,
             rccTransfer.tokenAddress,
-            refunder,
+            refundAddressOnTeleport,
             rccTransfer.receiver,
             rccTransfer.destChain,
             rccTransfer.relayChain

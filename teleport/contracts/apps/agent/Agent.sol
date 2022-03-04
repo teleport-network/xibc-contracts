@@ -22,7 +22,7 @@ contract Agent is ReentrancyGuardUpgradeable {
 
     struct AgentData {
         bool sent;
-        address refunder;
+        address refundAddressOnTeleport;
         address tokenAddress;
         uint256 amount;
     }
@@ -54,7 +54,7 @@ contract Agent is ReentrancyGuardUpgradeable {
     function send(
         bytes calldata id,
         address tokenAddress,
-        address refunder,
+        address refundAddressOnTeleport,
         string calldata receiver,
         string calldata destChain,
         string calldata relayChain
@@ -104,7 +104,7 @@ contract Agent is ReentrancyGuardUpgradeable {
 
         agentData[sequencesKey] = AgentData({
             sent: true,
-            refunder: refunder,
+            refundAddressOnTeleport: refundAddressOnTeleport,
             tokenAddress: tokenAddress,
             amount: amount
         });
@@ -160,7 +160,7 @@ contract Agent is ReentrancyGuardUpgradeable {
         );
 
         require(
-            IERC20(data.tokenAddress).transfer(data.refunder, data.amount),
+            IERC20(data.tokenAddress).transfer(data.refundAddressOnTeleport, data.amount),
             "refund failed,ERC20 transfer err"
         );
     }
