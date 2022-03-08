@@ -1,6 +1,5 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
-import { keccak256 } from "ethers/lib/utils"
 
 task("deployall", "Deploy all base contract")
     .addParam("chain", "Chain Name")

@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: Apache-2.0
 
 pragma solidity ^0.6.8;
@@ -5,10 +6,10 @@ pragma experimental ABIEncoderV2;
 
 import "../libraries/utils/Bytes.sol";
 import "../libraries/utils/Strings.sol";
-import "../interfaces/IMultiCall.sol";
 import "../interfaces/IClientManager.sol";
-import "../interfaces/ITransfer.sol";
 import "../interfaces/IPacket.sol";
+import "../libraries/app/MultiCall.sol";
+import "../libraries/app/Transfer.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -18,9 +19,8 @@ contract MockProxy is Initializable, OwnableUpgradeable {
     using Bytes for *;
 
     IClientManager public clientManager;
-    IMultiCall public multiCall;
     IPacket public packet;
-    ITransfer public transfer;
+
 
     function getVersion() public pure returns (uint64) {
         return 2;
@@ -28,26 +28,14 @@ contract MockProxy is Initializable, OwnableUpgradeable {
 
     function initialize(
         address clientMgrContract,
-        address multiCallContract,
-        address packetContract,
-        address transferContract
+        address packetContract
     ) public initializer {
-        multiCall = IMultiCall(multiCallContract);
         packet = IPacket(packetContract);
         clientManager = IClientManager(clientMgrContract);
-        transfer = ITransfer(transferContract);
     }
-
-    event SendEvent(
-        bytes id,
-        string srcChain,
-        string destChain,
-        uint256 sequence
-    );
 
     function send(
         address refundAddressOnTeleport,
-        string memory contractAddress,
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
         TransferDataTypes.ERC20TransferData memory rccTransfer
@@ -58,7 +46,7 @@ contract MockProxy is Initializable, OwnableUpgradeable {
         bytes memory RCCDataAbi = _getRCCDataABI(
             id,
             refundAddressOnTeleport,
-            contractAddress,
+            erc20transfer.receiver,
             rccTransfer
         );
 
@@ -134,16 +122,14 @@ contract MockProxy is Initializable, OwnableUpgradeable {
         TransferDataTypes.ERC20TransferData memory rccTransfer
     ) private pure returns (bytes memory) {
         bytes memory agentSendData = abi.encodeWithSignature(
-            "send(bytes,address,address,string,uint256,string,string)",
+            "send(bytes,address,address,string,string,string)",
             id,
             rccTransfer.tokenAddress,
             refundAddressOnTeleport,
             rccTransfer.receiver,
-            rccTransfer.amount,
             rccTransfer.destChain,
             rccTransfer.relayChain
         );
-
         return
             abi.encode(
                 MultiCallDataTypes.RCCData({

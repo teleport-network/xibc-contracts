@@ -6,22 +6,32 @@ const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
+const NOT_PROXY = process.env.NOT_PROXY
 
 task("deployPacket", "Deploy Packet")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await hre.upgrades.deployProxy(
-            packetFactory,
-            [
-                String(CLIENT_MANAGER_ADDRESS),
-                String(ROUTING_ADDRESS),
-                String(ACCESS_MANAGER_ADDRESS)
-            ]
-        )
-        await packet.deployed()
-        console.log("Packet deployed to:", packet.address.toLocaleLowerCase())
-        console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export PACKET_ADDRESS='+packet.address.toLocaleLowerCase()+'\n')
+        if (NOT_PROXY) {
+            const packet = await packetFactory.deploy()
+            await packet.deployed()
+            console.log("Packet deployed  !")
+            console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
+        } else {
+            const packet = await hre.upgrades.deployProxy(
+                packetFactory,
+                [
+                    String(CLIENT_MANAGER_ADDRESS),
+                    String(ROUTING_ADDRESS),
+                    String(ACCESS_MANAGER_ADDRESS)
+                ]
+            )
+            await packet.deployed()
+            console.log("Packet deployed to:", packet.address.toLocaleLowerCase())
+            console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
+            fs.appendFileSync('env.txt', 'export PACKET_ADDRESS=' + packet.address.toLocaleLowerCase() + '\n')
+        }
+
+
     })
 
 task("queryRecipt", "query recipt")
