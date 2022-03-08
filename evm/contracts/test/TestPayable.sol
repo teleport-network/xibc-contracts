@@ -3,7 +3,7 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "./testRecl.sol";
+import "./TestRecl.sol";
 
 contract TestPayable {
     receive() external payable {
