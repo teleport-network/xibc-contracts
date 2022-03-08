@@ -13,7 +13,7 @@ const NOT_PROXY = process.env.NOT_PROXY
 task("deployMultiCall", "Deploy MultiCall")
     .setAction(async (taskArgs, hre) => {
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
-        if (Boolean(NOT_PROXY)) {
+        if (NOT_PROXY) {
             const multiCall = await multiCallFactory.deploy()
             await multiCall.deployed()
 
