@@ -117,9 +117,7 @@ task("deployall", "Deploy all base contract")
             ProxyFactory,
             [
                 clientManager.address.toLocaleLowerCase(),
-                multiCall.address.toLocaleLowerCase(),
-                packet.address.toLocaleLowerCase(),
-                transfer.address.toLocaleLowerCase()
+                packet.address.toLocaleLowerCase()
             ]
         )
         await proxy.deployed()

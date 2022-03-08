@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 import { BigNumber, utils } from "ethers"
 import fs = require('fs');
+import { boolean } from "hardhat/internal/core/params/argumentTypes";
 
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
@@ -12,7 +13,7 @@ const NOT_PROXY = process.env.NOT_PROXY
 task("deployMultiCall", "Deploy MultiCall")
     .setAction(async (taskArgs, hre) => {
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
-        if (NOT_PROXY) {
+        if (Boolean(NOT_PROXY)) {
             const multiCall = await multiCallFactory.deploy()
             await multiCall.deployed()
 
