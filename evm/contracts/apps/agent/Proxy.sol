@@ -20,11 +20,11 @@ contract Proxy is Initializable, OwnableUpgradeable {
     IClientManager public clientManager;
     IPacket public packet;
 
-    function initialize(address clientMgrContract, address packetContract)
+    function initialize(address clientManagerContract, address packetContract)
         public
         initializer
     {
-        clientManager = IClientManager(clientMgrContract);
+        clientManager = IClientManager(clientManagerContract);
         packet = IPacket(packetContract);
     }
 
