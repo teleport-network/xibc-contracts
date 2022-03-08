@@ -24,12 +24,12 @@ contract MockProxy is Initializable, OwnableUpgradeable {
         return 2;
     }
 
-    function initialize(
-        address clientMgrContract,
-        address packetContract
-    ) public initializer {
+    function initialize(address clientManagerContract, address packetContract)
+        public
+        initializer
+    {
+        clientManager = IClientManager(clientManagerContract);
         packet = IPacket(packetContract);
-        clientManager = IClientManager(clientMgrContract);
     }
 
     function send(
