@@ -36,7 +36,6 @@ contract Proxy is Initializable, OwnableUpgradeable {
 
     function send(
         address refundAddressOnTeleport,
-        string memory contractAddress,
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
         TransferDataTypes.ERC20TransferData memory rccTransfer
@@ -47,7 +46,7 @@ contract Proxy is Initializable, OwnableUpgradeable {
         bytes memory RCCDataAbi = _getRCCDataABI(
             id,
             refundAddressOnTeleport,
-            contractAddress,
+            erc20transfer.receiver,
             rccTransfer
         );
 
