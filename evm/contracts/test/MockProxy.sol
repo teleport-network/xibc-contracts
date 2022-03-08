@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: Apache-2.0
 
 pragma solidity ^0.6.8;
@@ -20,7 +19,6 @@ contract MockProxy is Initializable, OwnableUpgradeable {
 
     IClientManager public clientManager;
     IPacket public packet;
-
 
     function getVersion() public pure returns (uint64) {
         return 2;
