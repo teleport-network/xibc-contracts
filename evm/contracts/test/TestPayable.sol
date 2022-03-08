@@ -22,7 +22,7 @@ contract TestPayable {
     }
 
     function call(address cat) external payable returns (bool) {
-        (bool success, bytes memory res) = cat.call{value: msg.value}("");
+        (bool success, ) = cat.call{value: msg.value}("");
         return success;
     }
 

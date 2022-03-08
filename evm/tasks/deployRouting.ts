@@ -4,15 +4,24 @@ import fs = require('fs');
 
 const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
+const NOT_PROXY = process.env.NOT_PROXY
 
 task("deployRouting", "Deploy Routing")
     .setAction(async (taskArgs, hre) => {
         const routingFactory = await hre.ethers.getContractFactory('Routing')
-        const routing = await hre.upgrades.deployProxy(routingFactory, [String(ACCESS_MANAGER_ADDRESS)])
-        await routing.deployed()
-        console.log("Routing deployed to:", routing.address.toLocaleLowerCase())
-        console.log("export ROUTING_ADDRESS=%s", routing.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export ROUTING_ADDRESS='+routing.address.toLocaleLowerCase()+'\n')
+        if (NOT_PROXY) {
+            const routing = await routingFactory.deploy()
+            await routing.deployed()
+            console.log("Routing deployed  !")
+            console.log("export ROUTING_ADDRESS=%s", routing.address.toLocaleLowerCase())
+        } else {
+            const routing = await hre.upgrades.deployProxy(routingFactory, [String(ACCESS_MANAGER_ADDRESS)])
+            await routing.deployed()
+            console.log("Routing deployed to:", routing.address.toLocaleLowerCase())
+            console.log("export ROUTING_ADDRESS=%s", routing.address.toLocaleLowerCase())
+            fs.appendFileSync('env.txt', 'export ROUTING_ADDRESS=' + routing.address.toLocaleLowerCase() + '\n')
+        }
+
     })
 
 task("addRouting", "Add module routing")
@@ -23,7 +32,7 @@ task("addRouting", "Add module routing")
         const routing = await routingFactory.attach(String(ROUTING_ADDRESS))
         const result = await routing.addRouting(taskArgs.module, taskArgs.address)
         console.log(result)
-        fs.appendFileSync('env.txt', '# '+taskArgs.module+' addRouting tx hash: '+result.hash+'\n')
+        fs.appendFileSync('env.txt', '# ' + taskArgs.module + ' addRouting tx hash: ' + result.hash + '\n')
     })
 
 task("getModule", "Get module routing")

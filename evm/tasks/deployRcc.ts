@@ -5,23 +5,33 @@ import fs = require('fs');
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
+const NOT_PROXY = process.env.NOT_PROXY
 
 task("deployRcc", "Deploy Rcc")
     .setAction(async (taskArgs, hre) => {
         const RCCFactory = await hre.ethers.getContractFactory('RCC')
-        const rcc = await hre.upgrades.deployProxy(
-            RCCFactory,
-            [
-                String(PACKET_ADDRESS),
-                String(CLIENT_MANAGER_ADDRESS),
-                String(ACCESS_MANAGER_ADDRESS)
-            ]
-        )
-        await rcc.deployed()
+        if (NOT_PROXY) {
+            const rcc = await RCCFactory.deploy()
+            await rcc.deployed()
 
-        console.log("Rcc deployed to:", rcc.address.toLocaleLowerCase())
-        console.log("export RCC_ADDRESS=%s", rcc.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export RCC_ADDRESS='+rcc.address.toLocaleLowerCase()+'\n')
+            console.log("Rcc deployed  !")
+            console.log("export RCC_ADDRESS=%s", rcc.address.toLocaleLowerCase())
+        } else {
+            const rcc = await hre.upgrades.deployProxy(
+                RCCFactory,
+                [
+                    String(PACKET_ADDRESS),
+                    String(CLIENT_MANAGER_ADDRESS),
+                    String(ACCESS_MANAGER_ADDRESS)
+                ]
+            )
+            await rcc.deployed()
+
+            console.log("Rcc deployed to:", rcc.address.toLocaleLowerCase())
+            console.log("export RCC_ADDRESS=%s", rcc.address.toLocaleLowerCase())
+            fs.appendFileSync('env.txt', 'export RCC_ADDRESS=' + rcc.address.toLocaleLowerCase() + '\n')
+        }
+
     })
 
 
@@ -37,7 +47,7 @@ task("sendRcc", "Send Rcc")
             destChain: "teleport",
             relayChain: "",
         }
-        let res =  await rcc.sendRemoteContractCall(rccData)
+        let res = await rcc.sendRemoteContractCall(rccData)
         console.log(res)
     })
 module.exports = {}

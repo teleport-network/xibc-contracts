@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
-import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/IClientManager.sol";
-import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IPacket.sol";
+import "../../libraries/app/MultiCall.sol";
+import "../../libraries/app/Transfer.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -18,20 +18,14 @@ contract Proxy is Initializable, OwnableUpgradeable {
     using Bytes for *;
 
     IClientManager public clientManager;
-    IMultiCall public multiCall;
     IPacket public packet;
-    ITransfer public transfer;
 
-    function initialize(
-        address clientMgrContract,
-        address multiCallContract,
-        address packetContract,
-        address transferContract
-    ) public initializer {
-        multiCall = IMultiCall(multiCallContract);
+    function initialize(address clientManagerContract, address packetContract)
+        public
+        initializer
+    {
+        clientManager = IClientManager(clientManagerContract);
         packet = IPacket(packetContract);
-        clientManager = IClientManager(clientMgrContract);
-        transfer = ITransfer(transferContract);
     }
 
     function send(
