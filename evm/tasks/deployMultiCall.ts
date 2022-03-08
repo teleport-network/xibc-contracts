@@ -1,6 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 import { BigNumber, utils } from "ethers"
+import fs = require('fs');
 
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
@@ -22,6 +23,7 @@ task("deployMultiCall", "Deploy MultiCall")
         await multiCall.deployed()
         console.log("Packet deployed to:", multiCall.address.toLocaleLowerCase())
         console.log("export MULTICALl_ADDRESS=%s", multiCall.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export MULTICALl_ADDRESS='+multiCall.address.toLocaleLowerCase()+'\n')
     })
 
 

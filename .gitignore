@@ -122,3 +122,6 @@ yarn.lock
 package-lock.json
 
 abi/
+
+erc20/env.txt
+evm/env.txt

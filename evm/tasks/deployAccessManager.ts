@@ -1,6 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 import { keccak256 } from "ethers/lib/utils"
+import fs = require('fs');
 
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 task("deployAcessManager", "Deploy acessManager")
@@ -14,6 +15,7 @@ task("deployAcessManager", "Deploy acessManager")
         await accessManager.deployed()
         console.log("AccessManager deployed to:", accessManager.address.toLocaleLowerCase())
         console.log("export ACCESS_MANAGER_ADDRESS=%s", accessManager.address.toLocaleLowerCase())
+        fs.appendFileSync('env.txt', 'export ACCESS_MANAGER_ADDRESS='+accessManager.address.toLocaleLowerCase()+'\n')
     })
 
 task("grantRole", "grant Role")
@@ -25,6 +27,7 @@ task("grantRole", "grant Role")
         let role = Buffer.from(taskArgs.role, "utf-8")
         const result = await accessManager.grantRole(keccak256(role), taskArgs.to)
         console.log(result)
+        fs.appendFileSync('env.txt', '# grantRole tx hash: '+result.hash+'\n')
     })
 
 task("revokeRole", "revoke Role")
@@ -87,6 +90,7 @@ task("hasRole", "check address has Role")
         let role = Buffer.from(taskArgs.role, "utf-8")
         const result = await accessManager.hasRole(keccak256(role), taskArgs.to)
         console.log(result)
+        fs.appendFileSync('env.txt', '#hasRole result: '+result+'\n')
     })
 
 module.exports = {}
