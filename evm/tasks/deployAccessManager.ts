@@ -4,6 +4,7 @@ import { keccak256 } from "ethers/lib/utils"
 import fs = require('fs');
 
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
+
 task("deployAcessManager", "Deploy acessManager")
     .addParam("wallet", "multi sign address")
     .setAction(async (taskArgs, hre) => {

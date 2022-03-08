@@ -599,9 +599,7 @@ describe('Proxy', () => {
             ProxyFactory,
             [
                 clientManager.address,
-                multiCall.address,
-                mockPacket.address,
-                transfer.address,
+                mockPacket.address
             ]
         ) as Proxy
     }

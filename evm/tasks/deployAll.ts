@@ -1,6 +1,5 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
-import { keccak256 } from "ethers/lib/utils"
 
 task("deployall", "Deploy all base contract")
     .addParam("chain", "Chain Name")
@@ -118,9 +117,7 @@ task("deployall", "Deploy all base contract")
             ProxyFactory,
             [
                 clientManager.address.toLocaleLowerCase(),
-                multiCall.address.toLocaleLowerCase(),
-                packet.address.toLocaleLowerCase(),
-                transfer.address.toLocaleLowerCase()
+                packet.address.toLocaleLowerCase()
             ]
         )
         await proxy.deployed()

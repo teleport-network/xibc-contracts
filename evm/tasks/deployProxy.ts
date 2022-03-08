@@ -3,28 +3,34 @@ import { task, types } from "hardhat/config"
 import fs = require('fs');
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
-const MULTICALl_ADDRESS = process.env.MULTICALl_ADDRESS
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
-const TRANSFER_ADDRESS = process.env.TRANSFER_ADDRESS
-const PROXY_ADDRESS = process.env.PROXY_ADDRESS
+const NOT_PROXY = process.env.NOT_PROXY
+
 
 task("deployProxy", "Deploy Proxy")
     .setAction(async (taskArgs, hre) => {
         const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
-        const proxy = await hre.upgrades.deployProxy(
-            ProxyFactory,
-            [
-                String(CLIENT_MANAGER_ADDRESS),
-                String(MULTICALl_ADDRESS),
-                String(PACKET_ADDRESS),
-                String(TRANSFER_ADDRESS)
-            ]
-        )
-        await proxy.deployed()
+        if (NOT_PROXY) {
+            const proxy = await ProxyFactory.deploy()
+            await proxy.deployed()
 
-        console.log("Proxy deployed to:", proxy.address.toLocaleLowerCase())
-        console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export PROXY_ADDRESS='+proxy.address.toLocaleLowerCase()+'\n')
+            console.log("Proxy deployed  !")
+            console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
+        } else {
+            const proxy = await hre.upgrades.deployProxy(
+                ProxyFactory,
+                [
+                    String(CLIENT_MANAGER_ADDRESS),
+                    String(PACKET_ADDRESS)
+                ]
+            )
+            await proxy.deployed()
+
+            console.log("Proxy deployed to:", proxy.address.toLocaleLowerCase())
+            console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
+            fs.appendFileSync('env.txt', 'export PROXY_ADDRESS=' + proxy.address.toLocaleLowerCase() + '\n')
+        }
+
     })
 
 task("send", "Send Proxy")
