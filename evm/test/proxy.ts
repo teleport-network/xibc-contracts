@@ -57,7 +57,7 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
         await erc20.approve(transfer.address, rccTransfer.amount)
         await multiCall.multiCall(multicallData)
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
@@ -178,7 +178,7 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
         await multiCall.multiCall(multicallData, { value: rccTransfer.amount })
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 2
