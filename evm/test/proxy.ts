@@ -1,6 +1,6 @@
 import { Signer, utils } from "ethers"
 import chai from "chai"
-import { RCC, Proxy, Routing, ClientManager, MockTendermint, MockTransfer, AccessManager, MockPacket, ERC20, MultiCall } from '../typechain'
+import { RCC, Proxy, Routing, ClientManager, MockTendermint, Transfer, AccessManager, MockPacket, ERC20, MultiCall } from '../typechain'
 import { web3 } from "hardhat"
 import { keccak256, sha256 } from "ethers/lib/utils"
 const { ethers, upgrades } = require("hardhat")
@@ -16,7 +16,7 @@ describe('Proxy', () => {
     let routing: Routing
     let tendermint: MockTendermint
     let accessManager: AccessManager
-    let mockTransfer: MockTransfer
+    let transfer: Transfer
     let multiCall: MultiCall
     let proxy: Proxy
     let erc20: ERC20
@@ -31,7 +31,7 @@ describe('Proxy', () => {
         await deployHost()
         await deployRouting()
         await deployMockPacket()
-        await deployMockTransfer()
+        await deployTransfer()
         await deployToken()
         await deployRCC()
         await deployMultiCall()
@@ -41,7 +41,7 @@ describe('Proxy', () => {
     it("send ERC20", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-
+        let refundAddressOnTeleport = await accounts[2].getAddress()
         await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
         let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
         expect(allowance.toNumber()).to.eq(1000)
@@ -57,24 +57,28 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        await erc20.approve(transfer.address, rccTransfer.amount)
+        await multiCall.multiCall(multicallData)
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-
+        let seqU64 = 1
         let ERC20TransferPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
             token: ERC20TransferData.tokenAddress,
             oriToken: ""
         }
         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     ERC20TransferPacketData.srcChain,
                     ERC20TransferPacketData.destChain,
+                    ERC20TransferPacketData.sequence,
                     ERC20TransferPacketData.sender,
                     ERC20TransferPacketData.receiver,
                     ERC20TransferPacketData.amount,
@@ -101,14 +105,14 @@ describe('Proxy', () => {
                         "type": "address"
                     },
                     {
+                        "internalType": "address",
+                        "name": "refundAddressOnTeleport",
+                        "type": "address"
+                    },
+                    {
                         "internalType": "string",
                         "name": "receiver",
                         "type": "string"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
                     },
                     {
                         "internalType": "string",
@@ -121,22 +125,23 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
-
         let RccPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             contractAddress: "0x0000000000000000000000000000000010000007",
             data: web3.utils.hexToBytes(agentAbi),
         }
         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacketData.srcChain,
                     RccPacketData.destChain,
+                    RccPacketData.sequence,
                     RccPacketData.sender,
                     RccPacketData.contractAddress,
                     RccPacketData.data,
@@ -150,10 +155,15 @@ describe('Proxy', () => {
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))
+
+        let outToken = (await transfer.outTokens(erc20.address, destChainName))
+        expect(outToken).to.eq(ERC20TransferData.amount)
     })
 
     it("send Base", async () => {
+        let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
         let address0 = "0x0000000000000000000000000000000000000000"
 
         let ERC20TransferData = {
@@ -168,24 +178,27 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        await proxy.send(destChainName, ERC20TransferData, ERC20TransferData.receiver, rccTransfer, { value: 1000 }) // destChainName : teleport
+        let multicallData = await proxy.send(refundAddressOnTeleport, ERC20TransferData.receiver, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+        await multiCall.multiCall(multicallData, { value: rccTransfer.amount })
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-
+        let seqU64 = 2
         let BaseTransferPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
             token: address0,
             oriToken: ""
         }
         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     BaseTransferPacketData.srcChain,
                     BaseTransferPacketData.destChain,
+                    BaseTransferPacketData.sequence,
                     BaseTransferPacketData.sender,
                     BaseTransferPacketData.receiver,
                     BaseTransferPacketData.amount,
@@ -212,14 +225,14 @@ describe('Proxy', () => {
                         "type": "address"
                     },
                     {
+                        "internalType": "address",
+                        "name": "refundAddressOnTeleport",
+                        "type": "address"
+                    },
+                    {
                         "internalType": "string",
                         "name": "receiver",
                         "type": "string"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
                     },
                     {
                         "internalType": "string",
@@ -232,22 +245,24 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             contractAddress: "0x0000000000000000000000000000000010000007",
             data: web3.utils.hexToBytes(agentAbi),
         }
         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacketData.srcChain,
                     RccPacketData.destChain,
+                    RccPacketData.sequence,
                     RccPacketData.sender,
                     RccPacketData.contractAddress,
                     RccPacketData.data,
@@ -261,11 +276,15 @@ describe('Proxy', () => {
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))
+        let outToken = (await transfer.outTokens(address0, destChainName))
+        expect(outToken).to.eq(ERC20TransferData.amount)
     })
 
     it("refund erc20 token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
+
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: "0x0000000000000000000000000000000010000007", // agent address
@@ -281,21 +300,24 @@ describe('Proxy', () => {
             relayChain: "",
         }
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
+        let seqU64 = 1
         let ERC20TransferPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
             token: ERC20TransferData.tokenAddress,
             oriToken: ""
         }
         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     ERC20TransferPacketData.srcChain,
                     ERC20TransferPacketData.destChain,
+                    ERC20TransferPacketData.sequence,
                     ERC20TransferPacketData.sender,
                     ERC20TransferPacketData.receiver,
                     ERC20TransferPacketData.amount,
@@ -321,14 +343,14 @@ describe('Proxy', () => {
                         "type": "address"
                     },
                     {
+                        "internalType": "address",
+                        "name": "refundAddressOnTeleport",
+                        "type": "address"
+                    },
+                    {
                         "internalType": "string",
                         "name": "receiver",
                         "type": "string"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
                     },
                     {
                         "internalType": "string",
@@ -341,22 +363,24 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             contractAddress: "0x0000000000000000000000000000000010000007",
             data: web3.utils.hexToBytes(agentAbi),
         }
         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacketData.srcChain,
                     RccPacketData.destChain,
+                    RccPacketData.sequence,
                     RccPacketData.sender,
                     RccPacketData.contractAddress,
                     RccPacketData.data,
@@ -387,28 +411,16 @@ describe('Proxy', () => {
         }
         await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
         balances = await erc20.balanceOf(ERC20TransferPacketData.sender)
-        expect(balances).to.eq(1000)
-
-        let proxySequences = await proxy.proxyDatas(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
-        expect(proxySequences.sent).to.eq(true)
-        expect(proxySequences.sender).to.eq(sender)
-        expect(proxySequences.tokenAddress).to.eq(erc20.address)
-        expect(proxySequences.amount).to.eq(1000)
-        expect(proxySequences.refunded).to.eq(false)
-
-        await proxy.claimRefund(srcChainName, destChainName, 1)
-
-        balances = await erc20.balanceOf(ERC20TransferPacketData.sender)
-        expect(balances).to.eq(0)
-        balances = await erc20.balanceOf(sender)
         expect(balances).to.eq(1048576)
-        proxySequences = await proxy.proxyDatas(sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1)))
-        expect(proxySequences.refunded).to.eq(true)
+        let outToken = (await transfer.outTokens(erc20.address, destChainName))
+        expect(outToken).to.eq(0)
     })
 
     it("refund native token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
+
         let address0 = "0x0000000000000000000000000000000000000000"
         let rccTransfer = {
             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
@@ -418,22 +430,24 @@ describe('Proxy', () => {
             relayChain: "",
         }
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-
+        let seqU64 = 2
         let BaseTransferPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
             token: address0,
             oriToken: ""
         }
         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     BaseTransferPacketData.srcChain,
                     BaseTransferPacketData.destChain,
+                    BaseTransferPacketData.sequence,
                     BaseTransferPacketData.sender,
                     BaseTransferPacketData.receiver,
                     BaseTransferPacketData.amount,
@@ -459,14 +473,14 @@ describe('Proxy', () => {
                         "type": "address"
                     },
                     {
+                        "internalType": "address",
+                        "name": "refundAddressOnTeleport",
+                        "type": "address"
+                    },
+                    {
                         "internalType": "string",
                         "name": "receiver",
                         "type": "string"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
                     },
                     {
                         "internalType": "string",
@@ -479,22 +493,24 @@ describe('Proxy', () => {
                         "type": "string"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, rccTransfer.receiver, rccTransfer.amount.toString(), rccTransfer.destChain, rccTransfer.relayChain]
+            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
         )
 
         let RccPacketData = {
             srcChain: srcChainName,
             destChain: destChainName,
-            sender: proxy.address.toLocaleLowerCase(),
+            sequence: seqU64,
+            sender: sender,
             contractAddress: "0x0000000000000000000000000000000010000007",
             data: web3.utils.hexToBytes(agentAbi),
         }
         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes)"],
+            ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
                     RccPacketData.srcChain,
                     RccPacketData.destChain,
+                    RccPacketData.sequence,
                     RccPacketData.sender,
                     RccPacketData.contractAddress,
                     RccPacketData.data,
@@ -524,12 +540,9 @@ describe('Proxy', () => {
             revision_height: 1,
         }
         await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
-        let balances = await web3.eth.getBalance(proxy.address.toLocaleLowerCase())
-        expect(balances).to.eq("1000")
 
-        await proxy.claimRefund(pkt.sourceChain, pkt.destChain, pkt.sequence)
-        balances = await web3.eth.getBalance(proxy.address.toLocaleLowerCase())
-        expect(balances).to.eq("0")
+        let outToken = (await transfer.outTokens(address0, destChainName))
+        expect(outToken).to.eq(0)
     })
 
     it("upgradeTest", async () => {
@@ -539,17 +552,17 @@ describe('Proxy', () => {
         expect(await upgradeProxy.getVersion()).to.eq(2)
     })
 
-    const deployMockTransfer = async () => {
-        const transferFactory = await ethers.getContractFactory('MockTransfer', accounts[0])
-        mockTransfer = await upgrades.deployProxy(
+    const deployTransfer = async () => {
+        const transferFactory = await ethers.getContractFactory('Transfer', accounts[0])
+        transfer = await upgrades.deployProxy(
             transferFactory,
             [
                 mockPacket.address,
                 clientManager.address,
                 accessManager.address
             ]
-        ) as MockTransfer
-        await routing.addRouting("FT", mockTransfer.address)
+        ) as Transfer
+        await routing.addRouting("FT", transfer.address)
     }
 
     const deployMockPacket = async () => {
@@ -588,7 +601,7 @@ describe('Proxy', () => {
                 clientManager.address,
                 multiCall.address,
                 mockPacket.address,
-                mockTransfer.address,
+                transfer.address,
             ]
         ) as Proxy
     }
@@ -610,7 +623,7 @@ describe('Proxy', () => {
             [
                 mockPacket.address,
                 clientManager.address,
-                mockTransfer.address,
+                transfer.address,
                 rcc.address,
             ]
         ) as MultiCall

@@ -41,9 +41,11 @@ describe('Packet', () => {
             relayChain: relayChainName,
         }
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let seqU64 = 1
         let packetData = {
             srcChain: srcChainName,
             destChain: transferData.destChain,
+            sequence:seqU64,
             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             receiver: transferData.receiver,
             amount: amount,
@@ -51,11 +53,12 @@ describe('Packet', () => {
             oriToken: ""
         }
         let packetDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,
@@ -105,9 +108,11 @@ describe('Packet', () => {
             relayChain: relayChainName,
         }
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let seqU64 = 2
         let packetData = {
             srcChain: srcChainName,
             destChain: transferData.destChain,
+            sequence:seqU64,
             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             receiver: transferData.receiver,
             amount: amount,
@@ -115,11 +120,12 @@ describe('Packet', () => {
             oriToken: ""
         }
         let packetDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,
@@ -164,9 +170,11 @@ describe('Packet', () => {
 
     it("receive packet and write ack", async () => {
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let seqU64 = 1
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
+            sequence:seqU64,
             sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
             receiver: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             amount: amount,
@@ -174,11 +182,12 @@ describe('Packet', () => {
             oriToken: "0x0000000000000000000000000000000000000000"
         }
         let packetDataBz = utils.defaultAbiCoder.encode(
-            ["tuple(string,string,string,string,bytes,string,string)"],
+            ["tuple(string,string,uint64,string,string,bytes,string,string)"],
             [
                 [
                     packetData.srcChain,
                     packetData.destChain,
+                    packetData.sequence,
                     packetData.sender,
                     packetData.receiver,
                     packetData.amount,

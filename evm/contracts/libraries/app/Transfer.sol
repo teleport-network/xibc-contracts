@@ -42,6 +42,7 @@ library TransferDataTypes {
     struct TransferPacketData {
         string srcChain;
         string destChain;
+        uint64 sequence;
         string sender;
         string receiver;
         bytes amount;

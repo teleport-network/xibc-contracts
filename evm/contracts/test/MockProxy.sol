@@ -12,15 +12,8 @@ import "../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract MockProxy is
-    Initializable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
-    receive() external payable {}
-
+contract MockProxy is Initializable, OwnableUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -29,17 +22,7 @@ contract MockProxy is
     IPacket public packet;
     ITransfer public transfer;
 
-    struct ProxyData {
-        bool sent;
-        string sender;
-        address tokenAddress;
-        uint256 amount;
-        bool refunded;
-    }
-
-    mapping(bytes => ProxyData) public proxyDatas; //map[sha256(srcChain/destChain/sequence)]ProxyData
-
-    function getVersion() public view returns (uint64) {
+    function getVersion() public pure returns (uint64) {
         return 2;
     }
 
@@ -63,18 +46,20 @@ contract MockProxy is
     );
 
     function send(
+        address refundAddressOnTeleport,
+        string memory contractAddress,
         string memory destChain,
         MultiCallDataTypes.ERC20TransferData memory erc20transfer,
-        string memory contractAddress,
         TransferDataTypes.ERC20TransferData memory rccTransfer
-    ) public payable nonReentrant {
+    ) public view returns (MultiCallDataTypes.MultiCallData memory) {
         bytes memory id = _getID(destChain);
         bytes[] memory dataList = new bytes[](2);
         uint8[] memory functions = new uint8[](2);
-        bytes memory RCCDataAbi = _getRCCDataAbi(
+        bytes memory RCCDataAbi = _getRCCDataABI(
             id,
-            rccTransfer,
-            contractAddress
+            refundAddressOnTeleport,
+            contractAddress,
+            rccTransfer
         );
 
         require(
@@ -84,15 +69,6 @@ contract MockProxy is
 
         if (erc20transfer.tokenAddress != address(0)) {
             // send erc20
-            IERC20(erc20transfer.tokenAddress).transferFrom(
-                msg.sender,
-                address(this),
-                erc20transfer.amount
-            );
-            IERC20(erc20transfer.tokenAddress).approve(
-                address(transfer),
-                erc20transfer.amount
-            );
             bytes memory ERC20TransferDataAbi = abi.encode(
                 MultiCallDataTypes.ERC20TransferData({
                     tokenAddress: erc20transfer.tokenAddress,
@@ -104,8 +80,6 @@ contract MockProxy is
             functions[0] = 0;
         } else {
             // send native token
-            require(msg.value > 0, "value must be greater than 0");
-            require(msg.value == erc20transfer.amount, "err amount");
             bytes memory BaseTransferDataAbi = abi.encode(
                 MultiCallDataTypes.BaseTransferData({
                     receiver: erc20transfer.receiver,
@@ -126,66 +100,14 @@ contract MockProxy is
                 data: dataList
             });
 
-        proxyDatas[id] = ProxyData({
-            sent: true,
-            sender: msg.sender.addressToString(),
-            tokenAddress: erc20transfer.tokenAddress,
-            amount: erc20transfer.amount,
-            refunded: false
-        });
-
-        if (erc20transfer.tokenAddress != address(0)) {
-            multiCall.multiCall(multiCallData);
-        } else {
-            multiCall.multiCall{value: msg.value}(multiCallData);
-        }
+        return multiCallData;
     }
 
-    function claimRefund(
-        string calldata srcChain,
-        string calldata destChain,
-        uint64 sequence
-    ) external nonReentrant {
-        bytes memory idKey = bytes(
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(srcChain, "/"),
-                        destChain
-                    ),
-                    "/"
-                ),
-                Strings.uint642str(sequence)
-            )
-        );
-        bytes memory id = Bytes.fromBytes32(sha256(idKey));
-
-        require(proxyDatas[id].sent, "not exist");
-        require(!proxyDatas[id].refunded, "refunded");
-        require(
-            packet.getAckStatus(srcChain, destChain, sequence) == 2,
-            "not err ack"
-        );
-
-        if (proxyDatas[id].tokenAddress != address(0)) {
-            // refund erc20 token
-            require(
-                IERC20(proxyDatas[id].tokenAddress).transfer(
-                    proxyDatas[id].sender.parseAddr(),
-                    proxyDatas[id].amount
-                ),
-                "err to send erc20 token back"
-            );
-        } else {
-            (bool success, ) = proxyDatas[id].sender.parseAddr().call{
-                value: proxyDatas[id].amount
-            }("");
-            require(success, "err to send native token back");
-        }
-        proxyDatas[id].refunded = true;
-    }
-
-    function _getID(string memory destChain) private returns (bytes memory) {
+    function _getID(string memory destChain)
+        private
+        view
+        returns (bytes memory)
+    {
         string memory sourceChain = clientManager.getChainName();
         uint64 sequence = packet.getNextSequenceSend(sourceChain, destChain);
 
@@ -202,19 +124,20 @@ contract MockProxy is
             )
         );
         bytes memory id = Bytes.fromBytes32(sha256(idKey));
-        emit SendEvent(id, sourceChain, destChain, sequence);
         return id;
     }
 
-    function _getRCCDataAbi(
+    function _getRCCDataABI(
         bytes memory id,
-        TransferDataTypes.ERC20TransferData memory rccTransfer,
-        string memory contractAddress
-    ) private returns (bytes memory) {
+        address refundAddressOnTeleport,
+        string memory contractAddress,
+        TransferDataTypes.ERC20TransferData memory rccTransfer
+    ) private pure returns (bytes memory) {
         bytes memory agentSendData = abi.encodeWithSignature(
-            "send(bytes,address,string,uint256,string,string)",
+            "send(bytes,address,address,string,uint256,string,string)",
             id,
             rccTransfer.tokenAddress,
+            refundAddressOnTeleport,
             rccTransfer.receiver,
             rccTransfer.amount,
             rccTransfer.destChain,

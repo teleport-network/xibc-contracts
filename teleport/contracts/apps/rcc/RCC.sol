@@ -8,6 +8,7 @@ import "../../libraries/app/RCC.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IRCC.sol";
+import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract RCC is IRCC, ReentrancyGuardUpgradeable {
@@ -16,9 +17,10 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
 
     string private constant nativeChainName = "teleport";
 
+    address public constant packetContractAddress =
+        address(0x0000000000000000000000000000000020000001);
     address public constant rccContractAddress =
         address(0xfef812Ed2Bf63E7eE056931d54A6292fcbbaDFaA);
-
     address public constant multiCallContractAddress =
         address(0x0000000000000000000000000000000030000003);
 
@@ -26,14 +28,16 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
 
     RCCDataTypes.PacketData public latestPacket;
 
-    event SendPacket(
-        string srcChain,
-        string destChain,
-        string relayChain,
-        string sender,
-        string contractAddress,
-        bytes data
-    );
+    struct sendPacket {
+        string srcChain;
+        string destChain;
+        string relayChain;
+        uint64 sequence;
+        string sender;
+        string contractAddress;
+        bytes data;
+    }
+    event SendPacket(sendPacket packet);
 
     event Ack(bytes32 indexed dataHash, bytes ack);
 
@@ -63,14 +67,20 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
         );
 
         // TODO: validate rcc data
-
-        emit SendPacket(
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             nativeChainName,
-            rccData.destChain,
-            rccData.relayChain,
-            msg.sender.addressToString(),
-            rccData.contractAddress,
-            rccData.data
+            rccData.destChain
+        );
+        emit SendPacket(
+            sendPacket({
+                srcChain: nativeChainName,
+                destChain: rccData.destChain,
+                relayChain: rccData.relayChain,
+                sequence: sequence,
+                sender: msg.sender.addressToString(),
+                contractAddress: rccData.contractAddress,
+                data: rccData.data
+            })
         );
     }
 
@@ -104,6 +114,7 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
         latestPacket = RCCDataTypes.PacketData({
             srcChain: packet.srcChain,
             destChain: packet.destChain,
+            sequence: packet.sequence,
             sender: packet.sender,
             contractAddress: packet.contractAddress,
             data: packet.data

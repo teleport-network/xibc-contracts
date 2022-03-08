@@ -22,7 +22,7 @@ describe('Payable', () => {
     it("proxySend", async () => {
         await payable.proxySend(recl.address)
         expect(await web3.eth.getBalance(payable.address)).to.eq("0")
-        console.log(await web3.eth.getBalance(recl.address))
+        expect(await web3.eth.getBalance(recl.address)).to.eq("100000")
     })
 
     it("getether", async () => {

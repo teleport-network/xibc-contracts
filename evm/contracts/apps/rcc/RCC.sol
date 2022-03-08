@@ -15,7 +15,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuardUpgradeable {
+contract RCC is
+    Initializable,
+    IRCC,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using Strings for *;
     using Bytes for *;
 
@@ -72,6 +77,10 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuardUpgradeab
             RCCDataTypes.RCCPacketData({
                 srcChain: sourceChain,
                 destChain: rccData.destChain,
+                sequence: packet.getNextSequenceSend(
+                    sourceChain,
+                    rccData.destChain
+                ),
                 sender: msg.sender.addressToString(),
                 contractAddress: rccData.contractAddress,
                 data: rccData.data
@@ -109,6 +118,10 @@ contract RCC is Initializable, IRCC, OwnableUpgradeable,ReentrancyGuardUpgradeab
                 RCCDataTypes.RCCPacketData({
                     srcChain: sourceChain,
                     destChain: rccData.destChain,
+                    sequence: packet.getNextSequenceSend(
+                        sourceChain,
+                        rccData.destChain
+                    ),
                     sender: rccData.sender.addressToString(),
                     contractAddress: rccData.contractAddress,
                     data: rccData.data

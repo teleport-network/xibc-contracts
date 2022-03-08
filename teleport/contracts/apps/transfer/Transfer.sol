@@ -9,6 +9,7 @@ import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IERC20XIBC.sol";
+import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
@@ -18,6 +19,8 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
 
     string private constant nativeChainName = "teleport";
 
+    address public constant packetContractAddress =
+        address(0x0000000000000000000000000000000020000001);
     address public constant aggregateContractAddress =
         address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
     address public constant transferContractAddress =
@@ -38,16 +41,18 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
     TransferDataTypes.PacketData public latestPacket;
 
     // if back is true, srcToken should be set
-    event SendPacket(
-        string srcChain,
-        string destChain,
-        string relayChain,
-        string sender,
-        string receiver,
-        uint256 amount,
-        string token,
-        string oriToken
-    );
+    struct sendPacket {
+        string srcChain;
+        string destChain;
+        string relayChain;
+        uint64 sequence;
+        string sender;
+        string receiver;
+        uint256 amount;
+        string token;
+        string oriToken;
+    }
+    event SendPacket(sendPacket packet);
 
     modifier onlyXIBCModuleAggregate() {
         require(
@@ -132,6 +137,11 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
             Strings.strConcat(transferData.tokenAddress.addressToString(), "/"),
             transferData.destChain
         );
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
+            nativeChainName,
+            transferData.destChain
+        );
+        string memory oriToken;
 
         // if is crossed chain token
         if (bindings[bindingKey].bound) {
@@ -151,17 +161,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
             );
 
             bindings[bindingKey].amount -= realAmount;
-
-            emit SendPacket(
-                nativeChainName,
-                transferData.destChain,
-                transferData.relayChain,
-                msg.sender.addressToString(),
-                transferData.receiver,
-                transferData.amount,
-                transferData.tokenAddress.addressToString(),
-                bindings[bindingKey].oriToken
-            );
+            oriToken = bindings[bindingKey].oriToken;
         } else {
             // outgoing
             require(
@@ -181,18 +181,21 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
             outTokens[transferData.tokenAddress][
                 transferData.destChain
             ] += transferData.amount;
-
-            emit SendPacket(
-                nativeChainName,
-                transferData.destChain,
-                transferData.relayChain,
-                msg.sender.addressToString(),
-                transferData.receiver,
-                transferData.amount,
-                transferData.tokenAddress.addressToString(),
-                ""
-            );
+            oriToken = "";
         }
+        emit SendPacket(
+            sendPacket({
+                srcChain: nativeChainName,
+                destChain: transferData.destChain,
+                relayChain: transferData.relayChain,
+                sequence: sequence,
+                sender: msg.sender.addressToString(),
+                receiver: transferData.receiver,
+                amount: transferData.amount,
+                token: transferData.tokenAddress.addressToString(),
+                oriToken: oriToken
+            })
+        );
     }
 
     function transferERC20(
@@ -263,16 +266,22 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
         require(msg.value > 0, "value must be greater than 0");
 
         outTokens[address(0)][transferData.destChain] += msg.value;
-
-        emit SendPacket(
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             nativeChainName,
-            transferData.destChain,
-            transferData.relayChain,
-            msg.sender.addressToString(),
-            transferData.receiver,
-            msg.value,
-            address(0).addressToString(),
-            ""
+            transferData.destChain
+        );
+        emit SendPacket(
+            sendPacket({
+                srcChain: nativeChainName,
+                destChain: transferData.destChain,
+                relayChain: transferData.relayChain,
+                sequence: sequence,
+                sender: msg.sender.addressToString(),
+                receiver: transferData.receiver,
+                amount: msg.value,
+                token: address(0).addressToString(),
+                oriToken: ""
+            })
         );
     }
 
@@ -301,6 +310,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
         latestPacket = TransferDataTypes.PacketData({
             srcChain: packet.srcChain,
             destChain: packet.destChain,
+            sequence: packet.sequence,
             sender: packet.sender,
             receiver: packet.receiver,
             amount: packet.amount,
@@ -436,8 +446,8 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                     .toUint256();
             } else {
                 // refund base token out
-                (bool success, ) = data.sender.parseAddr().call{
-                    value: data.amount.toUint256()
+                (bool success, ) = packet.sender.parseAddr().call{
+                    value: packet.amount.toUint256()
                 }("");
                 require(success, "unlock base token to sender failed");
                 outTokens[address(0)][packet.destChain] -= packet

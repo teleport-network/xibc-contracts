@@ -169,11 +169,14 @@ contract Transfer is
         string[] memory ports = new string[](1);
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
-
         dataList[0] = abi.encode(
             TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
+                sequence: packet.getNextSequenceSend(
+                    sourceChain,
+                    transferData.destChain
+                ),
                 sender: msg.sender.addressToString(),
                 receiver: transferData.receiver,
                 amount: transferData.amount.toBytes(),
@@ -261,6 +264,10 @@ contract Transfer is
                 TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
+                    sequence: packet.getNextSequenceSend(
+                        sourceChain,
+                        transferData.destChain
+                    ),
                     sender: transferData.sender.addressToString(),
                     receiver: transferData.receiver,
                     amount: transferData.amount.toBytes(),
@@ -290,6 +297,10 @@ contract Transfer is
             TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
+                sequence: packet.getNextSequenceSend(
+                    sourceChain,
+                    transferData.destChain
+                ),
                 sender: msg.sender.addressToString(),
                 receiver: transferData.receiver,
                 amount: msg.value.toBytes(),
@@ -335,6 +346,10 @@ contract Transfer is
                 TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
+                    sequence: packet.getNextSequenceSend(
+                        sourceChain,
+                        transferData.destChain
+                    ),
                     sender: transferData.sender.addressToString(),
                     receiver: transferData.receiver,
                     amount: msg.value.toBytes(),

@@ -22,15 +22,12 @@ contract Agent is ReentrancyGuardUpgradeable {
 
     struct AgentData {
         bool sent;
-        string sender;
+        address refundAddressOnTeleport;
         address tokenAddress;
         uint256 amount;
     }
 
-    mapping(string => mapping(address => uint256)) public balances; // map[sender]map[token]amount
-    mapping(address => uint256) public supplies; // map[token]amount
-    mapping(string => AgentData) public sequences; // map[srcChain/destChain/sequence]AgentData
-    mapping(string => bool) public refunded; // map[srcChain/destChain/sequence]refunded
+    mapping(string => AgentData) public agentData; // map[srcChain/destChain/sequence]AgentData
 
     address public constant packetContractAddress =
         address(0x0000000000000000000000000000000020000001);
@@ -57,121 +54,84 @@ contract Agent is ReentrancyGuardUpgradeable {
     function send(
         bytes calldata id,
         address tokenAddress,
+        address refundAddressOnTeleport,
         string calldata receiver,
-        uint256 amount,
         string calldata destChain,
         string calldata relayChain
     ) external nonReentrant onlyXIBCModuleRCC returns (bool) {
-        TransferDataTypes.ERC20TransferData
-            memory transferData = TransferDataTypes.ERC20TransferData({
-                tokenAddress: tokenAddress,
-                receiver: receiver,
-                amount: amount,
-                destChain: destChain,
-                relayChain: relayChain
-            });
+        (
+            uint256 amount,
+            string memory srcChain
+        ) = checkPacketSyncAndGetAmountSrcChain();
 
-        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContractAddress)
-            .getLatestPacket();
-
-        _comingIn(rccPacket, transferData.tokenAddress);
-
-        require(
-            balances[rccPacket.sender][transferData.tokenAddress] >=
-                transferData.amount,
-            "err amount"
-        );
-        if (transferData.tokenAddress != address(0)) {
-            IERC20(transferData.tokenAddress).approve(
+        if (tokenAddress != address(0)) {
+            IERC20(tokenAddress).approve(
                 address(transferContractAddress),
-                transferData.amount
+                amount
             );
             // call transfer to send erc20
-            ITransfer(transferContractAddress).sendTransferERC20(transferData);
-            supplies[transferData.tokenAddress] = IERC20(
-                transferData.tokenAddress
-            ).balanceOf(address(this));
-        } else {
-            // call transfer to send base
-            ITransfer(transferContractAddress).sendTransferBase{
-                value: transferData.amount
-            }(
-                TransferDataTypes.BaseTransferData({
-                    receiver: transferData.receiver,
-                    destChain: transferData.destChain,
-                    relayChain: transferData.relayChain
+            ITransfer(transferContractAddress).sendTransferERC20(
+                TransferDataTypes.ERC20TransferData({
+                    tokenAddress: tokenAddress,
+                    receiver: receiver,
+                    amount: amount,
+                    destChain: destChain,
+                    relayChain: relayChain
                 })
             );
-            supplies[transferData.tokenAddress] = address(this).balance;
+        } else {
+            // call transfer to send base
+            ITransfer(transferContractAddress).sendTransferBase{value: amount}(
+                TransferDataTypes.BaseTransferData({
+                    receiver: receiver,
+                    destChain: destChain,
+                    relayChain: relayChain
+                })
+            );
         }
 
-        balances[rccPacket.sender][transferData.tokenAddress] -= transferData
-            .amount;
-
         uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
-            rccPacket.destChain,
-            transferData.destChain
+            srcChain,
+            destChain
         );
         string memory sequencesKey = Strings.strConcat(
             Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(rccPacket.destChain, "/"),
-                    transferData.destChain
-                ),
+                Strings.strConcat(Strings.strConcat(srcChain, "/"), destChain),
                 "/"
             ),
             Strings.uint642str(sequence)
         );
 
-        sequences[sequencesKey] = AgentData({
+        agentData[sequencesKey] = AgentData({
             sent: true,
-            sender: rccPacket.sender,
-            tokenAddress: transferData.tokenAddress,
-            amount: transferData.amount
+            refundAddressOnTeleport: refundAddressOnTeleport,
+            tokenAddress: tokenAddress,
+            amount: amount
         });
 
-        emit SendEvent(
-            id,
-            rccPacket.destChain,
-            transferData.destChain,
-            sequence
-        );
+        emit SendEvent(id, srcChain, destChain, sequence);
         return true;
     }
 
-    function _comingIn(
-        RCCDataTypes.PacketData memory rccPacket,
-        address tokenAddress
-    ) private {
+    function checkPacketSyncAndGetAmountSrcChain()
+        private
+        view
+        returns (uint256, string memory)
+    {
+        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContractAddress)
+            .getLatestPacket();
         TransferDataTypes.PacketData memory transferPacket = ITransfer(
             transferContractAddress
         ).getLatestPacket();
 
         require(
             transferPacket.receiver.equals(address(this).addressToString()) &&
-                transferPacket.sender.equals(rccPacket.sender) &&
+                transferPacket.sequence == rccPacket.sequence &&
                 transferPacket.srcChain.equals(rccPacket.srcChain) &&
                 transferPacket.destChain.equals(rccPacket.destChain),
             "must synchronize"
         );
-        // check received
-        if (tokenAddress != address(0)) {
-            require(
-                IERC20(tokenAddress).balanceOf(address(this)) >=
-                    supplies[tokenAddress] + transferPacket.amount.toUint256(),
-                "haven't received token"
-            );
-        } else {
-            require(
-                address(this).balance >=
-                    supplies[tokenAddress] + transferPacket.amount.toUint256(),
-                "haven't received token"
-            );
-        }
-
-        balances[transferPacket.sender][tokenAddress] += transferPacket
-            .amount
-            .toUint256();
+        return (transferPacket.amount.toUint256(), transferPacket.destChain);
     }
 
     function refund(
@@ -187,8 +147,9 @@ contract Agent is ReentrancyGuardUpgradeable {
             Strings.uint642str(sequence)
         );
 
-        require(sequences[sequencesKey].sent, "not exist");
-        require(!refunded[sequencesKey], "refunded");
+        require(agentData[sequencesKey].sent, "not exist");
+        AgentData memory data = agentData[sequencesKey];
+        delete agentData[sequencesKey];
         require(
             IPacket(packetContractAddress).getAckStatus(
                 srcChain,
@@ -197,21 +158,10 @@ contract Agent is ReentrancyGuardUpgradeable {
             ) == 2,
             "not err ack"
         );
-        require(
-            IERC20(sequences[sequencesKey].tokenAddress).balanceOf(
-                address(this)
-            ) >=
-                supplies[sequences[sequencesKey].tokenAddress] +
-                    sequences[sequencesKey].amount,
-            "haven't received token"
-        );
-        refunded[sequencesKey] = true;
-        balances[sequences[sequencesKey].sender][
-            sequences[sequencesKey].tokenAddress
-        ] += sequences[sequencesKey].amount;
 
-        supplies[sequences[sequencesKey].tokenAddress] = IERC20(
-            sequences[sequencesKey].tokenAddress
-        ).balanceOf(address(this));
+        require(
+            IERC20(data.tokenAddress).transfer(data.refundAddressOnTeleport, data.amount),
+            "refund failed,ERC20 transfer err"
+        );
     }
 }

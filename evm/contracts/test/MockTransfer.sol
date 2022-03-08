@@ -17,7 +17,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,ReentrancyGuardUpgradeable{
+contract MockTransfer is
+    Initializable,
+    ITransfer,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using Strings for *;
     using Bytes for *;
 
@@ -79,7 +84,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
             !sourceChain.equals(oriChain),
             "sourceChain can't equal to destChain"
         );
-        
+
         if (bindings[tokenAddress].bound) {
             // rebind
             string memory reBindKey = Strings.strConcat(
@@ -107,7 +112,7 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
 
     function sendTransferERC20(
         TransferDataTypes.ERC20TransferData calldata transferData
-    ) external override nonReentrant{
+    ) external override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -168,6 +173,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
             TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
+                sequence: packet.getNextSequenceSend(
+                    sourceChain,
+                    transferData.destChain
+                ),
                 sender: msg.sender.addressToString(),
                 receiver: transferData.receiver,
                 amount: transferData.amount.toBytes(),
@@ -192,7 +201,13 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
 
     function transferERC20(
         TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external override nonReentrant onlyAuthorizee(MULTISEND_ROLE) returns (bytes memory) {
+    )
+        external
+        override
+        nonReentrant
+        onlyAuthorizee(MULTISEND_ROLE)
+        returns (bytes memory)
+    {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
@@ -248,6 +263,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
                 TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
+                    sequence: packet.getNextSequenceSend(
+                        sourceChain,
+                        transferData.destChain
+                    ),
                     sender: transferData.sender.addressToString(),
                     receiver: transferData.receiver,
                     amount: transferData.amount.toBytes(),
@@ -277,6 +296,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
             TransferDataTypes.TransferPacketData({
                 srcChain: sourceChain,
                 destChain: transferData.destChain,
+                sequence: packet.getNextSequenceSend(
+                    sourceChain,
+                    transferData.destChain
+                ),
                 sender: msg.sender.addressToString(),
                 receiver: transferData.receiver,
                 amount: msg.value.toBytes(),
@@ -322,6 +345,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
                 TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
+                    sequence: packet.getNextSequenceSend(
+                        sourceChain,
+                        transferData.destChain
+                    ),
                     sender: transferData.sender.addressToString(),
                     receiver: transferData.receiver,
                     amount: msg.value.toBytes(),
@@ -413,8 +440,10 @@ contract MockTransfer is Initializable, ITransfer, OwnableUpgradeable ,Reentranc
                         "onRecvPackt: amount could not be greater than locked amount"
                     );
             }
-            (bool success, ) = packetData.receiver.parseAddr().call{value: packetData.amount.toUint256()}("");
-            if (!success ) {
+            (bool success, ) = packetData.receiver.parseAddr().call{
+                value: packetData.amount.toUint256()
+            }("");
+            if (!success) {
                 return
                     _newAcknowledgement(
                         false,
