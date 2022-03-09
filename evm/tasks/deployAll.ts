@@ -124,7 +124,7 @@ task("deployall", "Deploy all base contract")
         console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
     })
 
-task("transferoOwnership", "Deploy all base contract")
+task("transferOwnership", "Deploy all base contract")
     .addParam("gnosissafe", "gnosisSafe address")
     .setAction(async (taskArgs, hre) => {
         console.log('Transferring ownership of ProxyAdmin...');
