@@ -164,6 +164,14 @@ task("createTssCLient", "Create Tss CLient")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
+
+        //support parse special array data for partpubkeys
+        var re = /\[/gi;
+        taskArgs.partpubkeys = taskArgs.partpubkeys.replace(re, "");
+        re = /\]/gi;
+        taskArgs.partpubkeys = taskArgs.partpubkeys.replace(re, "");
+        taskArgs.partpubkeys = taskArgs.partpubkeys.split(",", 4);
+
         let clientStateBz = utils.defaultAbiCoder.encode(
             ["tuple(address,bytes,bytes[])"],
             [[taskArgs.pooladdress, taskArgs.pubkey, taskArgs.partpubkeys]],
