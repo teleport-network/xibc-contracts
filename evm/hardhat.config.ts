@@ -38,6 +38,18 @@ module.exports = {
             chainId: 9000,
             gas: 4100000,
         },
+        qa: {
+            url: 'http://abd46ec6e28754f0ab2aae29deaa0c11-1510914274.ap-southeast-1.elb.amazonaws.com:8545',
+            gasPrice: 5000000000,
+            chainId: 7001,
+            gas: 4100000,
+        },
+        arbitrum: {
+            url: 'https://rinkeby.arbitrum.io/rpc',
+            gasPrice: 30000000,
+            chainId: 421611,
+            gas: 4100000,
+        },
         teleport: {
             url: 'https://seed0.testnet.teleport.network',
             gasPrice: 5000000000,

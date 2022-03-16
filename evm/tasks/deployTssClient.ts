@@ -16,7 +16,7 @@ task("deployTssClient", "Deploy Tss Client")
         await tss.deployed()
         console.log("TssClient deployed to:", tss.address.toLocaleLowerCase())
         console.log("export TSS_CLIENT=%s", tss.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export TSS_CLIENT='+tss.address.toLocaleLowerCase()+'\n')
+        fs.appendFileSync('env.txt', 'export TSS_CLIENT=' + tss.address.toLocaleLowerCase() + '\n')
     })
 
 module.exports = {}
