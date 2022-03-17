@@ -3,7 +3,7 @@ import chai from "chai"
 import { RCC, Routing, ClientManager, MockTendermint, Transfer, AccessManager, ERC20, MockPacket } from '../typechain'
 import { sha256 } from "ethers/lib/utils"
 
-const { ethers, upgrades } = require("hardhat")
+const { web3, ethers, upgrades } = require("hardhat")
 const { expect } = chai
 
 let client = require("./proto/compiled.js")
@@ -53,7 +53,7 @@ describe('RCC', () => {
             contractAddress: rccData.contractAddress,
             data: rccData.data,
         }
-        let dataBytes = utils.defaultAbiCoder.encode(
+        let packetDataBz = utils.defaultAbiCoder.encode(
             ["tuple(string,string,uint64,string,string,bytes)"],
             [
                 [
@@ -71,7 +71,13 @@ describe('RCC', () => {
         let commit = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         let seq = await mockPacket.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
-        expect(commit).to.equal(sha256(sha256(dataBytes)))
+
+        let portBytes = Buffer.from("CONTRACT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(packetDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+
+        expect(commit).to.equal(sha256(sha256(sum)))
     })
 
     it("onRecvPacket", async () => {

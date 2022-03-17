@@ -1,4 +1,4 @@
-import { Signer, BigNumber,utils } from "ethers"
+import { Signer, BigNumber, utils } from "ethers"
 import chai from "chai"
 import { MockTransfer, Packet, ClientManager, Routing, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { sha256, keccak256 } from "ethers/lib/utils"
@@ -45,7 +45,7 @@ describe('Packet', () => {
         let packetData = {
             srcChain: srcChainName,
             destChain: transferData.destChain,
-            sequence:seqU64,
+            sequence: seqU64,
             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             receiver: transferData.receiver,
             amount: amount,
@@ -72,7 +72,14 @@ describe('Packet', () => {
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
-        expect(commit).to.equal(sha256(sha256(packetDataBz)))
+
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(packetDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+
+        expect(commit).to.equal(sha256(sha256(sum)))
+
         let sequence: BigNumber = BigNumber.from(1)
         let pkt = {
             sequence: sequence,
@@ -112,7 +119,7 @@ describe('Packet', () => {
         let packetData = {
             srcChain: srcChainName,
             destChain: transferData.destChain,
-            sequence:seqU64,
+            sequence: seqU64,
             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             receiver: transferData.receiver,
             amount: amount,
@@ -139,7 +146,13 @@ describe('Packet', () => {
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(3)
-        expect(commit).to.equal(sha256(sha256(packetDataBz)))
+
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(packetDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+
+        expect(commit).to.equal(sha256(sha256(sum)))
         let sequence: BigNumber = BigNumber.from(2)
         let pkt = {
             sequence: sequence,
@@ -174,7 +187,7 @@ describe('Packet', () => {
         let packetData = {
             srcChain: destChainName,
             destChain: srcChainName,
-            sequence:seqU64,
+            sequence: seqU64,
             sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
             receiver: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             amount: amount,
@@ -195,7 +208,7 @@ describe('Packet', () => {
                     packetData.oriToken
                 ]
             ]
-        );        
+        );
         let ackByte = utils.defaultAbiCoder.encode(
             ["tuple(bytes[],string)"],
             [

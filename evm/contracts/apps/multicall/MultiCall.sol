@@ -63,7 +63,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
 
         uint256 remainingValue = msg.value;
         for (uint64 i = 0; i < multiCallData.functions.length; i++) {
-            require(multiCallData.functions[i] < 3, "invlaid function ID");
+            require(multiCallData.functions[i] < 3, "invalid function ID");
             if (multiCallData.functions[i] == 0) {
                 MultiCallDataTypes.ERC20TransferData memory data = abi.decode(
                     multiCallData.data[i],

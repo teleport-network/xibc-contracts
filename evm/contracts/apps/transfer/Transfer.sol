@@ -126,6 +126,13 @@ contract Transfer is
         if (bindings[transferData.tokenAddress].bound) {
             // back to origin
             require(
+                Strings.equals(
+                    transferData.destChain,
+                    bindings[transferData.tokenAddress].oriChain
+                ),
+                "destChain does not match the bound one"
+            );
+            require(
                 bindings[transferData.tokenAddress].amount >=
                     transferData.amount,
                 "insufficient liquidity"
@@ -219,6 +226,13 @@ contract Transfer is
         // if is crossed chain token
         if (bindings[transferData.tokenAddress].bound) {
             // back to origin
+            require(
+                Strings.equals(
+                    transferData.destChain,
+                    bindings[transferData.tokenAddress].oriChain
+                ),
+                "destChain does not match the bound one"
+            );
             require(
                 bindings[transferData.tokenAddress].amount >=
                     transferData.amount,
