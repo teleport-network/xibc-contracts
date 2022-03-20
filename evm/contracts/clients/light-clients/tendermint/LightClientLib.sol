@@ -16,22 +16,21 @@ library LightClientVerify {
         int64 maxClockDrift,
         Fraction.Data memory trustLevel
     ) public pure {
-        // LightClient.verify(
-        //     trustedHeader,
-        //     trustedVals,
-        //     untrustedHeader,
-        //     untrustedVals,
-        //     trustingPeriod,
-        //     nowTime,
-        //     maxClockDrift,
-        //     trustLevel
-        // );
+        LightClient.verify(
+            trustedHeader,
+            trustedVals,
+            untrustedHeader,
+            untrustedVals,
+            trustingPeriod,
+            nowTime,
+            maxClockDrift,
+            trustLevel
+        );
     }
-
 }
 
 library LightClientGenValHash {
-     function genValidatorSetHash(ValidatorSet.Data memory vals)
+    function genValidatorSetHash(ValidatorSet.Data memory vals)
         public
         pure
         returns (bytes memory)
