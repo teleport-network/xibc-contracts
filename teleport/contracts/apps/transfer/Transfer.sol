@@ -127,9 +127,9 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
     }
 
     function sendTransfer(
-        TransferDataTypes.TransferData calldata transferData,
-        PacketTypes.Fee calldata fee
-    ) external payable override nonReentrant {
+        TransferDataTypes.TransferData memory transferData,
+        PacketTypes.Fee memory fee
+    ) public payable override nonReentrant {
         require(
             !nativeChainName.equals(transferData.destChain),
             "sourceChain can't equal to destChain"

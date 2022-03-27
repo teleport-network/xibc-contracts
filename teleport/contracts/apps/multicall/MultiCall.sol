@@ -30,9 +30,9 @@ contract MultiCall is IMultiCall {
     );
 
     function multiCall(
-        MultiCallDataTypes.MultiCallData calldata multiCallData,
-        PacketTypes.Fee calldata fee
-    ) external payable override {
+        MultiCallDataTypes.MultiCallData memory multiCallData,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             multiCallData.functions.length > 0 &&
                 multiCallData.data.length == multiCallData.functions.length,

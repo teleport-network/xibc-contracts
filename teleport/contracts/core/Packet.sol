@@ -48,11 +48,11 @@ contract Packet is IPacket {
      * @param fee packet fee
      */
     function setPacketFee(
-        string calldata sourceChain,
-        string calldata destChain,
+        string memory sourceChain,
+        string memory destChain,
         uint64 sequence,
-        PacketTypes.Fee calldata fee
-    ) external payable override onlyXIBCAPP {
+        PacketTypes.Fee memory fee
+    ) public payable override onlyXIBCAPP {
         // Notice: must sent token to this contract before set packet fee
         packetFees[getAckStatusKey(sourceChain, destChain, sequence)] = fee;
     }

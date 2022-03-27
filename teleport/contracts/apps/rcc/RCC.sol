@@ -60,9 +60,9 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
     }
 
     function sendRemoteContractCall(
-        RCCDataTypes.RCCData calldata rccData,
-        PacketTypes.Fee calldata fee
-    ) external payable override {
+        RCCDataTypes.RCCData memory rccData,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             !nativeChainName.equals(rccData.destChain),
             "sourceChain can't equal to destChain"

@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
+import "../../libraries/core/Packet.sol";
 import "../../libraries/app/Transfer.sol";
 import "../../libraries/app/RCC.sol";
 import "../../interfaces/IMultiCall.sol";
@@ -52,43 +53,37 @@ contract Agent is ReentrancyGuardUpgradeable {
     );
 
     function send(
-        bytes calldata id,
+        bytes memory id,
         address tokenAddress,
         address refundAddressOnTeleport,
-        string calldata receiver,
-        string calldata destChain,
-        string calldata relayChain
-    ) external nonReentrant onlyXIBCModuleRCC returns (bool) {
+        string memory receiver,
+        string memory destChain,
+        uint256 feeAmount
+    ) public nonReentrant onlyXIBCModuleRCC returns (bool) {
         (
             uint256 amount,
             string memory srcChain
         ) = checkPacketSyncAndGetAmountSrcChain();
 
+        uint256 value = amount;
         if (tokenAddress != address(0)) {
+            value = 0;
             IERC20(tokenAddress).approve(
                 address(transferContractAddress),
                 amount
             );
-            // call transfer to send erc20
-            ITransfer(transferContractAddress).sendTransferERC20(
-                TransferDataTypes.ERC20TransferData({
-                    tokenAddress: tokenAddress,
-                    receiver: receiver,
-                    amount: amount,
-                    destChain: destChain,
-                    relayChain: relayChain
-                })
-            );
-        } else {
-            // call transfer to send base
-            ITransfer(transferContractAddress).sendTransferBase{value: amount}(
-                TransferDataTypes.BaseTransferData({
-                    receiver: receiver,
-                    destChain: destChain,
-                    relayChain: relayChain
-                })
-            );
         }
+
+        ITransfer(transferContractAddress).sendTransfer{value: value}(
+            TransferDataTypes.TransferData({
+                tokenAddress: tokenAddress,
+                receiver: receiver,
+                amount: amount - feeAmount,
+                destChain: destChain,
+                relayChain: ""
+            }),
+            PacketTypes.Fee({tokenAddress: tokenAddress, amount: feeAmount})
+        );
 
         uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             srcChain,
@@ -106,7 +101,7 @@ contract Agent is ReentrancyGuardUpgradeable {
             sent: true,
             refundAddressOnTeleport: refundAddressOnTeleport,
             tokenAddress: tokenAddress,
-            amount: amount
+            amount: amount - feeAmount
         });
 
         emit SendEvent(id, srcChain, destChain, sequence);
@@ -160,8 +155,11 @@ contract Agent is ReentrancyGuardUpgradeable {
         );
 
         require(
-            IERC20(data.tokenAddress).transfer(data.refundAddressOnTeleport, data.amount),
-            "refund failed,ERC20 transfer err"
+            IERC20(data.tokenAddress).transfer(
+                data.refundAddressOnTeleport,
+                data.amount
+            ),
+            "refund failed, ERC20 transfer err"
         );
     }
 }
