@@ -104,9 +104,9 @@ contract Packet is
      * @param fee packet fee
      */
     function sendPacket(
-        PacketTypes.Packet calldata packet,
-        PacketTypes.Fee calldata fee
-    ) external payable override {
+        PacketTypes.Packet memory packet,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             packet.dataList.length == 1 && packet.ports.length == 1,
             "should be one packet data"
@@ -167,9 +167,9 @@ contract Packet is
      * @param fee packet fee
      */
     function sendMultiPacket(
-        PacketTypes.Packet calldata packet,
-        PacketTypes.Fee calldata fee
-    ) external payable override onlyAuthorizee(MULTISEND_ROLE) {
+        PacketTypes.Packet memory packet,
+        PacketTypes.Fee memory fee
+    ) public payable override onlyAuthorizee(MULTISEND_ROLE) {
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
             packet.dataList.length == packet.ports.length &&

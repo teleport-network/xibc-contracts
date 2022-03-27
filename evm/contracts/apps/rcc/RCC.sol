@@ -61,9 +61,9 @@ contract RCC is
     }
 
     function sendRemoteContractCall(
-        RCCDataTypes.RCCData calldata rccData,
-        PacketTypes.Fee calldata fee
-    ) external payable override {
+        RCCDataTypes.RCCData memory rccData,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(rccData.destChain),

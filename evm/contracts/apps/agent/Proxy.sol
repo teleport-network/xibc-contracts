@@ -31,48 +31,36 @@ contract Proxy is Initializable, OwnableUpgradeable {
     function send(
         address refundAddressOnTeleport,
         string memory destChain,
-        MultiCallDataTypes.ERC20TransferData memory erc20transfer,
-        TransferDataTypes.ERC20TransferData memory rccTransfer
+        MultiCallDataTypes.TransferData memory erc20transfer,
+        TransferDataTypes.TransferData memory rccTransfer,
+        uint256 feeAmount
     ) public view returns (MultiCallDataTypes.MultiCallData memory) {
+        require(
+            erc20transfer.amount > feeAmount &&
+                rccTransfer.amount == erc20transfer.amount - feeAmount,
+            "invalid amount"
+        );
         bytes memory id = _getID(destChain);
-        bytes[] memory dataList = new bytes[](2);
+
         uint8[] memory functions = new uint8[](2);
-        bytes memory RCCDataAbi = _getRCCDataABI(
+        functions[0] = 0;
+        functions[1] = 1;
+
+        bytes[] memory dataList = new bytes[](2);
+        dataList[0] = abi.encode(
+            MultiCallDataTypes.TransferData({
+                tokenAddress: erc20transfer.tokenAddress,
+                receiver: erc20transfer.receiver,
+                amount: erc20transfer.amount
+            })
+        );
+        dataList[1] = _getRCCDataABI(
             id,
             refundAddressOnTeleport,
             erc20transfer.receiver,
-            rccTransfer
+            rccTransfer,
+            feeAmount
         );
-
-        require(
-            erc20transfer.amount == rccTransfer.amount,
-            "amount must be equal to rcc amount"
-        );
-
-        if (erc20transfer.tokenAddress != address(0)) {
-            // send erc20
-            bytes memory ERC20TransferDataAbi = abi.encode(
-                MultiCallDataTypes.ERC20TransferData({
-                    tokenAddress: erc20transfer.tokenAddress,
-                    receiver: erc20transfer.receiver,
-                    amount: erc20transfer.amount
-                })
-            );
-            dataList[0] = ERC20TransferDataAbi;
-            functions[0] = 0;
-        } else {
-            // send native token
-            bytes memory BaseTransferDataAbi = abi.encode(
-                MultiCallDataTypes.BaseTransferData({
-                    receiver: erc20transfer.receiver,
-                    amount: erc20transfer.amount
-                })
-            );
-            dataList[0] = BaseTransferDataAbi;
-            functions[0] = 1;
-        }
-        dataList[1] = RCCDataAbi;
-        functions[1] = 2;
 
         MultiCallDataTypes.MultiCallData
             memory multiCallData = MultiCallDataTypes.MultiCallData({
@@ -113,16 +101,17 @@ contract Proxy is Initializable, OwnableUpgradeable {
         bytes memory id,
         address refundAddressOnTeleport,
         string memory contractAddress,
-        TransferDataTypes.ERC20TransferData memory rccTransfer
+        TransferDataTypes.TransferData memory rccTransfer,
+        uint256 feeAmount
     ) private pure returns (bytes memory) {
         bytes memory agentSendData = abi.encodeWithSignature(
-            "send(bytes,address,address,string,string,string)",
+            "send(bytes,address,address,string,string,uint256)",
             id,
             rccTransfer.tokenAddress,
             refundAddressOnTeleport,
             rccTransfer.receiver,
             rccTransfer.destChain,
-            rccTransfer.relayChain
+            feeAmount
         );
         return
             abi.encode(

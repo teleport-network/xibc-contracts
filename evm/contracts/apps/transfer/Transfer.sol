@@ -112,9 +112,9 @@ contract Transfer is
     }
 
     function sendTransfer(
-        TransferDataTypes.TransferData calldata transferData,
-        PacketTypes.Fee calldata fee
-    ) external payable override nonReentrant {
+        TransferDataTypes.TransferData memory transferData,
+        PacketTypes.Fee memory fee
+    ) public payable override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
