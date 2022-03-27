@@ -3,6 +3,8 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
+import "../libraries/core/Packet.sol";
+
 interface IPacket {
     /**
      * @notice get the next sequence of sourceChain/destChain
@@ -25,4 +27,18 @@ interface IPacket {
         string calldata destChain,
         uint64 sequence
     ) external view returns (uint8);
+
+    /**
+     * @notice set packet fee
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param fee packet fee
+     */
+    function setPacketFee(
+        string calldata sourceChain,
+        string calldata destChain,
+        uint64 sequence,
+        PacketTypes.Fee calldata fee
+    ) external payable;
 }

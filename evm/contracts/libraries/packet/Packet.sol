@@ -13,13 +13,19 @@ library PacketTypes {
         bytes[] dataList;
     }
 
+    struct Fee {
+        address tokenAddress; // zero address if base token
+        uint256 amount;
+    }
+
     struct Result {
         bytes result;
         string message;
     }
-    
+
     struct Acknowledgement {
         bytes[] results;
         string message;
+        string relayer;
     }
 }

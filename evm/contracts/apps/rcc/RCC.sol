@@ -11,6 +11,7 @@ import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IRCC.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/IAccessManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -59,14 +60,19 @@ contract RCC is
         accessManager = IAccessManager(accessManagerContract);
     }
 
-    function sendRemoteContractCall(RCCDataTypes.RCCData calldata rccData)
-        external
-        override
-    {
+    function sendRemoteContractCall(
+        RCCDataTypes.RCCData calldata rccData,
+        PacketTypes.Fee calldata fee
+    ) external payable override {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(rccData.destChain),
             "sourceChain can't equal to destChain"
+        );
+
+        uint64 sequence = packet.getNextSequenceSend(
+            sourceChain,
+            rccData.destChain
         );
 
         // send packet
@@ -77,10 +83,7 @@ contract RCC is
             RCCDataTypes.RCCPacketData({
                 srcChain: sourceChain,
                 destChain: rccData.destChain,
-                sequence: packet.getNextSequenceSend(
-                    sourceChain,
-                    rccData.destChain
-                ),
+                sequence: sequence,
                 sender: msg.sender.addressToString(),
                 contractAddress: rccData.contractAddress,
                 data: rccData.data
@@ -88,17 +91,30 @@ contract RCC is
         );
 
         PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
-            sequence: packet.getNextSequenceSend(
-                sourceChain,
-                rccData.destChain
-            ),
+            sequence: sequence,
             sourceChain: sourceChain,
             destChain: rccData.destChain,
             relayChain: rccData.relayChain,
             ports: ports,
             dataList: dataList
         });
-        packet.sendPacket(crossPacket);
+
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value == fee.amount, "invalid value");
+            packet.sendPacket{value: fee.amount}(crossPacket, fee);
+        } else {
+            require(msg.value == 0, "invalid value");
+            // send fee to packet
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(packet),
+                    fee.amount
+                ),
+                "lock failed, unsufficient allowance"
+            );
+            packet.sendPacket(crossPacket, fee);
+        }
     }
 
     function remoteContractCall(RCCDataTypes.RCCDataMulti calldata rccData)

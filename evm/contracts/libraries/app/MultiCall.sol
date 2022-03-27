@@ -11,13 +11,8 @@ library MultiCallDataTypes {
         bytes[] data;
     }
 
-    struct ERC20TransferData {
-        address tokenAddress;
-        string receiver;
-        uint256 amount;
-    }
-
-    struct BaseTransferData {
+    struct TransferData {
+        address tokenAddress; // zero address if base token
         string receiver;
         uint256 amount;
     }
