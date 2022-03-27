@@ -11,6 +11,7 @@ import "../interfaces/IModule.sol";
 import "../interfaces/IPacket.sol";
 import "../interfaces/IRouting.sol";
 import "../interfaces/IAccessManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -22,6 +23,7 @@ contract MockPacket is
     ReentrancyGuardUpgradeable
 {
     using Strings for *;
+    using Bytes for *;
 
     IClientManager public clientManager;
     IRouting public routing;
@@ -31,6 +33,7 @@ contract MockPacket is
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
     mapping(bytes => uint8) public ackStatus;
+    mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
     uint256 public version;
@@ -102,21 +105,30 @@ contract MockPacket is
     /**
      * @notice SendPacket is called by a module in order to send an XIBC packet with single data.
      * @param packet xibc packet
+     * @param fee packet fee
      */
-    function sendPacket(PacketTypes.Packet calldata packet) external override {
+    function sendPacket(
+        PacketTypes.Packet memory packet,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             packet.dataList.length == 1 && packet.ports.length == 1,
             "should be one packet data"
         );
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
-            packet.dataList[0].length > 0,
-            "packet data bytes cannot be empty"
-        );
-        require(
             address(routing.getModule(packet.ports[0])) == _msgSender(),
             "module has not been registered to routing contract"
         );
+
+        // Notice: must sent token to this contract before set packet fee
+        packetFees[
+            Host.ackStatusKey(
+                packet.sourceChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = fee;
 
         if (bytes(packet.relayChain).length > 0) {
             require(
@@ -156,18 +168,27 @@ contract MockPacket is
     /**
      * @notice sendMultiPacket is called by a module in order to send an XIBC packet with multi data.
      * @param packet xibc packet
+     * @param fee packet fee
      */
-    function sendMultiPacket(PacketTypes.Packet calldata packet)
-        external
-        override
-        onlyAuthorizee(MULTISEND_ROLE)
-    {
+    function sendMultiPacket(
+        PacketTypes.Packet memory packet,
+        PacketTypes.Fee memory fee
+    ) public payable override onlyAuthorizee(MULTISEND_ROLE) {
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
             packet.dataList.length == packet.ports.length &&
                 packet.ports.length > 0,
             "invalid packet data or ports"
         );
+
+        // Notice: must sent token to this contract before set packet fee
+        packetFees[
+            Host.ackStatusKey(
+                packet.sourceChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = fee;
 
         for (uint64 i = 0; i < packet.ports.length; i++) {
             require(
@@ -226,7 +247,7 @@ contract MockPacket is
     }
 
     /**
-     * @notice recvPacket is called by a module in order to receive & process an XIBC packet
+     * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
      * @param packet xibc packet
      * @param proof proof commit
      * @param height proof height
@@ -235,27 +256,70 @@ contract MockPacket is
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override nonReentrant{
-        PacketTypes.Acknowledgement memory ack;
-        try this.executePacket(packet) returns (bytes[] memory results) {
-            ack.results = results;
-        } catch Error(string memory message) {
-            ack.message = message;
-        }
-        bytes memory ackBytes = abi.encode(
-            PacketTypes.Acknowledgement({
-                results: ack.results,
-                message: ack.message
-            })
+    ) external override nonReentrant {
+        bytes memory packetReceiptKey = Host.packetReceiptKey(
+            packet.sourceChain,
+            packet.destChain,
+            packet.sequence
         );
 
-        writeAcknowledgement(
+        require(!receipts[packetReceiptKey], "packet has been received");
+
+        bytes memory dataSum;
+        for (uint64 i = 0; i < packet.ports.length; i++) {
+            dataSum = Bytes.concat(
+                dataSum,
+                Bytes.fromBytes32(sha256(packet.dataList[i]))
+            );
+        }
+
+        verifyPacketCommitment(
+            _msgSender(),
             packet.sequence,
             packet.sourceChain,
             packet.destChain,
             packet.relayChain,
-            ackBytes
+            proof,
+            height,
+            Bytes.fromBytes32(sha256(dataSum))
         );
+
+        receipts[packetReceiptKey] = true;
+
+        emit PacketReceived(packet);
+
+        if (Strings.equals(packet.destChain, clientManager.getChainName())) {
+            PacketTypes.Acknowledgement memory ack;
+            try this.executePacket(packet) returns (bytes[] memory results) {
+                ack.results = results;
+            } catch Error(string memory message) {
+                ack.message = message;
+            }
+            ack.relayer = msg.sender.addressToString();
+            bytes memory ackBytes = abi.encode(ack);
+            writeAcknowledgement(
+                packet.sequence,
+                packet.sourceChain,
+                packet.destChain,
+                packet.relayChain,
+                ackBytes
+            );
+            emit AckWritten(packet, ackBytes);
+        } else {
+            require(
+                address(clientManager.getClient(packet.destChain)) !=
+                    address(0),
+                "light client not found!"
+            );
+            commitments[
+                Host.packetCommitmentKey(
+                    packet.sourceChain,
+                    packet.destChain,
+                    packet.sequence
+                )
+            ] = sha256(dataSum);
+            emit PacketSent(packet);
+        }
     }
 
     /**
@@ -372,7 +436,12 @@ contract MockPacket is
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override nonReentrant{
+    ) external override nonReentrant {
+        require(
+            Strings.equals(packet.sourceChain, clientManager.getChainName()),
+            "invalid packet"
+        );
+
         bytes memory dataSum;
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
@@ -389,7 +458,7 @@ contract MockPacket is
 
         require(
             commitments[packetCommitmentKey] == sha256(dataSum),
-            "commitment bytes are not equal!"
+            "commitment bytes are not equal"
         );
 
         verifyPacketAcknowledgement(
@@ -413,55 +482,68 @@ contract MockPacket is
 
         emit AckPacket(packet, acknowledgement);
 
-        if (Strings.equals(packet.sourceChain, clientManager.getChainName())) {
-            PacketTypes.Acknowledgement memory ack = abi.decode(
-                acknowledgement,
-                (PacketTypes.Acknowledgement)
-            );
+        PacketTypes.Acknowledgement memory ack = abi.decode(
+            acknowledgement,
+            (PacketTypes.Acknowledgement)
+        );
 
-            if (ack.results.length > 0) {
-                ackStatus[
-                    Host.ackStatusKey(
-                        packet.sourceChain,
-                        packet.destChain,
-                        packet.sequence
-                    )
-                ] = 1;
-                for (uint64 i = 0; i < packet.ports.length; i++) {
-                    IModule module = routing.getModule(packet.ports[i]);
-                    module.onAcknowledgementPacket(
-                        packet.dataList[i],
-                        ack.results[i]
-                    );
-                }
-            } else {
-                ackStatus[
-                    Host.ackStatusKey(
-                        packet.sourceChain,
-                        packet.destChain,
-                        packet.sequence
-                    )
-                ] = 2;
-                for (uint64 i = 0; i < packet.ports.length; i++) {
-                    IModule module = routing.getModule(packet.ports[i]);
-                    module.onAcknowledgementPacket(packet.dataList[i], hex"");
-                }
-            }
-        } else {
-            require(
-                address(clientManager.getClient(packet.sourceChain)) !=
-                    address(0),
-                "light client not found"
-            );
-            commitments[
-                Host.packetAcknowledgementKey(
+        if (ack.results.length > 0) {
+            ackStatus[
+                Host.ackStatusKey(
                     packet.sourceChain,
                     packet.destChain,
                     packet.sequence
                 )
-            ] = sha256(acknowledgement);
+            ] = 1;
+            for (uint64 i = 0; i < packet.ports.length; i++) {
+                IModule module = routing.getModule(packet.ports[i]);
+                module.onAcknowledgementPacket(
+                    packet.dataList[i],
+                    ack.results[i]
+                );
+            }
+        } else {
+            ackStatus[
+                Host.ackStatusKey(
+                    packet.sourceChain,
+                    packet.destChain,
+                    packet.sequence
+                )
+            ] = 2;
+            for (uint64 i = 0; i < packet.ports.length; i++) {
+                IModule module = routing.getModule(packet.ports[i]);
+                module.onAcknowledgementPacket(packet.dataList[i], hex"");
+            }
+        }
 
-            emit AckWritten(packet, acknowledgement);
+        snedPacketFeeToRelayer(
+            packet.sourceChain,
+            packet.destChain,
+            packet.sequence,
+            ack.relayer.parseAddr()
+        );
+    }
+
+    /**
+     * @notice sned packet fee to relayer
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param relayer relayer address
+     */
+    function snedPacketFeeToRelayer(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence,
+        address relayer
+    ) internal {
+        PacketTypes.Fee memory fee = packetFees[
+            Host.ackStatusKey(sourceChain, destChain, sequence)
+        ];
+        if (fee.tokenAddress == address(0)) {
+            payable(relayer).transfer(fee.amount);
+        } else {
+            require(IERC20(fee.tokenAddress).transfer(relayer, fee.amount), "");
         }
     }
 
