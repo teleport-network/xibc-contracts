@@ -636,4 +636,40 @@ contract Packet is
     ) external view override returns (uint8) {
         return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
     }
+
+    /**
+     * @notice set packet fee
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param amount add fee amount
+     */
+    function addPacketFee(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence,
+        uint256 amount
+    ) public payable {
+        bytes memory key = Host.ackStatusKey(sourceChain, destChain, sequence);
+
+        require(ackStatus[key] == uint8(0), "invalid packet status");
+
+        PacketTypes.Fee memory fee = packetFees[key];
+
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value > 0 && msg.value == amount, "invalid value");
+        } else {
+            require(msg.value == 0, "invalid value");
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amount
+                ),
+                "transfer ERC20 failed"
+            );
+        }
+
+        packetFees[key].amount += amount;
+    }
 }
