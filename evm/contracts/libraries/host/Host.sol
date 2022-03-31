@@ -7,22 +7,6 @@ import "../utils/Strings.sol";
 
 library Host {
     /**
-     * @notice nextSequenceSendPath defines the next send sequence counter store path
-     * @param sourceChain ource chain name
-     * @param destChain destination chain name
-     */
-    function nextSequenceSendPath(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                "nextSequenceSend/",
-                packetPath(sourceChain, destChain)
-            );
-    }
-
-    /**
      * @notice nextSequenceSendKey returns the store key for the send sequence of a particular
      * @param sourceChain source chain name
      * @param destChain destination chain name
@@ -31,7 +15,7 @@ library Host {
         string memory sourceChain,
         string memory destChain
     ) internal pure returns (bytes memory) {
-        return bytes(nextSequenceSendPath(sourceChain, destChain));
+        return bytes(packetPath(sourceChain, destChain));
     }
 
     /**
@@ -70,7 +54,7 @@ library Host {
     }
 
     /**
-     * @notice packetCommitmentPrefixPath returns the store key of under which a packet commitment
+     * @notice packetCommitmentPrefixPath returns the store key of under which a packet commitment. should be same with teleport
      * @param sourceChain source chain name
      * @param destChain destination chain name
      */
@@ -125,7 +109,7 @@ library Host {
     }
 
     /**
-     * @notice packetAcknowledgementPrefixPath defines the prefix for commitments to packet data fields store path.
+     * @notice packetAcknowledgementPrefixPath defines the prefix for commitments to packet data fields store path. should be same with teleport
      *  @param sourceChain source chain name
      *  @param destChain destination chain name
      */
@@ -153,10 +137,7 @@ library Host {
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(
-                    packetReceiptPrefixPath(sourceChain, destChain),
-                    "/"
-                ),
+                Strings.strConcat(packetPath(sourceChain, destChain), "/"),
                 Strings.uint642str(sequence)
             );
     }
@@ -173,25 +154,6 @@ library Host {
         uint64 sequence
     ) internal pure returns (bytes memory) {
         return bytes(packetReceiptPath(sourceChain, destChain, sequence));
-    }
-
-    /**
-     * @notice packetReceiptPrefixPath defines the prefix for receipt to packet data fields store path.
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function packetReceiptPrefixPath(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(
-                    "receipts/",
-                    packetPath(sourceChain, destChain)
-                ),
-                "/sequences"
-            );
     }
 
     /**
@@ -218,21 +180,7 @@ library Host {
         pure
         returns (bytes memory)
     {
-        return bytes(MaxAckSeqPath(sourceChain, destChain));
-    }
-
-    /**
-     * @notice MaxAckSeqPath returns the store path of current max ack height is stored
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function MaxAckSeqPath(string memory sourceChain, string memory destChain)
-        internal
-        pure
-        returns (string memory)
-    {
-        return
-            Strings.strConcat("maxAckSeq/", packetPath(sourceChain, destChain));
+        return bytes(packetPath(sourceChain, destChain));
     }
 
     /**
@@ -262,30 +210,8 @@ library Host {
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(
-                    ackStatusPrefixPath(sourceChain, destChain),
-                    "/"
-                ),
+                Strings.strConcat(packetPath(sourceChain, destChain), "/"),
                 Strings.uint642str(sequence)
-            );
-    }
-
-    /**
-     * @notice ackStatusPrefixPath returns the store key of under which a ack status
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function ackStatusPrefixPath(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(
-                    "ackStatus/",
-                    packetPath(sourceChain, destChain)
-                ),
-                "/sequences"
             );
     }
 }

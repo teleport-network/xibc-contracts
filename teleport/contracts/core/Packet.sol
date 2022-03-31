@@ -94,13 +94,13 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice sned packet fee to relayer
+     * @notice send packet fee to relayer
      * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
      * @param relayer relayer address
      */
-    function snedPacketFeeToRelayer(
+    function sendPacketFeeToRelayer(
         string calldata sourceChain,
         string calldata destChain,
         uint64 sequence,
@@ -191,11 +191,8 @@ contract Packet is IPacket {
         return
             bytes(
                 Strings.strConcat(
-                    "nextSequenceSend/",
-                    Strings.strConcat(
-                        Strings.strConcat(sourceChain, "/"),
-                        destChain
-                    )
+                    Strings.strConcat(sourceChain, "/"),
+                    destChain
                 )
             );
     }
@@ -214,17 +211,14 @@ contract Packet is IPacket {
         return
             bytes(
                 Strings.strConcat(
-                    "ackStatus/",
                     Strings.strConcat(
                         Strings.strConcat(
-                            Strings.strConcat(
-                                Strings.strConcat(sourceChain, "/"),
-                                destChain
-                            ),
-                            "/"
+                            Strings.strConcat(sourceChain, "/"),
+                            destChain
                         ),
-                        Strings.uint642str(sequence)
-                    )
+                        "/"
+                    ),
+                    Strings.uint642str(sequence)
                 )
             );
     }

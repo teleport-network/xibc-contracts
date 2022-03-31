@@ -516,7 +516,7 @@ contract MockPacket is
             }
         }
 
-        snedPacketFeeToRelayer(
+        sendPacketFeeToRelayer(
             packet.sourceChain,
             packet.destChain,
             packet.sequence,
@@ -525,13 +525,13 @@ contract MockPacket is
     }
 
     /**
-     * @notice sned packet fee to relayer
+     * @notice send packet fee to relayer
      * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
      * @param relayer relayer address
      */
-    function snedPacketFeeToRelayer(
+    function sendPacketFeeToRelayer(
         string memory sourceChain,
         string memory destChain,
         uint64 sequence,
