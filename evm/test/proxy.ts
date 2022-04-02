@@ -42,6 +42,7 @@ describe('Proxy', () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let refundAddressOnTeleport = await accounts[2].getAddress()
+        let feeAmount = 0
         await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
         let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
         expect(allowance.toNumber()).to.eq(1000)
@@ -57,9 +58,20 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refundAddressOnTeleport, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
+
+        let multicallData = await proxy.send(
+            refundAddressOnTeleport,
+            destChainName, // teleport
+            ERC20TransferData,
+            rccTransfer,
+            feeAmount,
+        )
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
         await erc20.approve(transfer.address, rccTransfer.amount)
-        await multiCall.multiCall(multicallData)
+        await multiCall.multiCall(multicallData, Fee)
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 1
         let ERC20TransferPacketData = {
@@ -120,12 +132,20 @@ describe('Proxy', () => {
                         "type": "string"
                     },
                     {
-                        "internalType": "string",
-                        "name": "relayChain",
-                        "type": "string"
+                        "internalType": "uint256",
+                        "name": "feeAmount",
+                        "type": "uint256"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            },
+            [
+                id,
+                rccTransfer.tokenAddress,
+                refundAddressOnTeleport,
+                rccTransfer.receiver,
+                rccTransfer.destChain,
+                "0",
+            ]
         )
         let RccPacketData = {
             srcChain: srcChainName,
@@ -178,8 +198,19 @@ describe('Proxy', () => {
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let multicallData = await proxy.send(refundAddressOnTeleport, destChainName, ERC20TransferData, rccTransfer) // destChainName : teleport
-        await multiCall.multiCall(multicallData, { value: rccTransfer.amount })
+        let feeAmount = 0
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
+        let multicallData = await proxy.send(
+            refundAddressOnTeleport,
+            destChainName,
+            ERC20TransferData,
+            rccTransfer,
+            feeAmount,
+        ) // destChainName : teleport
+        await multiCall.multiCall(multicallData, Fee, { value: rccTransfer.amount })
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 2
         let BaseTransferPacketData = {
@@ -240,12 +271,20 @@ describe('Proxy', () => {
                         "type": "string"
                     },
                     {
-                        "internalType": "string",
-                        "name": "relayChain",
-                        "type": "string"
+                        "internalType": "uint256",
+                        "name": "feeAmount",
+                        "type": "uint256"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            },
+            [
+                id,
+                rccTransfer.tokenAddress,
+                refundAddressOnTeleport,
+                rccTransfer.receiver,
+                rccTransfer.destChain,
+                "0",
+            ]
         )
 
         let RccPacketData = {
@@ -358,12 +397,20 @@ describe('Proxy', () => {
                         "type": "string"
                     },
                     {
-                        "internalType": "string",
-                        "name": "relayChain",
-                        "type": "string"
+                        "internalType": "uint256",
+                        "name": "feeAmount",
+                        "type": "uint256"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            },
+            [
+                id,
+                rccTransfer.tokenAddress,
+                refundAddressOnTeleport,
+                rccTransfer.receiver,
+                rccTransfer.destChain,
+                "0",
+            ]
         )
 
         let RccPacketData = {
@@ -396,11 +443,12 @@ describe('Proxy', () => {
             dataList: [ERC20TransferPacketDataBz, RccPacketDataBz],
         }
         let Erc20Ack = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     [],
-                    "1: onRecvPackt: binding is not exist"
+                    "1: onRecvPackt: binding is not exist",
+                    sender,
                 ]
             ]
         );
@@ -488,12 +536,20 @@ describe('Proxy', () => {
                         "type": "string"
                     },
                     {
-                        "internalType": "string",
-                        "name": "relayChain",
-                        "type": "string"
+                        "internalType": "uint256",
+                        "name": "feeAmount",
+                        "type": "uint256"
                     }
                 ],
-            }, [id, rccTransfer.tokenAddress, refundAddressOnTeleport, rccTransfer.receiver, rccTransfer.destChain, rccTransfer.relayChain]
+            },
+            [
+                id,
+                rccTransfer.tokenAddress,
+                refundAddressOnTeleport,
+                rccTransfer.receiver,
+                rccTransfer.destChain,
+                "0",
+            ]
         )
 
         let RccPacketData = {
@@ -526,11 +582,12 @@ describe('Proxy', () => {
             dataList: [BaseTransferPacketDataBz, RccPacketDataBz],
         }
         let Erc20Ack = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     [],
-                    "1: onRecvPackt: binding is not exist"
+                    "1: onRecvPackt: binding is not exist",
+                    sender
                 ]
             ]
         )
