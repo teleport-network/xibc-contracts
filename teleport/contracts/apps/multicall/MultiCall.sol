@@ -47,7 +47,7 @@ contract MultiCall is IMultiCall {
         uint256 remainingValue = msg.value;
 
         if (fee.tokenAddress == address(0)) {
-            require(msg.value > fee.amount, "insufficient amount");
+            require(msg.value >= fee.amount, "insufficient amount");
             remainingValue = remainingValue - fee.amount;
         }
 
