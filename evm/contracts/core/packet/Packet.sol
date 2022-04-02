@@ -253,6 +253,11 @@ contract Packet is
         bytes calldata proof,
         Height.Data calldata height
     ) external override nonReentrant {
+        require(
+            Strings.equals(packet.destChain, clientManager.getChainName()),
+            "invalid destChain"
+        );
+
         bytes memory packetReceiptKey = Host.packetReceiptKey(
             packet.sourceChain,
             packet.destChain,
@@ -284,38 +289,22 @@ contract Packet is
 
         emit PacketReceived(packet);
 
-        if (Strings.equals(packet.destChain, clientManager.getChainName())) {
-            PacketTypes.Acknowledgement memory ack;
-            try this.executePacket(packet) returns (bytes[] memory results) {
-                ack.results = results;
-            } catch Error(string memory message) {
-                ack.message = message;
-            }
-            ack.relayer = msg.sender.addressToString();
-            bytes memory ackBytes = abi.encode(ack);
-            writeAcknowledgement(
-                packet.sequence,
-                packet.sourceChain,
-                packet.destChain,
-                packet.relayChain,
-                ackBytes
-            );
-            emit AckWritten(packet, ackBytes);
-        } else {
-            require(
-                address(clientManager.getClient(packet.destChain)) !=
-                    address(0),
-                "light client not found!"
-            );
-            commitments[
-                Host.packetCommitmentKey(
-                    packet.sourceChain,
-                    packet.destChain,
-                    packet.sequence
-                )
-            ] = sha256(dataSum);
-            emit PacketSent(packet);
+        PacketTypes.Acknowledgement memory ack;
+        try this.executePacket(packet) returns (bytes[] memory results) {
+            ack.results = results;
+        } catch Error(string memory message) {
+            ack.message = message;
         }
+        ack.relayer = msg.sender.addressToString();
+        bytes memory ackBytes = abi.encode(ack);
+        writeAcknowledgement(
+            packet.sequence,
+            packet.sourceChain,
+            packet.destChain,
+            packet.relayChain,
+            ackBytes
+        );
+        emit AckWritten(packet, ackBytes);
     }
 
     /**
