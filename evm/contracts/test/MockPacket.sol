@@ -32,7 +32,7 @@ contract MockPacket is
     mapping(bytes => uint64) public sequences;
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
-    mapping(bytes => uint8) public ackStatus;
+    mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
@@ -257,69 +257,22 @@ contract MockPacket is
         bytes calldata proof,
         Height.Data calldata height
     ) external override nonReentrant {
-        bytes memory packetReceiptKey = Host.packetReceiptKey(
-            packet.sourceChain,
-            packet.destChain,
-            packet.sequence
-        );
-
-        require(!receipts[packetReceiptKey], "packet has been received");
-
-        bytes memory dataSum;
-        for (uint64 i = 0; i < packet.ports.length; i++) {
-            dataSum = Bytes.concat(
-                dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
-            );
+        PacketTypes.Acknowledgement memory ack;
+        try this.executePacket(packet) returns (bytes[] memory results) {
+            ack.results = results;
+        } catch Error(string memory message) {
+            ack.message = message;
         }
-
-        verifyPacketCommitment(
-            _msgSender(),
+        ack.relayer = msg.sender.addressToString();
+        bytes memory ackBytes = abi.encode(ack);
+        writeAcknowledgement(
             packet.sequence,
             packet.sourceChain,
             packet.destChain,
             packet.relayChain,
-            proof,
-            height,
-            Bytes.fromBytes32(sha256(dataSum))
+            ackBytes
         );
-
-        receipts[packetReceiptKey] = true;
-
-        emit PacketReceived(packet);
-
-        if (Strings.equals(packet.destChain, clientManager.getChainName())) {
-            PacketTypes.Acknowledgement memory ack;
-            try this.executePacket(packet) returns (bytes[] memory results) {
-                ack.results = results;
-            } catch Error(string memory message) {
-                ack.message = message;
-            }
-            ack.relayer = msg.sender.addressToString();
-            bytes memory ackBytes = abi.encode(ack);
-            writeAcknowledgement(
-                packet.sequence,
-                packet.sourceChain,
-                packet.destChain,
-                packet.relayChain,
-                ackBytes
-            );
-            emit AckWritten(packet, ackBytes);
-        } else {
-            require(
-                address(clientManager.getClient(packet.destChain)) !=
-                    address(0),
-                "light client not found!"
-            );
-            commitments[
-                Host.packetCommitmentKey(
-                    packet.sourceChain,
-                    packet.destChain,
-                    packet.sequence
-                )
-            ] = sha256(dataSum);
-            emit PacketSent(packet);
-        }
+        emit AckWritten(packet, ackBytes);
     }
 
     /**
