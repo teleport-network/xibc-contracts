@@ -16,7 +16,12 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUpgradeable {
+contract Packet is
+    Initializable,
+    OwnableUpgradeable,
+    IPacket,
+    ReentrancyGuardUpgradeable
+{
     using Strings for *;
 
     IClientManager public clientManager;
@@ -136,7 +141,11 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
                 packet.destChain,
                 packet.sequence
             )
-        ] = sha256(Bytes.fromBytes32(sha256(packet.dataList[0])));
+        ] = sha256(
+            Bytes.fromBytes32(
+                sha256(Bytes.concat(bytes(packet.ports[0]), packet.dataList[0]))
+            )
+        );
         emit PacketSent(packet);
     }
 
@@ -197,7 +206,11 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 
@@ -235,7 +248,11 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 
@@ -414,7 +431,11 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, ReentrancyGuardUp
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 

@@ -149,7 +149,11 @@ contract MockPacket is
                 packet.destChain,
                 packet.sequence
             )
-        ] = sha256(Bytes.fromBytes32(sha256(packet.dataList[0])));
+        ] = sha256(
+            Bytes.fromBytes32(
+                sha256(Bytes.concat(bytes(packet.ports[0]), packet.dataList[0]))
+            )
+        );
         emit PacketSent(packet);
     }
 
@@ -210,7 +214,11 @@ contract MockPacket is
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 
@@ -235,7 +243,7 @@ contract MockPacket is
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override nonReentrant{
+    ) external override nonReentrant {
         PacketTypes.Acknowledgement memory ack;
         try this.executePacket(packet) returns (bytes[] memory results) {
             ack.results = results;
@@ -372,12 +380,16 @@ contract MockPacket is
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override nonReentrant{
+    ) external override nonReentrant {
         bytes memory dataSum;
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 
