@@ -5,7 +5,7 @@
 ```bash
 git clone https://github.com/celestiaorg/protobuf3-solidity.git
 cd protobuf3-solidity
-make & mov ./bin/protoc-gen-sol ~/go/bin
+make & mv ./bin/protoc-gen-sol ~/go/bin
 
 git clone https://github.com/datachainlab/solidity-protobuf.git
 export SOLPB_DIR={path to solidity-protobuf}

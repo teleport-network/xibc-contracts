@@ -17,6 +17,7 @@ $root.Acknowledgement = (function() {
      * @interface IAcknowledgement
      * @property {Array.<Uint8Array>|null} [results] Acknowledgement results
      * @property {string|null} [message] Acknowledgement message
+     * @property {string|null} [relayer] Acknowledgement relayer
      */
 
     /**
@@ -52,6 +53,14 @@ $root.Acknowledgement = (function() {
     Acknowledgement.prototype.message = "";
 
     /**
+     * Acknowledgement relayer.
+     * @member {string} relayer
+     * @memberof Acknowledgement
+     * @instance
+     */
+    Acknowledgement.prototype.relayer = "";
+
+    /**
      * Creates a new Acknowledgement instance using the specified properties.
      * @function create
      * @memberof Acknowledgement
@@ -80,6 +89,8 @@ $root.Acknowledgement = (function() {
                 writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.results[i]);
         if (message.message != null && Object.hasOwnProperty.call(message, "message"))
             writer.uint32(/* id 2, wireType 2 =*/18).string(message.message);
+        if (message.relayer != null && Object.hasOwnProperty.call(message, "relayer"))
+            writer.uint32(/* id 3, wireType 2 =*/26).string(message.relayer);
         return writer;
     };
 
@@ -121,6 +132,9 @@ $root.Acknowledgement = (function() {
                 break;
             case 2:
                 message.message = reader.string();
+                break;
+            case 3:
+                message.relayer = reader.string();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -167,6 +181,9 @@ $root.Acknowledgement = (function() {
         if (message.message != null && message.hasOwnProperty("message"))
             if (!$util.isString(message.message))
                 return "message: string expected";
+        if (message.relayer != null && message.hasOwnProperty("relayer"))
+            if (!$util.isString(message.relayer))
+                return "relayer: string expected";
         return null;
     };
 
@@ -194,6 +211,8 @@ $root.Acknowledgement = (function() {
         }
         if (object.message != null)
             message.message = String(object.message);
+        if (object.relayer != null)
+            message.relayer = String(object.relayer);
         return message;
     };
 
@@ -212,8 +231,10 @@ $root.Acknowledgement = (function() {
         var object = {};
         if (options.arrays || options.defaults)
             object.results = [];
-        if (options.defaults)
+        if (options.defaults) {
             object.message = "";
+            object.relayer = "";
+        }
         if (message.results && message.results.length) {
             object.results = [];
             for (var j = 0; j < message.results.length; ++j)
@@ -221,6 +242,8 @@ $root.Acknowledgement = (function() {
         }
         if (message.message != null && message.hasOwnProperty("message"))
             object.message = message.message;
+        if (message.relayer != null && message.hasOwnProperty("relayer"))
+            object.relayer = message.relayer;
         return object;
     };
 
