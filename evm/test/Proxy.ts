@@ -99,7 +99,11 @@ describe('Proxy', () => {
                 ]
             ]
         );
-        let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(ERC20TransferPacketDataBz)))
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(ERC20TransferPacketDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1))
         const agentAbi = web3.eth.abi.encodeFunctionCall(
             {
@@ -168,10 +172,14 @@ describe('Proxy', () => {
                 ]
             ]
         );
-        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
+        portBytes = Buffer.from("CONTRACT", "utf-8")
+        packetDataBytes = Buffer.from(web3.utils.hexToBytes(RccPacketDataBz))
+        lengthSum = portBytes.length + packetDataBytes.length
+        sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
 
-        let lengthSum = ERC20TransferPacketDataBzHash.length + RccPacketDataBzHash.length
-        let sum = Buffer.concat([ERC20TransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
+        lengthSum = ERC20TransferPacketDataBzHash.length + RccPacketDataBzHash.length
+        sum = Buffer.concat([ERC20TransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))
@@ -238,7 +246,11 @@ describe('Proxy', () => {
                 ]
             ]
         );
-        let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(BaseTransferPacketDataBz)))
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(BaseTransferPacketDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 2))
         const agentAbi = web3.eth.abi.encodeFunctionCall(
             {
@@ -308,10 +320,14 @@ describe('Proxy', () => {
                 ]
             ]
         );
-        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
+        portBytes = Buffer.from("CONTRACT", "utf-8")
+        packetDataBytes = Buffer.from(web3.utils.hexToBytes(RccPacketDataBz))
+        lengthSum = portBytes.length + packetDataBytes.length
+        sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
 
-        let lengthSum = BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
-        let sum = Buffer.concat([BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
+        lengthSum = BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
+        sum = Buffer.concat([BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))

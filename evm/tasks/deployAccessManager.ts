@@ -74,7 +74,6 @@ task("batchRevokeRole", "batch revoke Role")
     console.log(result)
 })
 
-
 task("roleBytes", "get role bytes")
     .addParam("role", "grant Role")
     .setAction(async (taskArgs, hre) => {

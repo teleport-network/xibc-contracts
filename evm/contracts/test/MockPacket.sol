@@ -161,7 +161,11 @@ contract MockPacket is
                 packet.destChain,
                 packet.sequence
             )
-        ] = sha256(Bytes.fromBytes32(sha256(packet.dataList[0])));
+        ] = sha256(
+            Bytes.fromBytes32(
+                sha256(Bytes.concat(bytes(packet.ports[0]), packet.dataList[0]))
+            )
+        );
         emit PacketSent(packet);
     }
 
@@ -231,7 +235,11 @@ contract MockPacket is
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 
@@ -399,7 +407,11 @@ contract MockPacket is
         for (uint64 i = 0; i < packet.ports.length; i++) {
             dataSum = Bytes.concat(
                 dataSum,
-                Bytes.fromBytes32(sha256(packet.dataList[i]))
+                Bytes.fromBytes32(
+                    sha256(
+                        Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
+                    )
+                )
             );
         }
 

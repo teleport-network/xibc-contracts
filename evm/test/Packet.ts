@@ -77,7 +77,14 @@ describe('Packet', () => {
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
-        expect(commit).to.equal(sha256(sha256(packetDataBz)))
+
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(packetDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+
+        expect(commit).to.equal(sha256(sha256(sum)))
+
         let sequence: BigNumber = BigNumber.from(1)
         let pkt = {
             sequence: sequence,
@@ -152,7 +159,13 @@ describe('Packet', () => {
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(3)
-        expect(commit).to.equal(sha256(sha256(packetDataBz)))
+
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(packetDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+
+        expect(commit).to.equal(sha256(sha256(sum)))
         let sequence: BigNumber = BigNumber.from(2)
         let pkt = {
             sequence: sequence,

@@ -115,7 +115,12 @@ describe('MultiCall', () => {
                 ]
             ]
         );
-        let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(ERC20TransferPacketDataBz)))
+
+        let portBytes = Buffer.from("FT", "utf-8")
+        let packetDataBytes = Buffer.from(web3.utils.hexToBytes(ERC20TransferPacketDataBz))
+        let lengthSum = portBytes.length + packetDataBytes.length
+        let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
 
         let BaseTransferPacketData = {
             srcChain: srcChainName,
@@ -142,7 +147,11 @@ describe('MultiCall', () => {
                 ]
             ]
         );
-        let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(BaseTransferPacketDataBz)))
+        portBytes = Buffer.from("FT", "utf-8")
+        packetDataBytes = Buffer.from(web3.utils.hexToBytes(BaseTransferPacketDataBz))
+        lengthSum = portBytes.length + packetDataBytes.length
+        sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
 
         let RccPacket = {
             srcChain: srcChainName,
@@ -165,9 +174,13 @@ describe('MultiCall', () => {
                 ]
             ]
         );
-        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(RccPacketDataBz)))
-        let lengthSum = ERC20TransferPacketDataBzHash.length + BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
-        let sum = Buffer.concat([ERC20TransferPacketDataBzHash, BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
+        portBytes = Buffer.from("CONTRACT", "utf-8")
+        packetDataBytes = Buffer.from(web3.utils.hexToBytes(RccPacketDataBz))
+        lengthSum = portBytes.length + packetDataBytes.length
+        sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
+        let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
+        lengthSum = ERC20TransferPacketDataBzHash.length + BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
+        sum = Buffer.concat([ERC20TransferPacketDataBzHash, BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
         expect(commitment.toString()).to.eq(sha256(sum))
     })
 

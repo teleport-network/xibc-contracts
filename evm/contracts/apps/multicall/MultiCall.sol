@@ -68,7 +68,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
         }
 
         for (uint64 i = 0; i < multiCallData.functions.length; i++) {
-            require(multiCallData.functions[i] < 2, "invlaid function ID");
+            require(multiCallData.functions[i] < 2, "invalid function ID");
             if (multiCallData.functions[i] == 0) {
                 MultiCallDataTypes.TransferData memory data = abi.decode(
                     multiCallData.data[i],
