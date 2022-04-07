@@ -7,6 +7,7 @@ import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../libraries/app/Transfer.sol";
 import "../../libraries/app/RCC.sol";
+import "../../libraries/core/Packet.sol";
 import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
@@ -28,11 +29,10 @@ contract MultiCall is IMultiCall {
         MultiCallDataTypes.MultiCallData multiCallData
     );
 
-    function multiCall(MultiCallDataTypes.MultiCallData calldata multiCallData)
-        external
-        payable
-        override
-    {
+    function multiCall(
+        MultiCallDataTypes.MultiCallData memory multiCallData,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             multiCallData.functions.length > 0 &&
                 multiCallData.data.length == multiCallData.functions.length,
@@ -46,23 +46,24 @@ contract MultiCall is IMultiCall {
 
         uint256 remainingValue = msg.value;
 
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value >= fee.amount, "insufficient amount");
+            remainingValue = remainingValue - fee.amount;
+        }
+
         for (uint64 i = 0; i < multiCallData.functions.length; i++) {
-            require(multiCallData.functions[i] < 3, "invalid function ID");
+            require(multiCallData.functions[i] < 2, "invalid function ID");
             if (multiCallData.functions[i] == 0) {
-                MultiCallDataTypes.ERC20TransferData memory data = abi.decode(
+                MultiCallDataTypes.TransferData memory data = abi.decode(
                     multiCallData.data[i],
-                    (MultiCallDataTypes.ERC20TransferData)
-                );
-                callTransferERC20(multiCallData.destChain, data);
-            } else if (multiCallData.functions[i] == 1) {
-                MultiCallDataTypes.BaseTransferData memory data = abi.decode(
-                    multiCallData.data[i],
-                    (MultiCallDataTypes.BaseTransferData)
+                    (MultiCallDataTypes.TransferData)
                 );
                 require(data.amount > 0, "invalid amount");
-                require(remainingValue >= data.amount, "invalid value");
-                callTransferBase(multiCallData.destChain, data);
-                remainingValue -= data.amount;
+                if (data.tokenAddress == address(0)) {
+                    require(remainingValue >= data.amount, "invalid value");
+                    remainingValue -= data.amount;
+                }
+                callTransfer(multiCallData.destChain, data);
             } else {
                 MultiCallDataTypes.RCCData memory data = abi.decode(
                     multiCallData.data[i],
@@ -79,32 +80,31 @@ contract MultiCall is IMultiCall {
         emit SendPacket(msg.sender, multiCallData);
     }
 
-    function callTransferERC20(
+    function callTransfer(
         string memory destChain,
-        MultiCallDataTypes.ERC20TransferData memory data
+        MultiCallDataTypes.TransferData memory data
     ) internal {
-        ITransfer(transferContractAddress).transferERC20(
-            TransferDataTypes.ERC20TransferDataMulti({
-                tokenAddress: data.tokenAddress,
-                sender: msg.sender,
-                receiver: data.receiver,
-                amount: data.amount,
-                destChain: destChain
-            })
-        );
-    }
-
-    function callTransferBase(
-        string memory destChain,
-        MultiCallDataTypes.BaseTransferData memory data
-    ) internal {
-        ITransfer(transferContractAddress).transferBase{value: data.amount}(
-            TransferDataTypes.BaseTransferDataMulti({
-                sender: msg.sender,
-                receiver: data.receiver,
-                destChain: destChain
-            })
-        );
+        if (data.tokenAddress == address(0)) {
+            ITransfer(transferContractAddress).transfer{value: data.amount}(
+                TransferDataTypes.TransferDataMulti({
+                    tokenAddress: data.tokenAddress,
+                    sender: msg.sender,
+                    receiver: data.receiver,
+                    amount: data.amount,
+                    destChain: destChain
+                })
+            );
+        } else {
+            ITransfer(transferContractAddress).transfer(
+                TransferDataTypes.TransferDataMulti({
+                    tokenAddress: data.tokenAddress,
+                    sender: msg.sender,
+                    receiver: data.receiver,
+                    amount: data.amount,
+                    destChain: destChain
+                })
+            );
+        }
     }
 
     function callRCC(

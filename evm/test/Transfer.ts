@@ -87,7 +87,12 @@ describe('Transfer', () => {
             relayChain: relayChainName,
         }
 
-        await transfer.sendTransferERC20(transferData)
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
+
+        await transfer.sendTransfer(transferData, Fee)
         let outToken = (await transfer.outTokens(erc20.address, destChainName))
         balances = (await erc20.balanceOf(await accounts[0].getAddress())).toString()
         expect(outToken).to.eq(1)
@@ -96,12 +101,19 @@ describe('Transfer', () => {
 
     it("test transfer Base", async () => {
         let transferData = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
             receiver: (await accounts[1].getAddress()),
+            amount: 10000,
             destChain: destChainName,
             relayChain: "",
         }
-        await transfer.sendTransferBase(
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
+        await transfer.sendTransfer(
             transferData,
+            Fee,
             { value: 10000 }
         )
 
@@ -220,16 +232,16 @@ describe('Transfer', () => {
         const upgradedTransfer = await upgrades.upgradeProxy(transfer.address, mockTransferFactory);
         expect(upgradedTransfer.address).to.eq(transfer.address);
 
-        // Verify that old data can be accessed
+        // verify that old data can be accessed
         let outToken = (await upgradedTransfer.outTokens("0x0000000000000000000000000000000000000000", destChainName))
         expect(outToken.toString()).to.eq("9999")
 
-        // Verify new func in upgradeTransfer 
+        // verify new func in upgradeTransfer 
         await upgradedTransfer.setVersion(1)
         const version = await upgradedTransfer.version();
         expect(1).to.eq(version.toNumber())
 
-        // The old method of verifying that has been changed
+        // the old method of verifying that has been changed
         let account = (await accounts[2].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")

@@ -5,23 +5,18 @@ pragma experimental ABIEncoderV2;
 
 import "./IModule.sol";
 import "../libraries/app/Transfer.sol";
+import "../libraries/packet/Packet.sol";
 
 interface ITransfer is IModule {
-    function sendTransferERC20(
-        TransferDataTypes.ERC20TransferData calldata transferData
-    ) external;
-
-    function sendTransferBase(
-        TransferDataTypes.BaseTransferData calldata transferData
+    function sendTransfer(
+        TransferDataTypes.TransferData calldata transferData,
+        PacketTypes.Fee calldata fee
     ) external payable;
 
-    function transferERC20(
-        TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external returns (bytes memory);
-
-    function transferBase(
-        TransferDataTypes.BaseTransferDataMulti calldata transferData
-    ) external payable returns (bytes memory);
+    function transfer(TransferDataTypes.TransferDataMulti calldata transferData)
+        external
+        payable
+        returns (bytes memory);
 
     function boundTokens(uint256) external pure returns (address);
 

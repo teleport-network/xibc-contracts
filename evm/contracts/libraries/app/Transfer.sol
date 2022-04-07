@@ -11,34 +11,22 @@ library TransferDataTypes {
         bool bound;
     }
 
-    struct ERC20TransferData {
-        address tokenAddress;
+    struct TransferData {
+        address tokenAddress; // zero address if base token
         string receiver;
         uint256 amount;
         string destChain;
         string relayChain;
     }
 
-    struct BaseTransferData {
-        string receiver;
-        string destChain;
-        string relayChain;
-    }
-
-    struct ERC20TransferDataMulti {
-        address tokenAddress;
+    struct TransferDataMulti {
+        address tokenAddress; // zero address if base token
         address sender;
         string receiver;
         uint256 amount;
         string destChain;
     }
 
-    struct BaseTransferDataMulti {
-        address sender;
-        string receiver;
-        string destChain;
-    }
-    
     struct TransferPacketData {
         string srcChain;
         string destChain;

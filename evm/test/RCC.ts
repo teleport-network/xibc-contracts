@@ -66,7 +66,11 @@ describe('RCC', () => {
                 ]
             ]
         );
-        await rcc.sendRemoteContractCall(rccData)
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
+        await rcc.sendRemoteContractCall(rccData, Fee)
         let path = "commitments/" + srcChainName + "/" + rccData.destChain + "/sequences/" + 1
         let commit = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         let seq = await mockPacket.getNextSequenceSend(srcChainName, destChainName)

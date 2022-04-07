@@ -4,11 +4,14 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "../libraries/core/Result.sol";
+import "../libraries/core/Packet.sol";
 import "../libraries/app/RCC.sol";
 
 interface IRCC {
-    function sendRemoteContractCall(RCCDataTypes.RCCData calldata rccData)
-        external;
+    function sendRemoteContractCall(
+        RCCDataTypes.RCCData calldata rccData,
+        PacketTypes.Fee calldata fee
+    ) external payable;
 
     function remoteContractCall(RCCDataTypes.RCCDataMulti calldata rccData)
         external;

@@ -33,6 +33,7 @@ describe('Packet', () => {
     })
 
     it("send transfer ERC20 packet and receive ack", async () => {
+        let account = (await accounts[0].getAddress()).toString()
         let transferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
@@ -41,6 +42,10 @@ describe('Packet', () => {
             relayChain: relayChainName,
         }
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
         let seqU64 = 1
         let packetData = {
             srcChain: srcChainName,
@@ -68,7 +73,7 @@ describe('Packet', () => {
             ]
         );
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
-        await transfer.sendTransferERC20(transferData)
+        await transfer.sendTransfer(transferData, Fee)
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(2)
@@ -90,11 +95,12 @@ describe('Packet', () => {
             dataList: [packetDataBz],
         }
         let ackByte = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     ["0x01"],
-                    ""
+                    "",
+                    account.toLowerCase(),
                 ]
             ]
         );
@@ -109,12 +115,19 @@ describe('Packet', () => {
     })
 
     it("send transfer Base packet and receive ack", async () => {
+        let account = (await accounts[0].getAddress()).toString()
         let transferData = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
             receiver: "receiver",
+            amount: 1,
             destChain: destChainName,
             relayChain: relayChainName,
         }
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
         let seqU64 = 2
         let packetData = {
             srcChain: srcChainName,
@@ -142,7 +155,7 @@ describe('Packet', () => {
             ]
         );
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
-        await transfer.sendTransferBase(transferData, { value: 1 })
+        await transfer.sendTransfer(transferData, Fee, { value: 1 })
         let commit = await packet.commitments(Buffer.from(path, "utf-8"))
         let seq = await packet.getNextSequenceSend(srcChainName, destChainName)
         expect(seq).to.equal(3)
@@ -163,11 +176,12 @@ describe('Packet', () => {
             dataList: [packetDataBz],
         }
         let ackByte = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     ["0x01"],
-                    ""
+                    "",
+                    account.toLowerCase(),
                 ]
             ]
         );
@@ -182,6 +196,7 @@ describe('Packet', () => {
     })
 
     it("receive packet and write ack", async () => {
+        let account = (await accounts[0].getAddress()).toString()
         let amount = web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001")
         let seqU64 = 1
         let packetData = {
@@ -210,11 +225,12 @@ describe('Packet', () => {
             ]
         );
         let ackByte = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     ["0x01"],
-                    ""
+                    "",
+                    account.toLowerCase(),
                 ]
             ]
         );
@@ -234,8 +250,8 @@ describe('Packet', () => {
         }
         await packet.recvPacket(pkt, proof, height)
         let ackPath = "acks/" + destChainName + "/" + srcChainName + "/sequences/" + 1
-        let receiptPath = "receipts/" + destChainName + "/" + srcChainName + "/sequences/" + 1
-        let maxAckSeqPath = "maxAckSeq/" + destChainName + "/" + srcChainName
+        let receiptPath = destChainName + "/" + srcChainName + "/" + 1
+        let maxAckSeqPath = destChainName + "/" + srcChainName
         let ackCommit = await packet.commitments(Buffer.from(ackPath, "utf-8"))
         expect(ackCommit).to.equal(sha256(ackByte))
         expect(await packet.receipts(Buffer.from(receiptPath, "utf-8"))).to.equal(true)

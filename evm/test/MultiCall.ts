@@ -48,10 +48,11 @@ describe('MultiCall', () => {
         }
         let ERC20TransferDataAbi = utils.defaultAbiCoder.encode(["tuple(address,string,uint256)"], [[ERC20TransferData.tokenAddress, ERC20TransferData.receiver, ERC20TransferData.amount]]);
         let BaseTransferData = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
             receiver: (await accounts[1].getAddress()).toString().toLocaleLowerCase(),
             amount: 1,
         }
-        let BaseTransferDataAbi = utils.defaultAbiCoder.encode(["tuple(string,uint256)"], [[BaseTransferData.receiver, BaseTransferData.amount]]);
+        let BaseTransferDataAbi = utils.defaultAbiCoder.encode(["tuple(address,string,uint256)"], [[BaseTransferData.tokenAddress, BaseTransferData.receiver, BaseTransferData.amount]]);
         let dataByte = Buffer.from("095ea7b3000000000000000000000000f5059a5d33d5853360d16c683c16e67980206f360000000000000000000000000000000000000000000000000000000000000001", "hex")
         let RCCData = {
             contractAddress: erc20.address.toString().toLocaleLowerCase(),
@@ -66,10 +67,18 @@ describe('MultiCall', () => {
         let MultiCallData = {
             destChain: chainName,
             relayChain: "",
-            functions: [BigNumber.from(0), BigNumber.from(1), BigNumber.from(2)],
+            functions: [BigNumber.from(0), BigNumber.from(0), BigNumber.from(1)],
             data: [ERC20TransferDataAbi, BaseTransferDataAbi, RCCDataAbi],
         }
-        await multiCall.multiCall(MultiCallData, { value: BaseTransferData.amount })
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
+        await multiCall.multiCall(
+            MultiCallData,
+            Fee,
+            { value: BaseTransferData.amount }
+        )
         balances = (await erc20.balanceOf(account)).toString()
         expect(balances).to.eq("999")
         let outToken = (await mockTransfer.outTokens("0x0000000000000000000000000000000000000000", chainName))
@@ -252,18 +261,19 @@ describe('MultiCall', () => {
         expect(balances).to.eq("999")
         let outToken = (await mockTransfer.outTokens("0x0000000000000000000000000000000000000000", chainName))
         expect(outToken.toString()).to.eq("1")
-        let Erc20Ack = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+        let ERC20Ack = utils.defaultAbiCoder.encode(
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     [],
-                    "1: onRecvPackt: binding is not exist"
+                    "1: onRecvPackt: binding is not exist",
+                    account.toLocaleLowerCase()
                 ]
             ]
         );
         let key = "acks/" + muticallPacket.sourceChain + "/" + muticallPacket.destChain + "/sequences/" + muticallPacket.sequence
         let ackCommit = await mockPacket.commitments(Buffer.from(key, "utf-8"))
-        expect(ackCommit).to.equal(sha256(Erc20Ack))
+        expect(ackCommit).to.equal(sha256(ERC20Ack))
     })
 
     it("onRecvPacket_vv", async () => {
@@ -353,15 +363,17 @@ describe('MultiCall', () => {
         let Data = {
             results: [index1, index2],
             message: "",
+            relayer: account.toLocaleLowerCase(),
         }
         let key = "acks/" + muticallPacket.sourceChain + "/" + muticallPacket.destChain + "/sequences/" + muticallPacket.sequence
         let ackCommit = await mockPacket.commitments(Buffer.from(key, "utf-8"))
         let Ack = utils.defaultAbiCoder.encode(
-            ["tuple(bytes[],string)"],
+            ["tuple(bytes[],string,string)"],
             [
                 [
                     Data.results,
-                    Data.message
+                    Data.message,
+                    Data.relayer,
                 ]
             ]
         );

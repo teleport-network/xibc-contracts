@@ -110,252 +110,252 @@ contract MockTransfer is
         bindingTraces[key] = tokenAddress;
     }
 
-    function sendTransferERC20(
-        TransferDataTypes.ERC20TransferData calldata transferData
-    ) external override nonReentrant {
+    function sendTransfer(
+        TransferDataTypes.TransferData memory transferData,
+        PacketTypes.Fee memory fee
+    ) public payable override nonReentrant {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
             "sourceChain can't equal to destChain"
         );
 
-        string memory oriToken;
+        uint64 sequence = packet.getNextSequenceSend(
+            sourceChain,
+            transferData.destChain
+        );
 
-        // if is crossed chain token
-        if (bindings[transferData.tokenAddress].bound) {
-            // back to origin
-            require(
-                bindings[transferData.tokenAddress].amount >=
-                    transferData.amount,
-                "insufficient liquidity"
-            );
-
-            require(
-                _burn(
-                    transferData.tokenAddress,
-                    msg.sender,
-                    transferData.amount
-                ),
-                "burn token failed"
-            );
-
-            bindings[transferData.tokenAddress].amount -= transferData.amount;
-
-            oriToken = bindings[transferData.tokenAddress].oriToken;
-        } else {
-            // outgoing
-            require(
-                transferData.tokenAddress != address(0),
-                "can't be zero address"
-            );
-
-            require(
-                IERC20(transferData.tokenAddress).transferFrom(
-                    msg.sender,
-                    address(this),
-                    transferData.amount
-                ),
-                "lock failed, unsufficient allowance"
-            );
-
-            outTokens[transferData.tokenAddress][
-                transferData.destChain
-            ] += transferData.amount;
-
-            oriToken = "";
-        }
-        // send packet
         string[] memory ports = new string[](1);
         bytes[] memory dataList = new bytes[](1);
         ports[0] = PORT;
 
-        dataList[0] = abi.encode(
-            TransferDataTypes.TransferPacketData({
-                srcChain: sourceChain,
-                destChain: transferData.destChain,
-                sequence: packet.getNextSequenceSend(
-                    sourceChain,
-                    transferData.destChain
-                ),
-                sender: msg.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: transferData.amount.toBytes(),
-                token: transferData.tokenAddress.addressToString(),
-                oriToken: oriToken
-            })
-        );
+        if (transferData.tokenAddress == address(0)) {
+            // transfer base token
 
-        PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
-            sequence: packet.getNextSequenceSend(
-                sourceChain,
-                transferData.destChain
-            ),
-            sourceChain: sourceChain,
-            destChain: transferData.destChain,
-            relayChain: transferData.relayChain,
-            ports: ports,
-            dataList: dataList
-        });
-        packet.sendPacket(crossPacket);
-    }
+            outTokens[address(0)][transferData.destChain] += transferData
+                .amount;
 
-    function transferERC20(
-        TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    )
-        external
-        override
-        nonReentrant
-        onlyAuthorizee(MULTISEND_ROLE)
-        returns (bytes memory)
-    {
-        string memory sourceChain = clientManager.getChainName();
-        require(
-            !sourceChain.equals(transferData.destChain),
-            "sourceChain can't equal to destChain"
-        );
-
-        string memory oriToken;
-
-        // if is crossed chain token
-        if (bindings[transferData.tokenAddress].bound) {
-            // back to origin
-            require(
-                bindings[transferData.tokenAddress].amount >=
-                    transferData.amount,
-                "insufficient liquidity"
-            );
-
-            require(
-                _burn(
-                    transferData.tokenAddress,
-                    transferData.sender,
-                    transferData.amount
-                ),
-                "burn token failed"
-            );
-
-            bindings[transferData.tokenAddress].amount -= transferData.amount;
-            oriToken = bindings[transferData.tokenAddress].oriToken;
-        } else {
-            // outgoing
-            require(
-                transferData.tokenAddress != address(0),
-                "can't be zero address"
-            );
-
-            require(
-                IERC20(transferData.tokenAddress).transferFrom(
-                    transferData.sender,
-                    address(this),
-                    transferData.amount
-                ),
-                "lock failed, unsufficient allowance"
-            );
-
-            outTokens[transferData.tokenAddress][
-                transferData.destChain
-            ] += transferData.amount;
-            oriToken = "";
-        }
-
-        return
-            abi.encode(
+            // send packet
+            dataList[0] = abi.encode(
                 TransferDataTypes.TransferPacketData({
                     srcChain: sourceChain,
                     destChain: transferData.destChain,
-                    sequence: packet.getNextSequenceSend(
-                        sourceChain,
-                        transferData.destChain
+                    sequence: sequence,
+                    sender: msg.sender.addressToString(),
+                    receiver: transferData.receiver,
+                    amount: transferData.amount.toBytes(),
+                    token: address(0).addressToString(),
+                    oriToken: ""
+                })
+            );
+            PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
+                sequence: sequence,
+                sourceChain: sourceChain,
+                destChain: transferData.destChain,
+                relayChain: transferData.relayChain,
+                ports: ports,
+                dataList: dataList
+            });
+
+            if (fee.tokenAddress == address(0)) {
+                require(
+                    transferData.amount > 0 &&
+                        msg.value == transferData.amount + fee.amount,
+                    "invalid value"
+                );
+                packet.sendPacket{value: fee.amount}(crossPacket, fee);
+            } else {
+                require(
+                    transferData.amount > 0 && msg.value == transferData.amount,
+                    "invalid value"
+                );
+                packet.sendPacket(crossPacket, fee);
+            }
+        } else {
+            // transfer ERC20 token
+
+            string memory oriToken;
+            // if is crossed chain token
+            if (bindings[transferData.tokenAddress].bound) {
+                // back to origin
+                require(
+                    bindings[transferData.tokenAddress].amount >=
+                        transferData.amount,
+                    "insufficient liquidity"
+                );
+
+                require(
+                    _burn(
+                        transferData.tokenAddress,
+                        msg.sender,
+                        transferData.amount
                     ),
-                    sender: transferData.sender.addressToString(),
+                    "burn token failed"
+                );
+
+                bindings[transferData.tokenAddress].amount -= transferData
+                    .amount;
+
+                oriToken = bindings[transferData.tokenAddress].oriToken;
+            } else {
+                // outgoing
+                require(
+                    transferData.tokenAddress != address(0),
+                    "can't be zero address"
+                );
+
+                require(
+                    IERC20(transferData.tokenAddress).transferFrom(
+                        msg.sender,
+                        address(this),
+                        transferData.amount
+                    ),
+                    "lock failed, unsufficient allowance"
+                );
+
+                outTokens[transferData.tokenAddress][
+                    transferData.destChain
+                ] += transferData.amount;
+
+                oriToken = "";
+            }
+
+            // send packet
+            dataList[0] = abi.encode(
+                TransferDataTypes.TransferPacketData({
+                    srcChain: sourceChain,
+                    destChain: transferData.destChain,
+                    sequence: sequence,
+                    sender: msg.sender.addressToString(),
                     receiver: transferData.receiver,
                     amount: transferData.amount.toBytes(),
                     token: transferData.tokenAddress.addressToString(),
                     oriToken: oriToken
                 })
             );
-    }
 
-    function sendTransferBase(
-        TransferDataTypes.BaseTransferData calldata transferData
-    ) external payable override {
-        string memory sourceChain = clientManager.getChainName();
-        require(
-            !sourceChain.equals(transferData.destChain),
-            "sourceChain can't be equal to destChain"
-        );
-
-        require(msg.value > 0, "value must be greater than 0");
-
-        outTokens[address(0)][transferData.destChain] += msg.value;
-        // send packet
-        string[] memory ports = new string[](1);
-        bytes[] memory dataList = new bytes[](1);
-        ports[0] = PORT;
-        dataList[0] = abi.encode(
-            TransferDataTypes.TransferPacketData({
-                srcChain: sourceChain,
+            PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
+                sequence: sequence,
+                sourceChain: sourceChain,
                 destChain: transferData.destChain,
-                sequence: packet.getNextSequenceSend(
-                    sourceChain,
-                    transferData.destChain
-                ),
-                sender: msg.sender.addressToString(),
-                receiver: transferData.receiver,
-                amount: msg.value.toBytes(),
-                token: address(0).addressToString(),
-                oriToken: ""
-            })
-        );
-        PacketTypes.Packet memory crossPacket = PacketTypes.Packet({
-            sequence: packet.getNextSequenceSend(
-                sourceChain,
-                transferData.destChain
-            ),
-            sourceChain: sourceChain,
-            destChain: transferData.destChain,
-            relayChain: transferData.relayChain,
-            ports: ports,
-            dataList: dataList
-        });
-        packet.sendPacket(crossPacket);
+                relayChain: transferData.relayChain,
+                ports: ports,
+                dataList: dataList
+            });
+
+            if (fee.tokenAddress == address(0)) {
+                require(msg.value == fee.amount, "invalid value");
+                packet.sendPacket{value: fee.amount}(crossPacket, fee);
+            } else {
+                require(msg.value == 0, "invalid value");
+                packet.sendPacket(crossPacket, fee);
+            }
+        }
     }
 
-    function transferBase(
-        TransferDataTypes.BaseTransferDataMulti calldata transferData
-    )
+    function transfer(TransferDataTypes.TransferDataMulti calldata transferData)
         external
         payable
         override
         onlyAuthorizee(MULTISEND_ROLE)
+        nonReentrant
         returns (bytes memory)
     {
         string memory sourceChain = clientManager.getChainName();
         require(
             !sourceChain.equals(transferData.destChain),
-            "sourceChain can't be equal to destChain"
+            "sourceChain can't equal to destChain"
         );
 
-        require(msg.value > 0, "value must be greater than 0");
+        uint64 sequence = packet.getNextSequenceSend(
+            sourceChain,
+            transferData.destChain
+        );
 
-        outTokens[address(0)][transferData.destChain] += msg.value;
+        if (transferData.tokenAddress == address(0)) {
+            // transfer base token
 
-        return
-            abi.encode(
-                TransferDataTypes.TransferPacketData({
-                    srcChain: sourceChain,
-                    destChain: transferData.destChain,
-                    sequence: packet.getNextSequenceSend(
-                        sourceChain,
-                        transferData.destChain
+            require(transferData.amount == msg.value, "invalid value");
+            outTokens[address(0)][transferData.destChain] += transferData
+                .amount;
+
+            return
+                abi.encode(
+                    TransferDataTypes.TransferPacketData({
+                        srcChain: sourceChain,
+                        destChain: transferData.destChain,
+                        sequence: sequence,
+                        sender: transferData.sender.addressToString(),
+                        receiver: transferData.receiver,
+                        amount: transferData.amount.toBytes(),
+                        token: address(0).addressToString(),
+                        oriToken: ""
+                    })
+                );
+        } else {
+            // transfer ERC20 token
+
+            require(msg.value == 0, "invalid value");
+
+            string memory oriToken;
+            // if is crossed chain token
+            if (bindings[transferData.tokenAddress].bound) {
+                // back to origin
+                require(
+                    bindings[transferData.tokenAddress].amount >=
+                        transferData.amount,
+                    "insufficient liquidity"
+                );
+
+                require(
+                    _burn(
+                        transferData.tokenAddress,
+                        transferData.sender,
+                        transferData.amount
                     ),
-                    sender: transferData.sender.addressToString(),
-                    receiver: transferData.receiver,
-                    amount: msg.value.toBytes(),
-                    token: address(0).addressToString(),
-                    oriToken: ""
-                })
-            );
+                    "burn token failed"
+                );
+
+                bindings[transferData.tokenAddress].amount -= transferData
+                    .amount;
+
+                oriToken = bindings[transferData.tokenAddress].oriToken;
+            } else {
+                // outgoing
+                require(
+                    transferData.tokenAddress != address(0),
+                    "can't be zero address"
+                );
+
+                require(
+                    IERC20(transferData.tokenAddress).transferFrom(
+                        transferData.sender,
+                        address(this),
+                        transferData.amount
+                    ),
+                    "lock failed, unsufficient allowance"
+                );
+
+                outTokens[transferData.tokenAddress][
+                    transferData.destChain
+                ] += transferData.amount;
+                oriToken = "";
+            }
+
+            return
+                abi.encode(
+                    TransferDataTypes.TransferPacketData({
+                        srcChain: sourceChain,
+                        destChain: transferData.destChain,
+                        sequence: sequence,
+                        sender: transferData.sender.addressToString(),
+                        receiver: transferData.receiver,
+                        amount: transferData.amount.toBytes(),
+                        token: transferData.tokenAddress.addressToString(),
+                        oriToken: oriToken
+                    })
+                );
+        }
     }
 
     function onRecvPacket(bytes calldata data)
@@ -523,11 +523,11 @@ contract MockTransfer is
     }
 
     // ===========================================================================
-    function NewAcknowledgement(bool success, string memory errMsg)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function NewAcknowledgement(
+        bool success,
+        string memory errMsg,
+        string memory relayer
+    ) public pure returns (bytes memory) {
         bytes[] memory results = new bytes[](1);
         results[0] = hex"01";
 
@@ -541,14 +541,16 @@ contract MockTransfer is
             abi.encode(
                 PacketTypes.Acknowledgement({
                     results: data.results,
-                    message: data.message
+                    message: data.message,
+                    relayer: relayer
                 })
             );
     }
 
     function NewAcknowledgementTest(
         bytes[] memory results,
-        string memory message
+        string memory message,
+        string memory relayer
     ) public pure returns (bytes memory) {
         PacketTypes.Acknowledgement memory data;
         data.results = results;
@@ -558,7 +560,8 @@ contract MockTransfer is
             abi.encode(
                 PacketTypes.Acknowledgement({
                     results: data.results,
-                    message: data.message
+                    message: data.message,
+                    relayer: relayer
                 })
             );
     }

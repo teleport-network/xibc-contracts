@@ -5,23 +5,17 @@ pragma experimental ABIEncoderV2;
 
 import "../libraries/app/Transfer.sol";
 import "../libraries/core/Result.sol";
+import "../libraries/core/Packet.sol";
 
 interface ITransfer {
-    function sendTransferERC20(
-        TransferDataTypes.ERC20TransferData calldata transferData
-    ) external;
-
-    function sendTransferBase(
-        TransferDataTypes.BaseTransferData calldata transferData
+    function sendTransfer(
+        TransferDataTypes.TransferData calldata transferData,
+        PacketTypes.Fee calldata fee
     ) external payable;
 
-    function transferERC20(
-        TransferDataTypes.ERC20TransferDataMulti calldata transferData
-    ) external;
-
-    function transferBase(
-        TransferDataTypes.BaseTransferDataMulti calldata transferData
-    ) external payable;
+    function transfer(TransferDataTypes.TransferDataMulti calldata transferData)
+        external
+        payable;
 
     function onRecvPacket(TransferDataTypes.PacketData calldata packet)
         external

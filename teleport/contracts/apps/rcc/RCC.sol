@@ -4,11 +4,13 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "../../libraries/core/Result.sol";
+import "../../libraries/core/Packet.sol";
 import "../../libraries/app/RCC.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IRCC.sol";
 import "../../interfaces/IPacket.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract RCC is IRCC, ReentrancyGuardUpgradeable {
@@ -57,20 +59,48 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
         _;
     }
 
-    function sendRemoteContractCall(RCCDataTypes.RCCData calldata rccData)
-        external
-        override
-    {
+    function sendRemoteContractCall(
+        RCCDataTypes.RCCData memory rccData,
+        PacketTypes.Fee memory fee
+    ) public payable override {
         require(
             !nativeChainName.equals(rccData.destChain),
             "sourceChain can't equal to destChain"
         );
 
-        // TODO: validate rcc data
         uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             nativeChainName,
             rccData.destChain
         );
+
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value == fee.amount, "invalid value");
+            // send fee to packet
+            IPacket(packetContractAddress).setPacketFee{value: fee.amount}(
+                nativeChainName,
+                rccData.destChain,
+                sequence,
+                fee
+            );
+        } else {
+            require(msg.value == 0, "invalid value");
+            // send fee to packet
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    packetContractAddress,
+                    fee.amount
+                ),
+                "lock failed, unsufficient allowance"
+            );
+            IPacket(packetContractAddress).setPacketFee(
+                nativeChainName,
+                rccData.destChain,
+                sequence,
+                fee
+            );
+        }
+
         emit SendPacket(
             sendPacket({
                 srcChain: nativeChainName,

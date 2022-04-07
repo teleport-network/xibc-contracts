@@ -10,14 +10,22 @@ interface IPacket {
     /**
      * @notice send cross-chain data packets
      * @param packet xibc packet
+     * @param fee packet fee
      */
-    function sendPacket(PacketTypes.Packet calldata packet) external;
+    function sendPacket(
+        PacketTypes.Packet calldata packet,
+        PacketTypes.Fee calldata fee
+    ) external payable;
 
     /**
      * @notice send cross-chain data packets
      * @param packet xibc packet
+     * @param fee packet fee
      */
-    function sendMultiPacket(PacketTypes.Packet calldata packet) external;
+    function sendMultiPacket(
+        PacketTypes.Packet calldata packet,
+        PacketTypes.Fee calldata fee
+    ) external payable;
 
     /**
      * @notice receive cross-chain data packets from the sending chain
