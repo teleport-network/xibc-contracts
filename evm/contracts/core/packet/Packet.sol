@@ -15,12 +15,14 @@ import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract Packet is
     Initializable,
     OwnableUpgradeable,
     IPacket,
+    PausableUpgradeable,
     ReentrancyGuardUpgradeable
 {
     using Strings for *;
@@ -37,6 +39,7 @@ contract Packet is
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /**
      * @notice initialize
@@ -106,7 +109,7 @@ contract Packet is
     function sendPacket(
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
-    ) public payable override {
+    ) public payable override whenNotPaused {
         require(
             packet.dataList.length == 1 && packet.ports.length == 1,
             "should be one packet data"
@@ -173,7 +176,7 @@ contract Packet is
     function sendMultiPacket(
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
-    ) public payable override onlyAuthorizee(MULTISEND_ROLE) {
+    ) public payable override onlyAuthorizee(MULTISEND_ROLE) whenNotPaused {
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
             packet.dataList.length == packet.ports.length &&
@@ -260,7 +263,7 @@ contract Packet is
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         require(
             Strings.equals(packet.destChain, clientManager.getChainName()),
             "invalid destChain"
@@ -326,6 +329,7 @@ contract Packet is
     function executePacket(PacketTypes.Packet calldata packet)
         external
         onlySelf
+        whenNotPaused
         returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](packet.ports.length);
@@ -434,7 +438,7 @@ contract Packet is
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         require(
             Strings.equals(packet.sourceChain, clientManager.getChainName()),
             "invalid packet"
@@ -654,7 +658,7 @@ contract Packet is
         string memory destChain,
         uint64 sequence,
         uint256 amount
-    ) public payable {
+    ) public payable whenNotPaused {
         bytes memory key = Host.ackStatusKey(sourceChain, destChain, sequence);
 
         require(ackStatus[key] == uint8(0), "invalid packet status");
@@ -676,5 +680,27 @@ contract Packet is
         }
 
         packetFees[key].amount += amount;
+    }
+
+    /**
+     * @dev Pauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function pause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function unpause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _unpause();
     }
 }

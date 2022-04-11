@@ -19,6 +19,7 @@ contract AccessManager is AccessControlUpgradeable {
 
     // packet
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     // transfer
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
@@ -40,6 +41,7 @@ contract AccessManager is AccessControlUpgradeable {
 
         // packet
         _setupRole(MULTISEND_ROLE, _multiSignWallet);
+        _setupRole(PAUSER_ROLE, _multiSignWallet);
 
         // transfer
         _setupRole(BIND_TOKEN_ROLE, _multiSignWallet);
