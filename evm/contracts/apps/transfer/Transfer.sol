@@ -158,16 +158,7 @@ contract Transfer is
         onlyAuthorizee(BIND_TOKEN_ROLE)
     {
         require(limits[tokenAddress].enable, "not enable");
-
-        limits[tokenAddress] = TransferDataTypes.TimeBasedSupplyLimit({
-            enable: false,
-            timePeriod: 0,
-            timeBasedLimit: 0,
-            maxAmount: 0,
-            minAmount: 0,
-            previousTime: 0,
-            currentSupply: 0
-        });
+        delete limits[tokenAddress];
     }
 
     function sendTransfer(
