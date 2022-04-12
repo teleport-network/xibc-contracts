@@ -485,10 +485,7 @@ contract Transfer is
         tokenAddress = packetData.oriToken.parseAddr();
         if (tokenAddress != address(0)) {
             // ERC20 token back to origin
-            if (
-                packetData.amount.toUint256() >
-                outTokens[tokenAddress][packetData.srcChain]
-            ) {
+            if (amount > outTokens[tokenAddress][packetData.srcChain]) {
                 return
                     _newAcknowledgement(
                         false,
