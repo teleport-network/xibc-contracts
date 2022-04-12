@@ -165,10 +165,10 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @notice unable time based supply limit
+     * @notice disable time based supply limit
      * @param tokenAddress token address
      */
-    function unableTimeBasedSupplyLimit(address tokenAddress)
+    function disableTimeBasedSupplyLimit(address tokenAddress)
         external
         onlyXIBCModuleAggregate
     {

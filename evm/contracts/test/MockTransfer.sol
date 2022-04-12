@@ -113,6 +113,62 @@ contract MockTransfer is
         bindingTraces[key] = tokenAddress;
     }
 
+    /**
+     * @notice enable time based supply limit
+     * @param tokenAddress token address
+     * @param timePeriod calculation time period
+     * @param timeBasedLimit time based limit
+     * @param maxAmount max amount single transfer
+     * @param minAmount min amount single transfer
+     */
+    function enableTimeBasedSupplyLimit(
+        address tokenAddress,
+        uint256 timePeriod,
+        uint256 timeBasedLimit,
+        uint256 maxAmount,
+        uint256 minAmount
+    ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
+        require(!limits[tokenAddress].enable, "already enable");
+        require(
+            timePeriod > 0 &&
+                minAmount > 0 &&
+                maxAmount > minAmount &&
+                timeBasedLimit > maxAmount,
+            "invalid limit"
+        );
+
+        limits[tokenAddress] = TransferDataTypes.TimeBasedSupplyLimit({
+            enable: true,
+            timePeriod: timePeriod,
+            timeBasedLimit: timeBasedLimit,
+            maxAmount: maxAmount,
+            minAmount: minAmount,
+            previousTime: block.timestamp,
+            currentSupply: 0
+        });
+    }
+
+    /**
+     * @notice disable time based supply limit
+     * @param tokenAddress token address
+     */
+    function disableTimeBasedSupplyLimit(address tokenAddress)
+        external
+        onlyAuthorizee(BIND_TOKEN_ROLE)
+    {
+        require(limits[tokenAddress].enable, "not enable");
+
+        limits[tokenAddress] = TransferDataTypes.TimeBasedSupplyLimit({
+            enable: false,
+            timePeriod: 0,
+            timeBasedLimit: 0,
+            maxAmount: 0,
+            minAmount: 0,
+            previousTime: 0,
+            currentSupply: 0
+        });
+    }
+
     function sendTransfer(
         TransferDataTypes.TransferData memory transferData,
         PacketTypes.Fee memory fee
