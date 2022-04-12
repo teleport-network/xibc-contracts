@@ -28,29 +28,24 @@ contract Agent is ReentrancyGuardUpgradeable {
         uint256 amount;
     }
 
-    mapping(string => AgentData) public agentData; // map[srcChain/destChain/sequence]AgentData
+    mapping(string => AgentData) public agentData; // map[destChain/sequence]AgentData
 
-    address public constant packetContractAddress =
-        address(0x0000000000000000000000000000000020000001);
-    address public constant transferContractAddress =
-        address(0x0000000000000000000000000000000030000001);
-    address public constant rccContractAddress =
-        address(0x0000000000000000000000000000000030000002);
+    IPacket packetContract =
+        IPacket(address(0x0000000000000000000000000000000020000001));
+    ITransfer transferContract =
+        ITransfer(address(0x0000000000000000000000000000000030000001));
+    IRCC rccContract =
+        IRCC(address(0x0000000000000000000000000000000030000002));
 
     modifier onlyXIBCModuleRCC() {
         require(
-            msg.sender == rccContractAddress,
+            msg.sender == address(rccContract),
             "caller must be XIBC RCC module"
         );
         _;
     }
 
-    event SendEvent(
-        bytes id,
-        string srcChain,
-        string destChain,
-        uint256 sequence
-    );
+    event SendEvent(bytes id, string destChain, uint256 sequence);
 
     function send(
         bytes memory id,
@@ -60,21 +55,15 @@ contract Agent is ReentrancyGuardUpgradeable {
         string memory destChain,
         uint256 feeAmount
     ) public nonReentrant onlyXIBCModuleRCC returns (bool) {
-        (
-            uint256 amount,
-            string memory srcChain
-        ) = checkPacketSyncAndGetAmountSrcChain();
+        uint256 amount = checkPacketSyncAndGetAmountSrcChain();
 
         uint256 value = amount;
         if (tokenAddress != address(0)) {
             value = 0;
-            IERC20(tokenAddress).approve(
-                address(transferContractAddress),
-                amount
-            );
+            IERC20(tokenAddress).approve(address(transferContract), amount);
         }
 
-        ITransfer(transferContractAddress).sendTransfer{value: value}(
+        transferContract.sendTransfer{value: value}(
             TransferDataTypes.TransferData({
                 tokenAddress: tokenAddress,
                 receiver: receiver,
@@ -85,15 +74,12 @@ contract Agent is ReentrancyGuardUpgradeable {
             PacketTypes.Fee({tokenAddress: tokenAddress, amount: feeAmount})
         );
 
-        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
-            srcChain,
+        uint64 sequence = packetContract.getNextSequenceSend(
+            "teleport",
             destChain
         );
         string memory sequencesKey = Strings.strConcat(
-            Strings.strConcat(
-                Strings.strConcat(Strings.strConcat(srcChain, "/"), destChain),
-                "/"
-            ),
+            Strings.strConcat(destChain, "/"),
             Strings.uint642str(sequence)
         );
 
@@ -104,41 +90,37 @@ contract Agent is ReentrancyGuardUpgradeable {
             amount: amount - feeAmount
         });
 
-        emit SendEvent(id, srcChain, destChain, sequence);
+        emit SendEvent(id, destChain, sequence);
         return true;
     }
 
     function checkPacketSyncAndGetAmountSrcChain()
         private
         view
-        returns (uint256, string memory)
+        returns (uint256)
     {
-        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContractAddress)
+        RCCDataTypes.PacketData memory rccPacket = rccContract
             .getLatestPacket();
-        TransferDataTypes.PacketData memory transferPacket = ITransfer(
-            transferContractAddress
-        ).getLatestPacket();
+        TransferDataTypes.PacketData memory transferPacket = transferContract
+            .getLatestPacket();
 
         require(
             transferPacket.receiver.equals(address(this).addressToString()) &&
                 transferPacket.sequence == rccPacket.sequence &&
                 transferPacket.srcChain.equals(rccPacket.srcChain) &&
-                transferPacket.destChain.equals(rccPacket.destChain),
+                transferPacket.destChain.equals("teleport") &&
+                rccPacket.destChain.equals("teleport"),
             "must synchronize"
         );
-        return (transferPacket.amount.toUint256(), transferPacket.destChain);
+        return transferPacket.amount.toUint256();
     }
 
-    function refund(
-        string calldata srcChain,
-        string calldata destChain,
-        uint64 sequence
-    ) external nonReentrant {
+    function refund(string calldata destChain, uint64 sequence)
+        external
+        nonReentrant
+    {
         string memory sequencesKey = Strings.strConcat(
-            Strings.strConcat(
-                Strings.strConcat(Strings.strConcat(srcChain, "/"), destChain),
-                "/"
-            ),
+            Strings.strConcat(destChain, "/"),
             Strings.uint642str(sequence)
         );
 
@@ -146,11 +128,7 @@ contract Agent is ReentrancyGuardUpgradeable {
         AgentData memory data = agentData[sequencesKey];
         delete agentData[sequencesKey];
         require(
-            IPacket(packetContractAddress).getAckStatus(
-                srcChain,
-                destChain,
-                sequence
-            ) == 2,
+            packetContract.getAckStatus("teleport", destChain, sequence) == 2,
             "not err ack"
         );
 
