@@ -14,12 +14,14 @@ import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract MockPacket is
     Initializable,
     OwnableUpgradeable,
     IPacket,
+    PausableUpgradeable,
     ReentrancyGuardUpgradeable
 {
     using Strings for *;
@@ -36,6 +38,8 @@ contract MockPacket is
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     uint256 public version;
 
     function setVersion(uint256 _version) public {
@@ -110,7 +114,7 @@ contract MockPacket is
     function sendPacket(
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
-    ) public payable override {
+    ) public payable override whenNotPaused {
         require(
             packet.dataList.length == 1 && packet.ports.length == 1,
             "should be one packet data"
@@ -177,7 +181,7 @@ contract MockPacket is
     function sendMultiPacket(
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
-    ) public payable override onlyAuthorizee(MULTISEND_ROLE) {
+    ) public payable override onlyAuthorizee(MULTISEND_ROLE) whenNotPaused {
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(
             packet.dataList.length == packet.ports.length &&
@@ -264,7 +268,7 @@ contract MockPacket is
         PacketTypes.Packet calldata packet,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         PacketTypes.Acknowledgement memory ack;
         try this.executePacket(packet) returns (bytes[] memory results) {
             ack.results = results;
@@ -290,6 +294,7 @@ contract MockPacket is
     function executePacket(PacketTypes.Packet calldata packet)
         external
         onlySelf
+        whenNotPaused
         returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](packet.ports.length);
@@ -397,7 +402,7 @@ contract MockPacket is
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         require(
             Strings.equals(packet.sourceChain, clientManager.getChainName()),
             "invalid packet"
@@ -603,5 +608,63 @@ contract MockPacket is
         uint64 sequence
     ) external view override returns (uint8) {
         return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
+    }
+
+    /**
+     * @notice set packet fee
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param amount add fee amount
+     */
+    function addPacketFee(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence,
+        uint256 amount
+    ) public payable whenNotPaused {
+        bytes memory key = Host.ackStatusKey(sourceChain, destChain, sequence);
+
+        require(ackStatus[key] == uint8(0), "invalid packet status");
+
+        PacketTypes.Fee memory fee = packetFees[key];
+
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value > 0 && msg.value == amount, "invalid value");
+        } else {
+            require(msg.value == 0, "invalid value");
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amount
+                ),
+                "transfer ERC20 failed"
+            );
+        }
+
+        packetFees[key].amount += amount;
+    }
+
+    /**
+     * @dev Pauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function pause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function unpause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _unpause();
     }
 }

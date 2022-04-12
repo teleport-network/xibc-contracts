@@ -11,6 +11,16 @@ library TransferDataTypes {
         bool bound;
     }
 
+    struct TimeBasedSupplyLimit {
+        bool enable;
+        uint256 timePeriod; // seconds
+        uint256 timeBasedLimit;
+        uint256 maxAmount;
+        uint256 minAmount;
+        uint256 previousTime; // timestamp (seconds)
+        uint256 currentSupply;
+    }
+
     struct TransferData {
         address tokenAddress; // zero address if base token
         string receiver;

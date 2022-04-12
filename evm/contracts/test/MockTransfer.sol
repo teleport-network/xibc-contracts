@@ -44,6 +44,9 @@ contract MockTransfer is
     mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
     // use address(0) as base token address
 
+    // time based supply limit
+    mapping(address => TransferDataTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
+
     TransferDataTypes.TransferPacketData public latestPacket;
 
     uint256 public version;
@@ -108,6 +111,62 @@ contract MockTransfer is
             bound: true
         });
         bindingTraces[key] = tokenAddress;
+    }
+
+    /**
+     * @notice enable time based supply limit
+     * @param tokenAddress token address
+     * @param timePeriod calculation time period
+     * @param timeBasedLimit time based limit
+     * @param maxAmount max amount single transfer
+     * @param minAmount min amount single transfer
+     */
+    function enableTimeBasedSupplyLimit(
+        address tokenAddress,
+        uint256 timePeriod,
+        uint256 timeBasedLimit,
+        uint256 maxAmount,
+        uint256 minAmount
+    ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
+        require(!limits[tokenAddress].enable, "already enable");
+        require(
+            timePeriod > 0 &&
+                minAmount > 0 &&
+                maxAmount > minAmount &&
+                timeBasedLimit > maxAmount,
+            "invalid limit"
+        );
+
+        limits[tokenAddress] = TransferDataTypes.TimeBasedSupplyLimit({
+            enable: true,
+            timePeriod: timePeriod,
+            timeBasedLimit: timeBasedLimit,
+            maxAmount: maxAmount,
+            minAmount: minAmount,
+            previousTime: block.timestamp,
+            currentSupply: 0
+        });
+    }
+
+    /**
+     * @notice disable time based supply limit
+     * @param tokenAddress token address
+     */
+    function disableTimeBasedSupplyLimit(address tokenAddress)
+        external
+        onlyAuthorizee(BIND_TOKEN_ROLE)
+    {
+        require(limits[tokenAddress].enable, "not enable");
+
+        limits[tokenAddress] = TransferDataTypes.TimeBasedSupplyLimit({
+            enable: false,
+            timePeriod: 0,
+            timeBasedLimit: 0,
+            maxAmount: 0,
+            minAmount: 0,
+            previousTime: 0,
+            currentSupply: 0
+        });
     }
 
     function sendTransfer(
@@ -368,11 +427,15 @@ contract MockTransfer is
             data,
             (TransferDataTypes.TransferPacketData)
         );
-
         latestPacket = packetData;
+
+        address tokenAddress;
+        address receiver = packetData.receiver.parseAddr();
+        uint256 amount = packetData.amount.toUint256();
+
         if (bytes(packetData.oriToken).length == 0) {
             // token come in
-            address tokenAddress = bindingTraces[
+            tokenAddress = bindingTraces[
                 Strings.strConcat(
                     Strings.strConcat(packetData.srcChain, "/"),
                     packetData.token
@@ -388,75 +451,105 @@ contract MockTransfer is
                     );
             }
 
-            if (
-                !_mint(
-                    tokenAddress,
-                    packetData.receiver.parseAddr(),
-                    packetData.amount.toUint256()
-                )
-            ) {
+            if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                return
+                    _newAcknowledgement(false, "onRecvPackt: invalid amount");
+            }
+
+            if (!_mint(tokenAddress, receiver, amount)) {
                 return _newAcknowledgement(false, "onRecvPackt: mint failed");
             }
 
-            bindings[tokenAddress].amount += packetData.amount.toUint256();
-        } else if (packetData.oriToken.parseAddr() != address(0)) {
-            // ERC20 token back to origin
-            if (
-                packetData.amount.toUint256() >
-                outTokens[packetData.oriToken.parseAddr()][packetData.srcChain]
-            ) {
-                return
-                    _newAcknowledgement(
-                        false,
-                        "onRecvPackt: amount could not be greater than locked amount"
-                    );
-            }
+            bindings[tokenAddress].amount += amount;
 
-            if (
-                !IERC20(packetData.oriToken.parseAddr()).transfer(
-                    packetData.receiver.parseAddr(),
-                    packetData.amount.toUint256()
-                )
-            ) {
-                return
-                    _newAcknowledgement(
-                        false,
-                        "onRecvPackt: unlock to receiver failed"
-                    );
-            }
-
-            outTokens[packetData.oriToken.parseAddr()][
-                packetData.srcChain
-            ] -= packetData.amount.toUint256();
-        } else {
-            // Base token back to origin
-            if (
-                packetData.amount.toUint256() >
-                outTokens[address(0)][packetData.srcChain]
-            ) {
-                return
-                    _newAcknowledgement(
-                        false,
-                        "onRecvPackt: amount could not be greater than locked amount"
-                    );
-            }
-            (bool success, ) = packetData.receiver.parseAddr().call{
-                value: packetData.amount.toUint256()
-            }("");
-            if (!success) {
-                return
-                    _newAcknowledgement(
-                        false,
-                        "onRecvPackt: unlock to receiver failed"
-                    );
-            }
-
-            outTokens[address(0)][packetData.srcChain] -= packetData
-                .amount
-                .toUint256();
+            return _newAcknowledgement(true, "");
         }
 
+        tokenAddress = packetData.oriToken.parseAddr();
+        if (tokenAddress != address(0)) {
+            // ERC20 token back to origin
+            if (amount > outTokens[tokenAddress][packetData.srcChain]) {
+                return
+                    _newAcknowledgement(
+                        false,
+                        "onRecvPackt: amount could not be greater than locked amount"
+                    );
+            }
+
+            if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                return
+                    _newAcknowledgement(false, "onRecvPackt: invalid amount");
+            }
+
+            if (!IERC20(tokenAddress).transfer(receiver, amount)) {
+                return
+                    _newAcknowledgement(
+                        false,
+                        "onRecvPackt: unlock to receiver failed"
+                    );
+            }
+
+            outTokens[tokenAddress][packetData.srcChain] -= amount;
+
+            return _newAcknowledgement(true, "");
+        }
+
+        // Base token back to origin
+        if (amount > outTokens[address(0)][packetData.srcChain]) {
+            return
+                _newAcknowledgement(
+                    false,
+                    "onRecvPackt: amount could not be greater than locked amount"
+                );
+        }
+
+        if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+            return _newAcknowledgement(false, "onRecvPackt: invalid amount");
+        }
+
+        (bool success, ) = receiver.call{value: amount}("");
+        if (!success) {
+            return
+                _newAcknowledgement(
+                    false,
+                    "onRecvPackt: unlock to receiver failed"
+                );
+        }
+
+        outTokens[address(0)][packetData.srcChain] -= amount;
+
         return _newAcknowledgement(true, "");
+    }
+
+    /**
+     * @notice if exceeded max or less than min, retrun true
+     * @param tokenAddress token address
+     * @param amount token amount
+     */
+    function updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
+        internal
+        returns (bool)
+    {
+        TransferDataTypes.TimeBasedSupplyLimit memory limit = limits[
+            tokenAddress
+        ];
+        if (limit.enable) {
+            if (amount < limit.minAmount || amount > limit.maxAmount) {
+                return true;
+            }
+            if (block.timestamp - limit.previousTime < limit.timePeriod) {
+                require(
+                    limit.currentSupply + amount < limit.timeBasedLimit,
+                    "exceeded time based limit"
+                );
+
+                limits[tokenAddress].currentSupply += amount;
+            } else {
+                limits[tokenAddress].previousTime = block.timestamp;
+                limits[tokenAddress].currentSupply = amount;
+            }
+        }
+        return false;
     }
 
     function onAcknowledgementPacket(bytes calldata data, bytes calldata result)
