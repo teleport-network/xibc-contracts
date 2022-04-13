@@ -20,15 +20,18 @@ task("queryBalance", "Query Balance")
     })
 
 
-task("transferERC20", "Sender ERC20 Token")
+task("transfer", "Transfer token")
+    .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
     .addParam("destchain", "dest chain name")
     .addParam("relaychain", "relay chain name", "", types.string, true)
+    .addParam("relayfeeaddress", "relay fee token address")
+    .addParam("relayfeeamout", "relay fee amout")
     .setAction(async (taskArgs, hre) => {
         const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(transferContractAddress)
+        const transfer = await transferFactory.attach(taskArgs.transfer)
 
         let transferdata = {
             tokenAddress: taskArgs.address,
@@ -37,29 +40,12 @@ task("transferERC20", "Sender ERC20 Token")
             destChain: taskArgs.destchain,
             relayChain: taskArgs.relaychain,
         }
-        let res = await transfer.sendTransferERC20(transferdata)
-        console.log(await res.wait())
-    })
 
-
-task("transferBase", "Sender Base token")
-    .addParam("receiver", "receiver address")
-    .addParam("amount", "transfer amount")
-    .addParam("destchain", "dest chain name")
-    .addParam("relaychain", "relay chain name", "", types.string, true)
-    .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(transferContractAddress)
-
-        let transferdata = {
-            receiver: taskArgs.receiver,
-            destChain: taskArgs.destchain,
-            relayChain: taskArgs.relaychain,
+        let fee = {
+            tokenAddress: taskArgs.relayfeeaddress,
+            amount: taskArgs.relayfeeamout,
         }
-        let res = await transfer.sendTransferBase(
-            transferdata,
-            { value: hre.ethers.utils.parseEther(taskArgs.amount) }
-        )
+        let res = await transfer.sendTransfer(transferdata, fee)
         console.log(await res.wait())
     })
 

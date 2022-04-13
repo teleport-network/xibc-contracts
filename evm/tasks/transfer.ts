@@ -1,4 +1,5 @@
 import "@nomiclabs/hardhat-web3"
+import { ethers } from "hardhat"
 import { task, types } from "hardhat/config"
 
 task("queryBalance", "Query Balance")
@@ -18,13 +19,15 @@ task("queryBalance", "Query Balance")
     })
 
 
-task("transferERC20", "send ERC20 Token")
+task("transferToken", "Transfer token")
     .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
     .addParam("destchain", "dest chain name")
     .addParam("relaychain", "relay chain name", "", types.string, true)
+    .addParam("relayfeeaddress", "relay fee token address")
+    .addParam("relayfeeamout", "relay fee amout")
     .setAction(async (taskArgs, hre) => {
         const transferFactory = await hre.ethers.getContractFactory('Transfer')
         const transfer = await transferFactory.attach(taskArgs.transfer)
@@ -36,30 +39,35 @@ task("transferERC20", "send ERC20 Token")
             destChain: taskArgs.destchain,
             relayChain: taskArgs.relaychain,
         }
-        let res = await transfer.sendTransferERC20(transferdata)
-        console.log(await res.wait())
-    })
 
-task("transferBase", "send Base token")
-    .addParam("transfer", "transfer contract address")
-    .addParam("receiver", "receiver address")
-    .addParam("amount", "transfer amount")
-    .addParam("destchain", "dest chain name")
-    .addParam("relaychain", "relay chain name", "", types.string, true)
-    .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
-
-        let transferdata = {
-            receiver: taskArgs.receiver,
-            destChain: taskArgs.destchain,
-            relayChain: taskArgs.relaychain,
+        let fee = {
+            tokenAddress: taskArgs.relayfeeaddress,
+            amount: taskArgs.relayfeeamout,
         }
-        let res = await transfer.sendTransferBase(
-            transferdata,
-            { value: hre.ethers.utils.parseEther(taskArgs.amount) }
-        )
-        console.log(await res.wait())
+
+        let baseToken = hre.ethers.utils.parseEther("0")
+        if (transferdata.tokenAddress == "0x0000000000000000000000000000000000000000") {
+            baseToken = baseToken.add(hre.ethers.utils.parseEther(transferdata.amount))
+        }
+
+        if (fee.tokenAddress == "0x0000000000000000000000000000000000000000") {
+            baseToken = baseToken.add(hre.ethers.utils.parseEther(fee.amount))
+        }
+
+        if (baseToken.gt(hre.ethers.utils.parseEther("0"))) {
+            let res = await transfer.sendTransfer(
+                transferdata,
+                fee,
+                { value: baseToken }
+            )
+            console.log(await res.wait())
+        } else {
+            let res = await transfer.sendTransfer(
+                transferdata,
+                fee
+            )
+            console.log(await res.wait())
+        }
     })
 
 task("bindToken", "bind ERC20 token trace")
@@ -160,7 +168,7 @@ task("queryOutToken", "Query out token")
         let outToken = (await transfer.outTokens(taskArgs.token, taskArgs.chainname))
         console.log(outToken)
     });
-    
+
 task("queryTrace", "Query trace")
     .addParam("transfer", "transfer address")
     .addParam("srcchain", "srcchain name")
