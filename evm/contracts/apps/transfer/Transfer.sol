@@ -220,6 +220,15 @@ contract Transfer is
                     transferData.amount > 0 && msg.value == transferData.amount,
                     "invalid value"
                 );
+                // send fee to packet
+                require(
+                    IERC20(fee.tokenAddress).transferFrom(
+                        msg.sender,
+                        address(packet),
+                        fee.amount
+                    ),
+                    "lock failed, unsufficient allowance"
+                );
                 packet.sendPacket(crossPacket, fee);
             }
         } else {
@@ -307,6 +316,15 @@ contract Transfer is
                 packet.sendPacket{value: fee.amount}(crossPacket, fee);
             } else {
                 require(msg.value == 0, "invalid value");
+                // send fee to packet
+                require(
+                    IERC20(fee.tokenAddress).transferFrom(
+                        msg.sender,
+                        address(packet),
+                        fee.amount
+                    ),
+                    "lock failed, unsufficient allowance"
+                );
                 packet.sendPacket(crossPacket, fee);
             }
         }

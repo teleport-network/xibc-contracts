@@ -11,6 +11,7 @@ import "../../libraries/core/Packet.sol";
 import "../../interfaces/IMultiCall.sol";
 import "../../interfaces/ITransfer.sol";
 import "../../interfaces/IRCC.sol";
+import "../../interfaces/IPacket.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MultiCall is IMultiCall {
@@ -23,6 +24,8 @@ contract MultiCall is IMultiCall {
         address(0x0000000000000000000000000000000030000001);
     address public constant rccContractAddress =
         address(0x0000000000000000000000000000000030000002);
+    address public constant packetContractAddress =
+        address(0x0000000000000000000000000000000020000001);
 
     event SendPacket(
         address sender,
@@ -75,6 +78,36 @@ contract MultiCall is IMultiCall {
                 );
                 callRCC(multiCallData.destChain, data);
             }
+        }
+
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
+            nativeChainName,
+            multiCallData.destChain
+        );
+
+        if (fee.tokenAddress == address(0)) {
+            IPacket(packetContractAddress).setPacketFee{value: fee.amount}(
+                nativeChainName,
+                multiCallData.destChain,
+                sequence,
+                fee
+            );
+        } else {
+            // send fee to packet
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    packetContractAddress,
+                    fee.amount
+                ),
+                "lock failed, unsufficient allowance"
+            );
+            IPacket(packetContractAddress).setPacketFee(
+                nativeChainName,
+                multiCallData.destChain,
+                sequence,
+                fee
+            );
         }
 
         emit SendPacket(msg.sender, multiCallData);

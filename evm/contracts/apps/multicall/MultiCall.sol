@@ -105,7 +105,20 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
             ports: ports,
             dataList: dataList
         });
-        packet.sendMultiPacket(crossPacket, fee);
+
+        if (fee.tokenAddress == address(0)) {
+            packet.sendPacket{value: fee.amount}(crossPacket, fee);
+        } else {
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(packet),
+                    fee.amount
+                ),
+                "lock failed, unsufficient allowance"
+            );
+            packet.sendPacket(crossPacket, fee);
+        }
     }
 
     function callTransfer(
