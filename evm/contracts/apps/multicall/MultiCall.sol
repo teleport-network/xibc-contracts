@@ -107,7 +107,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
         });
 
         if (fee.tokenAddress == address(0)) {
-            packet.sendPacket{value: fee.amount}(crossPacket, fee);
+            packet.sendMultiPacket{value: fee.amount}(crossPacket, fee);
         } else {
             require(
                 IERC20(fee.tokenAddress).transferFrom(
@@ -117,7 +117,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                 ),
                 "lock failed, unsufficient allowance"
             );
-            packet.sendPacket(crossPacket, fee);
+            packet.sendMultiPacket(crossPacket, fee);
         }
     }
 
