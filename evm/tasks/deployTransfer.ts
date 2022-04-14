@@ -64,7 +64,6 @@ task("getVersion", "get version for mocktransfer")
         console.log(await transfer.version())
     })
 
-
 task("transferERC20", "set version for mocktransfer")
     .addParam("token", "ERC20 token address")
     .addParam("receiver", "receiver address")
