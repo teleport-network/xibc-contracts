@@ -64,4 +64,32 @@ task("getVersion", "get version for mocktransfer")
         console.log(await transfer.version())
     })
 
+
+task("transferERC20", "set version for mocktransfer")
+    .addParam("token", "ERC20 token address")
+    .addParam("receiver", "receiver address")
+    .addParam("amount", "transfer amount")
+    .addParam("destchain", "dest chain name")
+    .addParam("feetoken", "Fee token address")
+    .addParam("feeamount", "Fee Amount")
+    .setAction(async (taskArgs, hre) => {
+        const transferFactory = await hre.ethers.getContractFactory('Transfer')
+        const transfer = await transferFactory.attach(String(TRANSFER_ADDRESS))
+
+        let transferData = {
+            tokenAddress: taskArgs.token,
+            receiver: taskArgs.receiver,
+            amount: taskArgs.amount,
+            destChain: taskArgs.destchain,
+            relayChain: '',
+        }
+
+        let Fee = {
+            tokenAddress: taskArgs.feetoken,
+            amount: taskArgs.feeamount,
+        }
+
+        await transfer.sendTransfer(transferData, Fee)
+    })
+
 module.exports = {}
