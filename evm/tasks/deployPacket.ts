@@ -82,4 +82,15 @@ task("getAckStatus", "get ack status")
         console.log(state)
     })
 
+task("getFees", "get ack status")
+    .addParam("sourcechain", "sourceChain")
+    .addParam("destchain", "sourceChain")
+    .addParam("sequence", "sourceChain")
+    .setAction(async (taskArgs, hre) => {
+        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
+        let key = taskArgs.sourcechain + "/" + taskArgs.destchain + "/" + taskArgs.sequence
+        let Fees = await packet.packetFees(Buffer.from(key, "utf-8"))
+        console.log(Fees)
+    })
 module.exports = {}
