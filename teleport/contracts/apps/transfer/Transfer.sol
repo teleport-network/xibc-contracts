@@ -306,10 +306,6 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                 oriToken = bindings[bindingKey].oriToken;
             } else {
                 // outgoing
-                require(
-                    transferData.tokenAddress != address(0),
-                    "can't be zero address"
-                );
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
@@ -396,10 +392,6 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                 bindings[bindingKey].amount -= realAmount;
             } else {
                 // outgoing
-                require(
-                    transferData.tokenAddress != address(0),
-                    "can't be zero address"
-                );
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
