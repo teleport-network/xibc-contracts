@@ -235,7 +235,7 @@ contract MockTransfer is
                         address(packet),
                         fee.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
                 packet.sendPacket(crossPacket, fee);
             }
@@ -278,7 +278,7 @@ contract MockTransfer is
                         address(this),
                         transferData.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
 
                 outTokens[transferData.tokenAddress][
@@ -323,7 +323,7 @@ contract MockTransfer is
                         address(packet),
                         fee.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
                 packet.sendPacket(crossPacket, fee);
             }
@@ -387,7 +387,7 @@ contract MockTransfer is
                 require(
                     _burn(
                         transferData.tokenAddress,
-                        transferData.sender,
+                        msg.sender,
                         transferData.amount
                     ),
                     "burn token failed"
@@ -406,11 +406,11 @@ contract MockTransfer is
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
-                        transferData.sender,
+                        msg.sender,
                         address(this),
                         transferData.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
 
                 outTokens[transferData.tokenAddress][

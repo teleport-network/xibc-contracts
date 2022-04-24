@@ -111,7 +111,7 @@ contract RCC is
                     address(packet),
                     fee.amount
                 ),
-                "lock failed, unsufficient allowance"
+                "lock failed, insufficient allowance"
             );
             packet.sendPacket(crossPacket, fee);
         }
