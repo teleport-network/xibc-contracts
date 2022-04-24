@@ -157,6 +157,7 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
      */
     function getClient(string memory chainName)
         public
+        view
         override
         returns (IClient)
     {
@@ -169,6 +170,7 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
      */
     function getClientType(string memory chainName)
         public
+        view
         override
         returns (IClient.Type)
     {

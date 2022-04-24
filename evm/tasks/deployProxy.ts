@@ -61,18 +61,18 @@ task("send", "Send Proxy")
             relayChain: taskArgs.rccrelaychain,
         }
         let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer)
-       
+
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
         const multiCall = await multiCallFactory.attach(String(MULTICALl_ADDRESS))
         if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000") {
             console.log("transfer base")
-            let res = await multiCall.multiCall( multicallData,{ value: taskArgs.amount })
+            let res = await multiCall.multiCall(multicallData, { value: taskArgs.amount })
             console.log(res)
         } else {
             console.log("transfer erc20")
-            let res = await multiCall.multiCall( multicallData)
+            let res = await multiCall.multiCall(multicallData)
             console.log(res)
         }
-
     })
+
 module.exports = {}

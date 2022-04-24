@@ -158,6 +158,7 @@ contract MockClientManager is
      */
     function getClient(string memory chainName)
         public
+        view
         override
         returns (IClient)
     {
@@ -170,6 +171,7 @@ contract MockClientManager is
      */
     function getClientType(string memory chainName)
         public
+        view
         override
         returns (IClient.Type)
     {
