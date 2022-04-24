@@ -42,36 +42,48 @@ describe('Proxy', () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let refundAddressOnTeleport = await accounts[2].getAddress()
-        let feeAmount = 0
-        await erc20.approve(proxy.address.toLocaleLowerCase(), 1000)
-        let allowance = await erc20.allowance(sender, proxy.address.toLocaleLowerCase())
+        let feeAmount = 500
+
+        await erc20.approve(transfer.address, 1000)
+        await erc20.approve(multiCall.address, 1000)
+
+        let allowance = await erc20.allowance(sender, transfer.address.toLocaleLowerCase())
         expect(allowance.toNumber()).to.eq(1000)
+        allowance = await erc20.allowance(sender, multiCall.address.toLocaleLowerCase())
+        expect(allowance.toNumber()).to.eq(1000)
+
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: "0x0000000000000000000000000000000010000007", // agent address
             amount: 1000,
         }
+
         let rccTransfer = {
             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
             receiver: reciver,
-            amount: 1000,
+            amount: 500,
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
 
-        let multicallData = await proxy.send(
+        let result = await proxy.send(
             refundAddressOnTeleport,
             destChainName, // teleport
             ERC20TransferData,
             rccTransfer,
             feeAmount,
         )
+        // console.log(result)
+        expect(true).to.eq(result[1])
+
         let Fee = {
-            tokenAddress: "0x0000000000000000000000000000000000000000",
-            amount: 0,
+            tokenAddress: erc20.address,
+            amount: 1000,
         }
-        await erc20.approve(transfer.address, rccTransfer.amount)
-        await multiCall.multiCall(multicallData, Fee)
+
+
+        await multiCall.multiCall(result[0], Fee)
+
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 1
         let ERC20TransferPacketData = {
@@ -148,7 +160,7 @@ describe('Proxy', () => {
                 refundAddressOnTeleport,
                 rccTransfer.receiver,
                 rccTransfer.destChain,
-                "0",
+                feeAmount.toString(),
             ]
         )
         let RccPacketData = {
@@ -192,33 +204,38 @@ describe('Proxy', () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let refundAddressOnTeleport = await accounts[2].getAddress()
-        let address0 = "0x0000000000000000000000000000000000000000"
+        let zeroAddress = "0x0000000000000000000000000000000000000000"
+        let feeAmount = 500
 
-        let ERC20TransferData = {
-            tokenAddress: address0,
+        let transferData = {
+            tokenAddress: zeroAddress,
             receiver: "0x0000000000000000000000000000000010000007", // agent address
             amount: 1000,
         }
-        let rccTransfer = {
+        let rccTransferData = {
             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
             receiver: reciver,
-            amount: 1000,
+            amount: 500,
             destChain: "eth-test",// double jump destChain
             relayChain: "",
         }
-        let feeAmount = 0
         let Fee = {
-            tokenAddress: "0x0000000000000000000000000000000000000000",
-            amount: 0,
+            tokenAddress: zeroAddress,
+            amount: 1000,
         }
-        let multicallData = await proxy.send(
+        let result = await proxy.send(
             refundAddressOnTeleport,
-            destChainName,
-            ERC20TransferData,
-            rccTransfer,
+            destChainName, // teleport 
+            transferData,
+            rccTransferData,
             feeAmount,
-        ) // destChainName : teleport
-        await multiCall.multiCall(multicallData, Fee, { value: rccTransfer.amount })
+        )
+        expect(true).to.eq(result[1])
+
+        let value = transferData.amount + Fee.amount
+
+        await multiCall.multiCall(result[0], Fee, { value: value })
+
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 2
         let BaseTransferPacketData = {
@@ -228,7 +245,7 @@ describe('Proxy', () => {
             sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
-            token: address0,
+            token: zeroAddress,
             oriToken: ""
         }
         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
@@ -291,11 +308,11 @@ describe('Proxy', () => {
             },
             [
                 id,
-                rccTransfer.tokenAddress,
+                rccTransferData.tokenAddress,
                 refundAddressOnTeleport,
-                rccTransfer.receiver,
-                rccTransfer.destChain,
-                "0",
+                rccTransferData.receiver,
+                rccTransferData.destChain,
+                feeAmount.toString(),
             ]
         )
 
@@ -331,8 +348,8 @@ describe('Proxy', () => {
         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
         expect(commitment.toString()).to.eq(sha256(sum))
-        let outToken = (await transfer.outTokens(address0, destChainName))
-        expect(outToken).to.eq(ERC20TransferData.amount)
+        let outToken = (await transfer.outTokens(zeroAddress, destChainName))
+        expect(outToken).to.eq(transferData.amount)
     })
 
     it("refund erc20 token", async () => {
@@ -340,14 +357,14 @@ describe('Proxy', () => {
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let refundAddressOnTeleport = await accounts[2].getAddress()
 
-        let ERC20TransferData = {
+        let transferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),
             receiver: "0x0000000000000000000000000000000010000007", // agent address
             amount: 1000,
         }
         let balances = await erc20.balanceOf(sender)
-        expect(balances).to.eq(1047576)
-        let rccTransfer = {
+        expect(1046576).to.eq(balances)
+        let rccTransferData = {
             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
             receiver: reciver,
             amount: 1000,
@@ -363,7 +380,7 @@ describe('Proxy', () => {
             sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
-            token: ERC20TransferData.tokenAddress,
+            token: transferData.tokenAddress,
             oriToken: ""
         }
         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
@@ -421,11 +438,11 @@ describe('Proxy', () => {
             },
             [
                 id,
-                rccTransfer.tokenAddress,
+                rccTransferData.tokenAddress,
                 refundAddressOnTeleport,
-                rccTransfer.receiver,
-                rccTransfer.destChain,
-                "0",
+                rccTransferData.receiver,
+                rccTransferData.destChain,
+                "500",
             ]
         )
 
@@ -485,7 +502,7 @@ describe('Proxy', () => {
         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
         let refundAddressOnTeleport = await accounts[2].getAddress()
 
-        let address0 = "0x0000000000000000000000000000000000000000"
+        let zeroAddress = "0x0000000000000000000000000000000000000000"
         let rccTransfer = {
             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
             receiver: reciver,
@@ -502,7 +519,7 @@ describe('Proxy', () => {
             sender: sender,
             receiver: "0x0000000000000000000000000000000010000007",
             amount: amount,
-            token: address0,
+            token: zeroAddress,
             oriToken: ""
         }
         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
@@ -564,7 +581,7 @@ describe('Proxy', () => {
                 refundAddressOnTeleport,
                 rccTransfer.receiver,
                 rccTransfer.destChain,
-                "0",
+                "500",
             ]
         )
 
@@ -614,15 +631,8 @@ describe('Proxy', () => {
         }
         await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
 
-        let outToken = (await transfer.outTokens(address0, destChainName))
+        let outToken = (await transfer.outTokens(zeroAddress, destChainName))
         expect(outToken).to.eq(0)
-    })
-
-    it("upgradeTest", async () => {
-        const ProxyrFactory = await ethers.getContractFactory("MockProxy")
-        const upgradeProxy = await upgrades.upgradeProxy(String(proxy.address), ProxyrFactory)
-        expect(proxy.address).to.eq(upgradeProxy.address)
-        expect(await upgradeProxy.getVersion()).to.eq(2)
     })
 
     const deployTransfer = async () => {
