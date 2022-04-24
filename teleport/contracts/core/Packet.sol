@@ -131,8 +131,12 @@ contract Packet is IPacket {
         uint64 sequence
     ) external onlyXIBCModulePacket {
         bytes memory key = getNextSequenceSendKey(sourceChain, destChain);
-        require(sequences[key] + 1 == sequence, "invalid sequence");
-        sequences[key] += 1;
+        if (sequence == 2) {
+            require(sequences[key] == 0, "invalid sequence");
+        } else {
+            require(sequences[key] + 1 == sequence, "invalid sequence");
+        }
+        sequences[key] = sequence;
     }
 
     /**
