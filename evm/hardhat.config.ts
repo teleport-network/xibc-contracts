@@ -37,24 +37,28 @@ module.exports = {
             gasPrice: 5000000000,
             chainId: 9000,
             gas: 4100000,
+            accounts:['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
         },
         qa: {
             url: 'http://abd46ec6e28754f0ab2aae29deaa0c11-1510914274.ap-southeast-1.elb.amazonaws.com:8545',
             gasPrice: 5000000000,
             chainId: 7001,
             gas: 4100000,
+            accounts:['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
         },
         arbitrum: {
             url: 'https://rinkeby.arbitrum.io/rpc',
             gasPrice: 30000000,
             chainId: 421611,
             gas: 4100000,
+            accounts:['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
         },
         teleport: {
             url: 'https://seed0.testnet.teleport.network',
             gasPrice: 5000000000,
             chainId: 8001,
             gas: 4100000,
+            accounts:['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
         },
         rinkeby: {
             url: 'https://rinkeby.infura.io/v3/023f2af0f670457d9c4ea9cb524f0810',
@@ -67,6 +71,7 @@ module.exports = {
             gasPrice: 10000000000,
             chainId: 97,
             gas: 4100000,
+            accounts:['96e8e32341ce890aff8b46066f7b77a6d2ab2115a24c365e9de1fbed49e04837'],
         },
     },
     solidity: {
