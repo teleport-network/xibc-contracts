@@ -9,11 +9,9 @@ import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IPacket.sol";
 import "../../libraries/app/MultiCall.sol";
 import "../../libraries/app/Transfer.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Proxy is Initializable, OwnableUpgradeable {
+contract Proxy is Initializable {
     using Strings for *;
     using Bytes for *;
 
@@ -34,12 +32,16 @@ contract Proxy is Initializable, OwnableUpgradeable {
         MultiCallDataTypes.TransferData memory erc20transfer,
         TransferDataTypes.TransferData memory rccTransfer,
         uint256 feeAmount
-    ) public view returns (MultiCallDataTypes.MultiCallData memory) {
-        require(
-            erc20transfer.amount > feeAmount &&
-                rccTransfer.amount == erc20transfer.amount - feeAmount,
-            "invalid amount"
-        );
+    ) public view returns (MultiCallDataTypes.MultiCallData memory, bool) {
+        MultiCallDataTypes.MultiCallData memory multiCallData;
+
+        if (
+            erc20transfer.amount <= feeAmount ||
+            rccTransfer.amount != (erc20transfer.amount - feeAmount)
+        ) {
+            return (multiCallData, false);
+        }
+
         bytes memory id = _getID(destChain);
 
         uint8[] memory functions = new uint8[](2);
@@ -62,15 +64,14 @@ contract Proxy is Initializable, OwnableUpgradeable {
             feeAmount
         );
 
-        MultiCallDataTypes.MultiCallData
-            memory multiCallData = MultiCallDataTypes.MultiCallData({
-                destChain: destChain,
-                relayChain: "",
-                functions: functions,
-                data: dataList
-            });
+        multiCallData = MultiCallDataTypes.MultiCallData({
+            destChain: destChain,
+            relayChain: "",
+            functions: functions,
+            data: dataList
+        });
 
-        return multiCallData;
+        return (multiCallData, true);
     }
 
     function _getID(string memory destChain)

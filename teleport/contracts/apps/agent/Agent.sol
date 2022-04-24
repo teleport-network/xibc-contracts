@@ -37,7 +37,7 @@ contract Agent is ReentrancyGuardUpgradeable {
     IRCC rccContract =
         IRCC(address(0x0000000000000000000000000000000030000002));
 
-    modifier onlyXIBCModuleRCC() {
+    modifier onlyRCCContract() {
         require(
             msg.sender == address(rccContract),
             "caller must be XIBC RCC module"
@@ -54,7 +54,7 @@ contract Agent is ReentrancyGuardUpgradeable {
         string memory receiver,
         string memory destChain,
         uint256 feeAmount // precision should be same as srcChain
-    ) public nonReentrant onlyXIBCModuleRCC returns (bool) {
+    ) public nonReentrant onlyRCCContract returns (bool) {
         /** Fake code*/
         /**
         if (token_bound) {
