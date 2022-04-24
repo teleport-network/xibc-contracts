@@ -44,13 +44,9 @@ describe('Proxy', () => {
         let refundAddressOnTeleport = await accounts[2].getAddress()
         let feeAmount = 500
 
-        await erc20.approve(transfer.address, 1000)
-        await erc20.approve(multiCall.address, 1000)
-
-        let allowance = await erc20.allowance(sender, transfer.address.toLocaleLowerCase())
-        expect(allowance.toNumber()).to.eq(1000)
-        allowance = await erc20.allowance(sender, multiCall.address.toLocaleLowerCase())
-        expect(allowance.toNumber()).to.eq(1000)
+        await erc20.approve(multiCall.address, 2000)
+        let allowance = await erc20.allowance(sender, multiCall.address.toLocaleLowerCase())
+        expect(allowance.toNumber()).to.eq(2000)
 
         let ERC20TransferData = {
             tokenAddress: erc20.address.toLocaleLowerCase(),

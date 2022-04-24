@@ -218,7 +218,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                         packetContractAddress,
                         fee.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
                 IPacket(packetContractAddress).setPacketFee(
                     nativeChainName,
@@ -265,7 +265,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                         packetContractAddress,
                         fee.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
                 IPacket(packetContractAddress).setPacketFee(
                     nativeChainName,
@@ -313,7 +313,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                         address(this),
                         transferData.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
 
                 outTokens[transferData.tokenAddress][
@@ -381,11 +381,7 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
                 );
 
                 require(
-                    _burn(
-                        transferData.tokenAddress,
-                        transferData.sender,
-                        realAmount
-                    ),
+                    _burn(transferData.tokenAddress, msg.sender, realAmount),
                     "burn token failed"
                 );
 
@@ -395,11 +391,11 @@ contract Transfer is ITransfer, ReentrancyGuardUpgradeable {
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
-                        transferData.sender,
+                        msg.sender,
                         address(this),
                         transferData.amount
                     ),
-                    "lock failed, unsufficient allowance"
+                    "lock failed, insufficient allowance"
                 );
 
                 outTokens[transferData.tokenAddress][

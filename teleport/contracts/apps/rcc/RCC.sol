@@ -91,7 +91,7 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
                     packetContractAddress,
                     fee.amount
                 ),
-                "lock failed, unsufficient allowance"
+                "lock failed, insufficient allowance"
             );
             IPacket(packetContractAddress).setPacketFee(
                 nativeChainName,
