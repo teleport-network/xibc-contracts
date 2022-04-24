@@ -11,7 +11,10 @@ interface IClientManager {
      * @param chainName the name of the chain
      * @return returns the client instance of the specified chainName
      */
-    function getClient(string calldata chainName) external returns (IClient);
+    function getClient(string calldata chainName)
+        external
+        view
+        returns (IClient);
 
     /**
      * @notice get the client type
@@ -20,6 +23,7 @@ interface IClientManager {
      */
     function getClientType(string calldata chainName)
         external
+        view
         returns (IClient.Type);
 
     /**

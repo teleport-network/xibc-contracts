@@ -267,10 +267,6 @@ contract Transfer is
                 oriToken = bindings[transferData.tokenAddress].oriToken;
             } else {
                 // outgoing
-                require(
-                    transferData.tokenAddress != address(0),
-                    "can't be zero address"
-                );
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
@@ -406,10 +402,6 @@ contract Transfer is
                 oriToken = bindings[transferData.tokenAddress].oriToken;
             } else {
                 // outgoing
-                require(
-                    transferData.tokenAddress != address(0),
-                    "can't be zero address"
-                );
 
                 require(
                     IERC20(transferData.tokenAddress).transferFrom(
