@@ -82,15 +82,40 @@ task("getAckStatus", "get ack status")
         console.log(state)
     })
 
-task("getFees", "get ack status")
-    .addParam("sourcechain", "sourceChain")
-    .addParam("destchain", "sourceChain")
+task("getPacketFee", "query packet fee")
+    .addParam("packet", "packet address")
+    .addParam("src", "sourceChain")
+    .addParam("dest", "sourceChain")
     .addParam("sequence", "sourceChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
-        let key = taskArgs.sourcechain + "/" + taskArgs.destchain + "/" + taskArgs.sequence
+        const packet = await packetFactory.attach(taskArgs.packet)
+
+        let key = taskArgs.src + "/" + taskArgs.dest + "/" + taskArgs.sequence
         let Fees = await packet.packetFees(Buffer.from(key, "utf-8"))
         console.log(Fees)
     })
+
+task("addPacketFee", "set packet fee")
+    .addParam("packet", "packet address")
+    .addParam("src", "source chain name")
+    .addParam("dest", "destination chain name")
+    .addParam("sequence", "sequence")
+    .addParam("amount", "amount")
+    .setAction(async (taskArgs, hre) => {
+        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packet = await packetFactory.attach(taskArgs.packet)
+
+        let tx = await packet.addPacketFee(
+            taskArgs.src,
+            taskArgs.dest,
+            taskArgs.sequence,
+            taskArgs.amount,
+        )
+
+        console.log(tx)
+        console.log("txHash: ", tx.hash)
+        console.log("blockHash: ", tx.blockHash)
+    })
+
 module.exports = {}
