@@ -19,10 +19,10 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
 
     string private constant nativeChainName = "teleport";
 
+    address public constant rccMoudleAddress =
+        address(0xfef812Ed2Bf63E7eE056931d54A6292fcbbaDFaA);
     address public constant packetContractAddress =
         address(0x0000000000000000000000000000000020000001);
-    address public constant rccContractAddress =
-        address(0xfef812Ed2Bf63E7eE056931d54A6292fcbbaDFaA);
     address public constant multiCallContractAddress =
         address(0x0000000000000000000000000000000030000003);
 
@@ -45,7 +45,7 @@ contract RCC is IRCC, ReentrancyGuardUpgradeable {
 
     modifier onlyXIBCModuleRCC() {
         require(
-            msg.sender == rccContractAddress,
+            msg.sender == rccMoudleAddress,
             "caller must be XIBC RCC module"
         );
         _;

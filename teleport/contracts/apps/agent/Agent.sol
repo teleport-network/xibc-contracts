@@ -30,17 +30,17 @@ contract Agent is ReentrancyGuardUpgradeable {
 
     mapping(string => AgentData) public agentData; // map[destChain/sequence]AgentData
 
-    IPacket packetContract =
-        IPacket(address(0x0000000000000000000000000000000020000001));
-    ITransfer transferContract =
-        ITransfer(address(0x0000000000000000000000000000000030000001));
-    IRCC rccContract =
-        IRCC(address(0x0000000000000000000000000000000030000002));
+    address public constant packetContractAddress =
+        address(0x0000000000000000000000000000000020000001);
+    address public constant transferContractAddress =
+        address(0x0000000000000000000000000000000030000001);
+    address public constant rccContractAddress =
+        address(0x0000000000000000000000000000000030000002);
 
     modifier onlyRCCContract() {
         require(
-            msg.sender == address(rccContract),
-            "caller must be XIBC RCC module"
+            msg.sender == rccContractAddress,
+            "caller must be XIBC RCC contract"
         );
         _;
     }
@@ -80,7 +80,7 @@ contract Agent is ReentrancyGuardUpgradeable {
                 feeAmount
             );
 
-        transferContract.sendTransfer{value: msgValue}(
+        ITransfer(transferContractAddress).sendTransfer{value: msgValue}(
             TransferDataTypes.TransferData({
                 tokenAddress: tokenAddress,
                 receiver: receiver,
@@ -91,7 +91,7 @@ contract Agent is ReentrancyGuardUpgradeable {
             PacketTypes.Fee({tokenAddress: tokenAddress, amount: realFeeAmount})
         );
 
-        uint64 sequence = packetContract.getNextSequenceSend(
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
             "teleport",
             destChain
         );
@@ -124,10 +124,11 @@ contract Agent is ReentrancyGuardUpgradeable {
             uint256
         )
     {
-        RCCDataTypes.PacketData memory rccPacket = rccContract
+        RCCDataTypes.PacketData memory rccPacket = IRCC(rccContractAddress)
             .getLatestPacket();
-        TransferDataTypes.PacketData memory transferPacket = transferContract
-            .getLatestPacket();
+        TransferDataTypes.PacketData memory transferPacket = ITransfer(
+            transferContractAddress
+        ).getLatestPacket();
 
         require(
             transferPacket.receiver.equals(address(this).addressToString()) &&
@@ -148,19 +149,23 @@ contract Agent is ReentrancyGuardUpgradeable {
             uint256 amount = transferPacket.amount.toUint256();
 
             if (tokenAddress != address(0)) {
-                token.approve(address(transferContract), amount - feeAmount);
+                token.approve(
+                    address(transferContractAddress),
+                    amount - feeAmount
+                );
                 return (0, feeAmount, amount - feeAmount, amount - feeAmount);
             }
 
             return (amount, feeAmount, amount - feeAmount, amount - feeAmount);
         }
 
-        address tokenAddressOnTeleport = transferContract.bindingTraces(
-            Strings.strConcat(
-                Strings.strConcat(transferPacket.srcChain, "/"),
-                transferPacket.token
-            )
-        );
+        address tokenAddressOnTeleport = ITransfer(transferContractAddress)
+            .bindingTraces(
+                Strings.strConcat(
+                    Strings.strConcat(transferPacket.srcChain, "/"),
+                    transferPacket.token
+                )
+            );
 
         require(
             tokenAddressOnTeleport == tokenAddress,
@@ -177,8 +182,12 @@ contract Agent is ReentrancyGuardUpgradeable {
             destChain
         );
 
-        uint256 scaleSrc = transferContract.getBindings(bindingKeySrc).scale;
-        uint256 scaleDest = transferContract.getBindings(bindingKeyDest).scale; // will be 0 if not bound
+        uint256 scaleSrc = ITransfer(transferContractAddress)
+            .getBindings(bindingKeySrc)
+            .scale;
+        uint256 scaleDest = ITransfer(transferContractAddress)
+            .getBindings(bindingKeyDest)
+            .scale; // will be 0 if not bound
 
         uint256 realAmountRecv = transferPacket.amount.toUint256() *
             10**uint256(scaleSrc);
@@ -187,7 +196,7 @@ contract Agent is ReentrancyGuardUpgradeable {
         uint256 realAmountAvailable = realAmountRecv - realFeeAmount;
         uint256 realAmountSend = realAmountAvailable / 10**uint256(scaleDest);
 
-        token.approve(address(transferContract), realAmountAvailable);
+        token.approve(address(transferContractAddress), realAmountAvailable);
 
         return (0, realFeeAmount, realAmountAvailable, realAmountSend);
     }
@@ -205,7 +214,11 @@ contract Agent is ReentrancyGuardUpgradeable {
         AgentData memory data = agentData[sequencesKey];
         delete agentData[sequencesKey];
         require(
-            packetContract.getAckStatus("teleport", destChain, sequence) == 2,
+            IPacket(packetContractAddress).getAckStatus(
+                "teleport",
+                destChain,
+                sequence
+            ) == 2,
             "not err ack"
         );
 
