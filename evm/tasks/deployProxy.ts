@@ -58,8 +58,8 @@ task("send", "Send Proxy")
         console.log("multicallData:", multicallData)
 
         let fee = {
-            tokenAddress: taskArgs.erctokenaddress,
-            amount: taskArgs.feeamount,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
         }
 
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
