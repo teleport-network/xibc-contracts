@@ -115,7 +115,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                     address(packet),
                     fee.amount
                 ),
-                "lock failed, insufficient allowance"
+                "ERC20 fee: insufficient allowance"
             );
             packet.sendMultiPacket(crossPacket, fee);
         }

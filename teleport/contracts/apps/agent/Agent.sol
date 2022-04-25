@@ -40,7 +40,7 @@ contract Agent is ReentrancyGuardUpgradeable {
     modifier onlyRCCContract() {
         require(
             msg.sender == address(rccContract),
-            "caller must be XIBC RCC module"
+            "caller must be XIBC RCC contract"
         );
         _;
     }
