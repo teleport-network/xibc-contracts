@@ -36,7 +36,7 @@ task("send", "Send Proxy")
     .addParam("rccreceiver", "receiver for rcc transfer")
     .addParam("rccdestchain", "destchain for rcc transfer")
     .addParam("rccrelaychain", "relay chain name", "", types.string, true)
-    .addParam("feeAmount", "relay fee")
+    .addParam("feeamount", "relay fee")
     .setAction(async (taskArgs, hre) => {
         const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
         const proxy = await ProxyFactory.attach(taskArgs.proxy)
@@ -54,12 +54,12 @@ task("send", "Send Proxy")
             relayChain: taskArgs.rccrelaychain,
         }
 
-        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer, taskArgs.feeAmount)
+        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer, taskArgs.feeamount)
         console.log("multicallData:", multicallData)
 
         let fee = {
             tokenAddress: taskArgs.erctokenaddress,
-            amount: taskArgs.feeAmount,
+            amount: taskArgs.feeamount,
         }
 
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
