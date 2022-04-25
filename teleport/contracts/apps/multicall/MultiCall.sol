@@ -100,7 +100,7 @@ contract MultiCall is IMultiCall {
                     packetContractAddress,
                     fee.amount
                 ),
-                "lock failed, unsufficient allowance"
+                "lock failed, insufficient allowance"
             );
             IPacket(packetContractAddress).setPacketFee(
                 nativeChainName,
@@ -128,6 +128,21 @@ contract MultiCall is IMultiCall {
                 })
             );
         } else {
+            require(
+                IERC20(data.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(this),
+                    data.amount
+                ),
+                "ERC20: insufficient allowance"
+            );
+            require(
+                IERC20(data.tokenAddress).approve(
+                    transferContractAddress,
+                    data.amount
+                ),
+                "ERC20: approve failed"
+            );
             ITransfer(transferContractAddress).transfer(
                 TransferDataTypes.TransferDataMulti({
                     tokenAddress: data.tokenAddress,

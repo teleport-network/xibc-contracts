@@ -38,6 +38,10 @@ describe('MultiCall', () => {
     })
 
     it("multiCall", async () => {
+        erc20.mint(await accounts[0].getAddress(), 1000)
+        await erc20.approve(multiCall.address, 100000)
+        expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
+
         let account = await accounts[0].getAddress()
         let balances = (await erc20.balanceOf(await accounts[0].getAddress())).toString()
         expect(balances.toString()).to.eq("1000")
@@ -456,10 +460,6 @@ describe('MultiCall', () => {
         const tokenFac = await ethers.getContractFactory("testToken")
         erc20 = await tokenFac.deploy("test", "test")
         await erc20.deployed()
-
-        erc20.mint(await accounts[0].getAddress(), 1000)
-        await erc20.approve(mockTransfer.address, 100000)
-        expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
     }
 
     const deployHost = async () => {

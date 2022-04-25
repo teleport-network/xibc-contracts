@@ -115,7 +115,7 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                     address(packet),
                     fee.amount
                 ),
-                "lock failed, unsufficient allowance"
+                "lock failed, insufficient allowance"
             );
             packet.sendMultiPacket(crossPacket, fee);
         }
@@ -137,6 +137,21 @@ contract MultiCall is Initializable, IMultiCall, OwnableUpgradeable {
                     })
                 );
         } else {
+            require(
+                IERC20(data.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(this),
+                    data.amount
+                ),
+                "ERC20: insufficient allowance"
+            );
+            require(
+                IERC20(data.tokenAddress).approve(
+                    address(transfer),
+                    data.amount
+                ),
+                "ERC20: approve failed"
+            );
             return
                 transfer.transfer(
                     TransferDataTypes.TransferDataMulti({
