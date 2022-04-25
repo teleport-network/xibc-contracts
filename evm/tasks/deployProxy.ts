@@ -39,11 +39,13 @@ task("send", "Send Proxy")
     .addParam("refunder", "refunder address")
     .addParam("destchain", "destChain name")
     .addParam("erctokenaddress", "tokenAddress for erc20 transfer")
-    .addParam("amount", "amount for erc20 transfer and rcc transfer")
+    .addParam("transferamount", "amount for erc20 transfer and rcc transfer")
+    .addParam("rccamount", "amount for erc20 transfer and rcc transfer")
     .addParam("rcctokenaddress", "tokenAddress for rcc transfer")
     .addParam("rccreceiver", "receiver for rcc transfer")
     .addParam("rccdestchain", "destchain for rcc transfer")
     .addParam("rccrelaychain", "relay chain name", "", types.string, true)
+    .addParam("feeAmount", "relay fee")
     .setAction(async (taskArgs, hre) => {
         const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
         const proxy = await ProxyFactory.attach(taskArgs.proxy)
@@ -51,26 +53,33 @@ task("send", "Send Proxy")
         let ERC20TransferData = {
             tokenAddress: taskArgs.erctokenaddress.toLocaleLowerCase(),
             receiver: "0x0000000000000000000000000000000040000001",
-            amount: taskArgs.amount,
+            amount: taskArgs.transferamount,
         }
         let rccTransfer = {
             tokenAddress: taskArgs.rcctokenaddress.toLocaleLowerCase(),
             receiver: taskArgs.rccreceiver.toLocaleLowerCase(),
-            amount: taskArgs.amount,
+            amount: taskArgs.rccamount,
             destChain: taskArgs.rccdestchain,
             relayChain: taskArgs.rccrelaychain,
         }
-        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer)
+
+        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer, taskArgs.feeAmount)
+        console.log("multicallData:", multicallData)
+
+        let fee = {
+            tokenAddress: taskArgs.erctokenaddress,
+            amount: taskArgs.feeAmount,
+        }
 
         const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
         const multiCall = await multiCallFactory.attach(String(MULTICALl_ADDRESS))
         if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000") {
             console.log("transfer base")
-            let res = await multiCall.multiCall(multicallData, { value: taskArgs.amount })
+            let res = await multiCall.multiCall(multicallData[0], fee, { value: taskArgs.amount })
             console.log(res)
         } else {
             console.log("transfer erc20")
-            let res = await multiCall.multiCall(multicallData)
+            let res = await multiCall.multiCall(multicallData[0], fee)
             console.log(res)
         }
     })
