@@ -134,8 +134,7 @@ contract Agent is ReentrancyGuardUpgradeable {
             transferPacket.receiver.equals(address(this).addressToString()) &&
                 transferPacket.sequence == rccPacket.sequence &&
                 transferPacket.srcChain.equals(rccPacket.srcChain) &&
-                transferPacket.destChain.equals("teleport") &&
-                rccPacket.destChain.equals("teleport"),
+                transferPacket.destChain.equals(rccPacket.destChain), // if destChain is not this chain, the latest packet will not be saved
             "must synchronize"
         );
 
