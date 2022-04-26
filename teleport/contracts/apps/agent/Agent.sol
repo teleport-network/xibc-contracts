@@ -149,10 +149,7 @@ contract Agent is ReentrancyGuardUpgradeable {
             uint256 amount = transferPacket.amount.toUint256();
 
             if (tokenAddress != address(0)) {
-                token.approve(
-                    address(transferContractAddress),
-                    amount - feeAmount
-                );
+                token.approve(address(transferContractAddress), amount);
                 return (0, feeAmount, amount - feeAmount, amount - feeAmount);
             }
 
@@ -196,7 +193,7 @@ contract Agent is ReentrancyGuardUpgradeable {
         uint256 realAmountAvailable = realAmountRecv - realFeeAmount;
         uint256 realAmountSend = realAmountAvailable / 10**uint256(scaleDest);
 
-        token.approve(address(transferContractAddress), realAmountAvailable);
+        token.approve(address(transferContractAddress), realAmountRecv);
 
         return (0, realFeeAmount, realAmountAvailable, realAmountSend);
     }
