@@ -62,15 +62,13 @@ describe('Proxy', () => {
             relayChain: "",
         }
 
-        let result = await proxy.send(
+        let multiCallData = await proxy.send(
             refundAddressOnTeleport,
             destChainName, // teleport
             ERC20TransferData,
             rccTransfer,
             feeAmount,
         )
-        // console.log(result)
-        expect(true).to.eq(result[1])
 
         let Fee = {
             tokenAddress: erc20.address,
@@ -78,7 +76,7 @@ describe('Proxy', () => {
         }
 
 
-        await multiCall.multiCall(result[0], Fee)
+        await multiCall.multiCall(multiCallData, Fee)
 
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 1
@@ -219,18 +217,17 @@ describe('Proxy', () => {
             tokenAddress: zeroAddress,
             amount: 1000,
         }
-        let result = await proxy.send(
+        let multiCallData = await proxy.send(
             refundAddressOnTeleport,
             destChainName, // teleport 
             transferData,
             rccTransferData,
             feeAmount,
         )
-        expect(true).to.eq(result[1])
 
         let value = transferData.amount + Fee.amount
 
-        await multiCall.multiCall(result[0], Fee, { value: value })
+        await multiCall.multiCall(multiCallData, Fee, { value: value })
 
         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
         let seqU64 = 2
