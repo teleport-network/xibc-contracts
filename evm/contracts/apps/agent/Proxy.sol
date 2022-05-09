@@ -32,13 +32,7 @@ contract Proxy is Initializable {
         MultiCallDataTypes.TransferData memory erc20transfer,
         TransferDataTypes.TransferData memory rccTransfer,
         uint256 feeAmount
-    ) public view returns (MultiCallDataTypes.MultiCallData memory, bool) {
-        MultiCallDataTypes.MultiCallData memory multiCallData;
-
-        if (erc20transfer.amount <= feeAmount) {
-            return (multiCallData, false);
-        }
-
+    ) public view returns (MultiCallDataTypes.MultiCallData memory) {
         bytes memory id = _getID(destChain);
 
         uint8[] memory functions = new uint8[](2);
@@ -61,14 +55,15 @@ contract Proxy is Initializable {
             feeAmount
         );
 
-        multiCallData = MultiCallDataTypes.MultiCallData({
-            destChain: destChain,
-            relayChain: "",
-            functions: functions,
-            data: dataList
-        });
+        MultiCallDataTypes.MultiCallData
+            memory multiCallData = MultiCallDataTypes.MultiCallData({
+                destChain: destChain,
+                relayChain: "",
+                functions: functions,
+                data: dataList
+            });
 
-        return (multiCallData, true);
+        return multiCallData;
     }
 
     function _getID(string memory destChain)
