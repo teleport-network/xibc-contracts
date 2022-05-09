@@ -35,10 +35,7 @@ contract Proxy is Initializable {
     ) public view returns (MultiCallDataTypes.MultiCallData memory, bool) {
         MultiCallDataTypes.MultiCallData memory multiCallData;
 
-        if (
-            erc20transfer.amount <= feeAmount ||
-            rccTransfer.amount != (erc20transfer.amount - feeAmount)
-        ) {
+        if (erc20transfer.amount <= feeAmount) {
             return (multiCallData, false);
         }
 
