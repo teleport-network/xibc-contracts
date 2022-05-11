@@ -1,6 +1,6 @@
 {
   "name": "xibc-contracts",
-  "version": "",
+  "version": "0.1.0",
   "main": "index.js",
   "repository": "git@github.com:teleport-network/xibc-contracts.git",
   "author": "",
