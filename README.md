@@ -10,7 +10,7 @@
 
 ## Compile & Test
 
-```
+```bash
 cd {project_path}/{sub_path}
 yarn & yarn compile
 yarn test
