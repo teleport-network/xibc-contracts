@@ -1,11 +1,12 @@
-# ERC20 
+# ERC20-Contract
 
+[ERC20](https://eips.ethereum.org/EIPS/eip-20) contract with mint and burn functions.
 
 ### Testnet deploy
 
 ##### rinkeby
 ```shell
-yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 6 --transfer $transferaddress --network  $NETWORK_NAME
+yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 6 --transfer $transferaddress --network $NETWORK_NAME
 ```
 
 example
@@ -17,7 +18,7 @@ example-address: https://rinkeby.etherscan.io/token/0xce6f517236f122fc5a718d6dc1
 
 #### bsc
 ```shell
-yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 18 --transfer $transferaddress --network  $NETWORK_NAME
+yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 18 --transfer $transferaddress --network $NETWORK_NAME
 ```
 
 example
@@ -37,4 +38,5 @@ yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer 
 ```
 
 ### faucet repo:
+
 https://github.com/teleport-network/erc20-faucet

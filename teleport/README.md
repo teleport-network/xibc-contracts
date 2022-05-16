@@ -1,6 +1,6 @@
-# EVM-Contracts
+# Teleport-Contracts
 
-XIBC implementation for Ethereum Compatible Chain.
+XIBC implementation for Teleport chain.
 
 **Parepare**
 
@@ -66,22 +66,11 @@ yarn hardhat deployProxy --network $NETWORK_NAME
 ```
 
 **Across the chain**
-Create lightClient
-
-```bash
-yarn hardhat createClientFromFile --chain teleport --client $TENDERMINT_CLIENT --clientstate $CLIENT_STATE_PATH --consensusstate $CONSENSUS_STATE_PATH --network $NETWORK_NAME
-```
 
 Deploy Token
 
 ```bash
 yarn hardhat deployToken --name $TokenName --symbol $TokenSymbol --network $NETWORK_NAME
-```
-
-Register relayer
-
-```bash
-yarn hardhat registerRelayer --chain teleport --relayer $SUPER_ADMIN --network $NETWORK_NAME
 ```
 
 Call TransferBase
