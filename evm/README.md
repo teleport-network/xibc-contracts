@@ -1,4 +1,6 @@
-# XIBC Contracts
+# EVM-Contracts
+
+XIBC implementation for Ethereum Compatible Chain.
 
 **Parepare**
 
@@ -16,6 +18,8 @@ pip install -r requirements.txt
 
 **Compile**
 
+Compile proto file for test
+
 ```bash
 # install protobufjs
 npm install -g protobufjs
@@ -30,8 +34,8 @@ yarn & yarn compile
 **export env**
 
 ```bash
-export NETWORK_NAME=ropsten
-export SUPER_ADMIN=0xE3b552144F0adB3353CaF94B1e252714FeF5fc12
+export NETWORK_NAME={network}
+export SUPER_ADMIN={super_admin}
 ```
 
 **Deploy contract**
@@ -39,6 +43,7 @@ export SUPER_ADMIN=0xE3b552144F0adB3353CaF94B1e252714FeF5fc12
 ```bash
 # Deploy libraries
 yarn hardhat deployLibraries --network $NETWORK_NAME
+
 # Deploy AccessManager
 # The <native-chain-name> requires at least 9 characters in the cross-chain protocol.
 yarn hardhat deployAcessManager --network $NETWORK_NAME --wallet $SUPER_ADMIN
@@ -64,32 +69,30 @@ yarn hardhat deployProxy --network $NETWORK_NAME
 ```
 
 **Across the chain**
+
 Create lightClient
 
 ```bash
-yarn hardhat createClientFromFile  --chain teleport --client $TENDERMINT_CLIENT  --clientstate  $CLIENT_STATE_PATH --consensusstate $CONSENSUS_STATE_PATH  --network $NETWORK_NAME
+yarn hardhat createClientFromFile --chain teleport --client $TENDERMINT_CLIENT --clientstate $CLIENT_STATE_PATH --consensusstate $CONSENSUS_STATE_PATH --network $NETWORK_NAME
 ```
 
 Deploy Token
 
 ```bash
-yarn hardhat deployToken  --name $TokenName --symbol $TokenSymbol --network  $NETWORK_NAME
+yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --network $NETWORK_NAME
 ```
 
-Register relayer
+Call TransferToken
 
 ```bash
-yarn hardhat registerRelayer  --chain teleport  --relayer  $SUPER_ADMIN   --network $NETWORK_NAME
-```
-
-Call TransferBase
-
-```bash
-yarn hardhat transferBase  --transfer $TRANSFER_ADDRESS --address 0x0000000000000000000000000000000010000003  --receiver  0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3 --destchain  eth  --amount 20   --network teleport
-```
-
-Call TransferERC20
-
-```bash
-yarn hardhat transferERC20 --address 0x582e0992cb1EaE9B1AbcBF889EE640626453259F  --transfer $TRANSFER_ADDRESS   --receiver 0xFd805Fc7f5B60849dbA893168708AAFDD181fCf3   --amount 10 --destChain destChain  --network ropsten
+yarn hardhat transferToken \
+    --transfer $TRANSFER_CONTRACT_ADDRESS \
+    --address $TOKEN_ADDRESS \
+    --receiver $RECEIVER_ADDRESS \
+    --amount $AMOUNT \
+    --destchain $DEST_CHAIN \
+    --relaychain $RELAY_CHAIN_NAME \
+    --relayfeeaddress $FEE_TOKEN \
+    --relayfeeamout $FEE_AMOUNT \
+    --network $NETWORK_NAME
 ```

@@ -1,40 +1,51 @@
-# ERC20 
+# ERC20-Contract
 
+[ERC20](https://eips.ethereum.org/EIPS/eip-20) contract with mint and burn functions.
 
-### Testnet deploy
+## Testnet deploy
 
-##### rinkeby
-```shell
-yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 6 --transfer $transferaddress --network  $NETWORK_NAME
+Should set networks url in `hardhat.config.ts` first.
+
+### rinkeby
+
+```bash
+yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network $NETWORK_NAME
 ```
 
 example
-```shell
-yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 6 --transfer 0xcd0b4e309fb855d644ba64e5fb3dc3dd08f13917 --network rinkeby
+
+```bash
+yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 6 --transfer $TRANSFER_CONTRACT_ADDRESS --network rinkeby
 ```
 
 example-address: https://rinkeby.etherscan.io/token/0xce6f517236f122fc5a718d6dc15f0c52e2c2a17b
 
-#### bsc
-```shell
-yarn hardhat deployTestToken --name $TokenName --symbol $TokenSymbol --decimals 18 --transfer $transferaddress --network  $NETWORK_NAME
+### bsc
+
+```bash
+yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network $NETWORK_NAME
 ```
 
 example
-```shell
-yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer 0xcd0b4e309fb855d644ba64e5fb3dc3dd08f13917 --network bsctest
+
+```bash
+yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer $TRANSFER_CONTRACT_ADDRESS --network bsctest
 ```
+
 example-address:https://testnet.bscscan.com/token/0x53205b9371ece357c4f792a90652b2f74503c60e
 
 ### teleport
-```shell
-yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer 0xcd0b4e309fb855d644ba64e5fb3dc3dd08f13917 --network teleport
+
+```bash
+yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network teleport
 ```
 
 example
-```shell
-yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer 0xcd0b4e309fb855d644ba64e5fb3dc3dd08f13917 --network teleport
+
+```bash
+yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer $TRANSFER_CONTRACT_ADDRESS --network teleport
 ```
 
-### faucet repo:
+### faucet repo
+
 https://github.com/teleport-network/erc20-faucet
