@@ -453,40 +453,29 @@ contract CrossChain is
             (PacketTypes.TransferData)
         );
 
+        address sender = packetData.sender.parseAddr();
+        address tokenAddress = transferData.token.parseAddr();
+        uint256 amount = transferData.amount.toUint256();
+
         if (bytes(transferData.oriToken).length > 0) {
             // refund crossed chain token
             require(
-                _mint(
-                    transferData.token.parseAddr(),
-                    packetData.sender.parseAddr(),
-                    transferData.amount.toUint256()
-                ),
+                _mint(tokenAddress, sender, amount),
                 "mint back to sender failed"
             );
-            bindings[transferData.token.parseAddr()].amount += transferData
-                .amount
-                .toUint256();
-        } else if (transferData.token.parseAddr() != address(0)) {
+            bindings[tokenAddress].amount += amount;
+        } else if (tokenAddress != address(0)) {
             // refund native ERC20 token
             require(
-                IERC20(transferData.token.parseAddr()).transfer(
-                    packetData.sender.parseAddr(),
-                    transferData.amount.toUint256()
-                ),
+                IERC20(tokenAddress).transfer(sender, amount),
                 "unlock ERC20 token to sender failed"
             );
-            outTokens[transferData.token.parseAddr()][
-                packetData.destChain
-            ] -= transferData.amount.toUint256();
+            outTokens[tokenAddress][packetData.destChain] -= amount;
         } else {
             // refund base token
-            (bool success, ) = packetData.sender.parseAddr().call{
-                value: transferData.amount.toUint256()
-            }("");
+            (bool success, ) = sender.call{value: amount}("");
             require(success, "unlock base token to sender failed");
-            outTokens[address(0)][packetData.destChain] -= transferData
-                .amount
-                .toUint256();
+            outTokens[tokenAddress][packetData.destChain] -= amount;
         }
     }
 

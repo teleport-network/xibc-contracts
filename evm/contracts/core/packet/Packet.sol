@@ -211,13 +211,24 @@ contract Packet is
         emit PacketReceived(packet);
 
         PacketTypes.Acknowledgement memory ack;
-        // TODO: require success, if failed, gen error ACK. try catch this block
-        (ack.code, ack.result, ack.message) = crossChain.onRecvPacket(
-            packetData
-        );
+
+        try crossChain.onRecvPacket(packetData) returns (
+            uint64 code,
+            bytes memory result,
+            string memory message
+        ) {
+            ack.code = code;
+            ack.result = result;
+            ack.message = message;
+        } catch (bytes memory res) {
+            ack.code = 1;
+            ack.result = "";
+            ack.message = string(res);
+        }
 
         ack.relayer = msg.sender.addressToString();
         ack.feeOption = packetData.feeOption;
+
         bytes memory ackBytes = abi.encode(ack);
         writeAcknowledgement(
             packetData.sequence,
