@@ -14,11 +14,6 @@ contract AccessManager is AccessControlUpgradeable {
     bytes32 public constant REGISTER_RELAYER_ROLE =
         keccak256("REGISTER_RELAYER_ROLE");
 
-    // routing
-    bytes32 public constant ADD_ROUTING_ROLE = keccak256("ADD_ROUTING_ROLE");
-
-    // packet
-    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     // transfer
@@ -36,11 +31,7 @@ contract AccessManager is AccessControlUpgradeable {
         _setupRole(UPGRADE_CLIENT_ROLE, _multiSignWallet);
         _setupRole(REGISTER_RELAYER_ROLE, _multiSignWallet);
 
-        // routing
-        _setupRole(ADD_ROUTING_ROLE, _multiSignWallet);
-
         // packet
-        _setupRole(MULTISEND_ROLE, _multiSignWallet);
         _setupRole(PAUSER_ROLE, _multiSignWallet);
 
         // transfer

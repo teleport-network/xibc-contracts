@@ -9,21 +9,11 @@ import "../proto/Types.sol";
 interface IPacket {
     /**
      * @notice send cross-chain data packets
-     * @param packet xibc packet
+     * @param packetData xibc packet data
      * @param fee packet fee
      */
     function sendPacket(
-        PacketTypes.Packet calldata packet,
-        PacketTypes.Fee calldata fee
-    ) external payable;
-
-    /**
-     * @notice send cross-chain data packets
-     * @param packet xibc packet
-     * @param fee packet fee
-     */
-    function sendMultiPacket(
-        PacketTypes.Packet calldata packet,
+        PacketTypes.PacketData calldata packetData,
         PacketTypes.Fee calldata fee
     ) external payable;
 
@@ -74,4 +64,12 @@ interface IPacket {
         string calldata destChain,
         uint64 sequence
     ) external view returns (uint8);
+
+    /**
+     * @notice todo
+     */
+    function getLatestPacketData()
+        external
+        view
+        returns (PacketTypes.PacketData memory packetData);
 }

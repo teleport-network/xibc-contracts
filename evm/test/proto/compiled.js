@@ -15,9 +15,11 @@ $root.Acknowledgement = (function() {
      * Properties of an Acknowledgement.
      * @exports IAcknowledgement
      * @interface IAcknowledgement
-     * @property {Array.<Uint8Array>|null} [results] Acknowledgement results
+     * @property {number|Long|null} [code] Acknowledgement code
+     * @property {Uint8Array|null} [result] Acknowledgement result
      * @property {string|null} [message] Acknowledgement message
      * @property {string|null} [relayer] Acknowledgement relayer
+     * @property {number|Long|null} [feeOption] Acknowledgement feeOption
      */
 
     /**
@@ -29,7 +31,6 @@ $root.Acknowledgement = (function() {
      * @param {IAcknowledgement=} [properties] Properties to set
      */
     function Acknowledgement(properties) {
-        this.results = [];
         if (properties)
             for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                 if (properties[keys[i]] != null)
@@ -37,12 +38,20 @@ $root.Acknowledgement = (function() {
     }
 
     /**
-     * Acknowledgement results.
-     * @member {Array.<Uint8Array>} results
+     * Acknowledgement code.
+     * @member {number|Long} code
      * @memberof Acknowledgement
      * @instance
      */
-    Acknowledgement.prototype.results = $util.emptyArray;
+    Acknowledgement.prototype.code = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+    /**
+     * Acknowledgement result.
+     * @member {Uint8Array} result
+     * @memberof Acknowledgement
+     * @instance
+     */
+    Acknowledgement.prototype.result = $util.newBuffer([]);
 
     /**
      * Acknowledgement message.
@@ -59,6 +68,14 @@ $root.Acknowledgement = (function() {
      * @instance
      */
     Acknowledgement.prototype.relayer = "";
+
+    /**
+     * Acknowledgement feeOption.
+     * @member {number|Long} feeOption
+     * @memberof Acknowledgement
+     * @instance
+     */
+    Acknowledgement.prototype.feeOption = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
     /**
      * Creates a new Acknowledgement instance using the specified properties.
@@ -84,13 +101,16 @@ $root.Acknowledgement = (function() {
     Acknowledgement.encode = function encode(message, writer) {
         if (!writer)
             writer = $Writer.create();
-        if (message.results != null && message.results.length)
-            for (var i = 0; i < message.results.length; ++i)
-                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.results[i]);
+        if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+            writer.uint32(/* id 1, wireType 0 =*/8).int64(message.code);
+        if (message.result != null && Object.hasOwnProperty.call(message, "result"))
+            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.result);
         if (message.message != null && Object.hasOwnProperty.call(message, "message"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.message);
+            writer.uint32(/* id 3, wireType 2 =*/26).string(message.message);
         if (message.relayer != null && Object.hasOwnProperty.call(message, "relayer"))
-            writer.uint32(/* id 3, wireType 2 =*/26).string(message.relayer);
+            writer.uint32(/* id 4, wireType 2 =*/34).string(message.relayer);
+        if (message.feeOption != null && Object.hasOwnProperty.call(message, "feeOption"))
+            writer.uint32(/* id 5, wireType 0 =*/40).int64(message.feeOption);
         return writer;
     };
 
@@ -126,15 +146,19 @@ $root.Acknowledgement = (function() {
             var tag = reader.uint32();
             switch (tag >>> 3) {
             case 1:
-                if (!(message.results && message.results.length))
-                    message.results = [];
-                message.results.push(reader.bytes());
+                message.code = reader.int64();
                 break;
             case 2:
-                message.message = reader.string();
+                message.result = reader.bytes();
                 break;
             case 3:
+                message.message = reader.string();
+                break;
+            case 4:
                 message.relayer = reader.string();
+                break;
+            case 5:
+                message.feeOption = reader.int64();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -171,19 +195,21 @@ $root.Acknowledgement = (function() {
     Acknowledgement.verify = function verify(message) {
         if (typeof message !== "object" || message === null)
             return "object expected";
-        if (message.results != null && message.hasOwnProperty("results")) {
-            if (!Array.isArray(message.results))
-                return "results: array expected";
-            for (var i = 0; i < message.results.length; ++i)
-                if (!(message.results[i] && typeof message.results[i].length === "number" || $util.isString(message.results[i])))
-                    return "results: buffer[] expected";
-        }
+        if (message.code != null && message.hasOwnProperty("code"))
+            if (!$util.isInteger(message.code) && !(message.code && $util.isInteger(message.code.low) && $util.isInteger(message.code.high)))
+                return "code: integer|Long expected";
+        if (message.result != null && message.hasOwnProperty("result"))
+            if (!(message.result && typeof message.result.length === "number" || $util.isString(message.result)))
+                return "result: buffer expected";
         if (message.message != null && message.hasOwnProperty("message"))
             if (!$util.isString(message.message))
                 return "message: string expected";
         if (message.relayer != null && message.hasOwnProperty("relayer"))
             if (!$util.isString(message.relayer))
                 return "relayer: string expected";
+        if (message.feeOption != null && message.hasOwnProperty("feeOption"))
+            if (!$util.isInteger(message.feeOption) && !(message.feeOption && $util.isInteger(message.feeOption.low) && $util.isInteger(message.feeOption.high)))
+                return "feeOption: integer|Long expected";
         return null;
     };
 
@@ -199,20 +225,33 @@ $root.Acknowledgement = (function() {
         if (object instanceof $root.Acknowledgement)
             return object;
         var message = new $root.Acknowledgement();
-        if (object.results) {
-            if (!Array.isArray(object.results))
-                throw TypeError(".Acknowledgement.results: array expected");
-            message.results = [];
-            for (var i = 0; i < object.results.length; ++i)
-                if (typeof object.results[i] === "string")
-                    $util.base64.decode(object.results[i], message.results[i] = $util.newBuffer($util.base64.length(object.results[i])), 0);
-                else if (object.results[i].length)
-                    message.results[i] = object.results[i];
-        }
+        if (object.code != null)
+            if ($util.Long)
+                (message.code = $util.Long.fromValue(object.code)).unsigned = false;
+            else if (typeof object.code === "string")
+                message.code = parseInt(object.code, 10);
+            else if (typeof object.code === "number")
+                message.code = object.code;
+            else if (typeof object.code === "object")
+                message.code = new $util.LongBits(object.code.low >>> 0, object.code.high >>> 0).toNumber();
+        if (object.result != null)
+            if (typeof object.result === "string")
+                $util.base64.decode(object.result, message.result = $util.newBuffer($util.base64.length(object.result)), 0);
+            else if (object.result.length)
+                message.result = object.result;
         if (object.message != null)
             message.message = String(object.message);
         if (object.relayer != null)
             message.relayer = String(object.relayer);
+        if (object.feeOption != null)
+            if ($util.Long)
+                (message.feeOption = $util.Long.fromValue(object.feeOption)).unsigned = false;
+            else if (typeof object.feeOption === "string")
+                message.feeOption = parseInt(object.feeOption, 10);
+            else if (typeof object.feeOption === "number")
+                message.feeOption = object.feeOption;
+            else if (typeof object.feeOption === "object")
+                message.feeOption = new $util.LongBits(object.feeOption.low >>> 0, object.feeOption.high >>> 0).toNumber();
         return message;
     };
 
@@ -229,21 +268,43 @@ $root.Acknowledgement = (function() {
         if (!options)
             options = {};
         var object = {};
-        if (options.arrays || options.defaults)
-            object.results = [];
         if (options.defaults) {
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, false);
+                object.code = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.code = options.longs === String ? "0" : 0;
+            if (options.bytes === String)
+                object.result = "";
+            else {
+                object.result = [];
+                if (options.bytes !== Array)
+                    object.result = $util.newBuffer(object.result);
+            }
             object.message = "";
             object.relayer = "";
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, false);
+                object.feeOption = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.feeOption = options.longs === String ? "0" : 0;
         }
-        if (message.results && message.results.length) {
-            object.results = [];
-            for (var j = 0; j < message.results.length; ++j)
-                object.results[j] = options.bytes === String ? $util.base64.encode(message.results[j], 0, message.results[j].length) : options.bytes === Array ? Array.prototype.slice.call(message.results[j]) : message.results[j];
-        }
+        if (message.code != null && message.hasOwnProperty("code"))
+            if (typeof message.code === "number")
+                object.code = options.longs === String ? String(message.code) : message.code;
+            else
+                object.code = options.longs === String ? $util.Long.prototype.toString.call(message.code) : options.longs === Number ? new $util.LongBits(message.code.low >>> 0, message.code.high >>> 0).toNumber() : message.code;
+        if (message.result != null && message.hasOwnProperty("result"))
+            object.result = options.bytes === String ? $util.base64.encode(message.result, 0, message.result.length) : options.bytes === Array ? Array.prototype.slice.call(message.result) : message.result;
         if (message.message != null && message.hasOwnProperty("message"))
             object.message = message.message;
         if (message.relayer != null && message.hasOwnProperty("relayer"))
             object.relayer = message.relayer;
+        if (message.feeOption != null && message.hasOwnProperty("feeOption"))
+            if (typeof message.feeOption === "number")
+                object.feeOption = options.longs === String ? String(message.feeOption) : message.feeOption;
+            else
+                object.feeOption = options.longs === String ? $util.Long.prototype.toString.call(message.feeOption) : options.longs === Number ? new $util.LongBits(message.feeOption.low >>> 0, message.feeOption.high >>> 0).toNumber() : message.feeOption;
         return object;
     };
 
@@ -5117,291 +5178,6 @@ $root.PublicKey = (function() {
     };
 
     return PublicKey;
-})();
-
-$root.RemoteContractCall = (function() {
-
-    /**
-     * Properties of a RemoteContractCall.
-     * @exports IRemoteContractCall
-     * @interface IRemoteContractCall
-     * @property {string|null} [srcChain] RemoteContractCall srcChain
-     * @property {string|null} [destChain] RemoteContractCall destChain
-     * @property {string|null} [sender] RemoteContractCall sender
-     * @property {string|null} [contractAddress] RemoteContractCall contractAddress
-     * @property {Uint8Array|null} [data] RemoteContractCall data
-     */
-
-    /**
-     * Constructs a new RemoteContractCall.
-     * @exports RemoteContractCall
-     * @classdesc Represents a RemoteContractCall.
-     * @implements IRemoteContractCall
-     * @constructor
-     * @param {IRemoteContractCall=} [properties] Properties to set
-     */
-    function RemoteContractCall(properties) {
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * RemoteContractCall srcChain.
-     * @member {string} srcChain
-     * @memberof RemoteContractCall
-     * @instance
-     */
-    RemoteContractCall.prototype.srcChain = "";
-
-    /**
-     * RemoteContractCall destChain.
-     * @member {string} destChain
-     * @memberof RemoteContractCall
-     * @instance
-     */
-    RemoteContractCall.prototype.destChain = "";
-
-    /**
-     * RemoteContractCall sender.
-     * @member {string} sender
-     * @memberof RemoteContractCall
-     * @instance
-     */
-    RemoteContractCall.prototype.sender = "";
-
-    /**
-     * RemoteContractCall contractAddress.
-     * @member {string} contractAddress
-     * @memberof RemoteContractCall
-     * @instance
-     */
-    RemoteContractCall.prototype.contractAddress = "";
-
-    /**
-     * RemoteContractCall data.
-     * @member {Uint8Array} data
-     * @memberof RemoteContractCall
-     * @instance
-     */
-    RemoteContractCall.prototype.data = $util.newBuffer([]);
-
-    /**
-     * Creates a new RemoteContractCall instance using the specified properties.
-     * @function create
-     * @memberof RemoteContractCall
-     * @static
-     * @param {IRemoteContractCall=} [properties] Properties to set
-     * @returns {RemoteContractCall} RemoteContractCall instance
-     */
-    RemoteContractCall.create = function create(properties) {
-        return new RemoteContractCall(properties);
-    };
-
-    /**
-     * Encodes the specified RemoteContractCall message. Does not implicitly {@link RemoteContractCall.verify|verify} messages.
-     * @function encode
-     * @memberof RemoteContractCall
-     * @static
-     * @param {IRemoteContractCall} message RemoteContractCall message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    RemoteContractCall.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.srcChain != null && Object.hasOwnProperty.call(message, "srcChain"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.srcChain);
-        if (message.destChain != null && Object.hasOwnProperty.call(message, "destChain"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.destChain);
-        if (message.sender != null && Object.hasOwnProperty.call(message, "sender"))
-            writer.uint32(/* id 3, wireType 2 =*/26).string(message.sender);
-        if (message.contractAddress != null && Object.hasOwnProperty.call(message, "contractAddress"))
-            writer.uint32(/* id 4, wireType 2 =*/34).string(message.contractAddress);
-        if (message.data != null && Object.hasOwnProperty.call(message, "data"))
-            writer.uint32(/* id 5, wireType 2 =*/42).bytes(message.data);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified RemoteContractCall message, length delimited. Does not implicitly {@link RemoteContractCall.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof RemoteContractCall
-     * @static
-     * @param {IRemoteContractCall} message RemoteContractCall message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    RemoteContractCall.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a RemoteContractCall message from the specified reader or buffer.
-     * @function decode
-     * @memberof RemoteContractCall
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {RemoteContractCall} RemoteContractCall
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    RemoteContractCall.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.RemoteContractCall();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.srcChain = reader.string();
-                break;
-            case 2:
-                message.destChain = reader.string();
-                break;
-            case 3:
-                message.sender = reader.string();
-                break;
-            case 4:
-                message.contractAddress = reader.string();
-                break;
-            case 5:
-                message.data = reader.bytes();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a RemoteContractCall message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof RemoteContractCall
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {RemoteContractCall} RemoteContractCall
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    RemoteContractCall.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a RemoteContractCall message.
-     * @function verify
-     * @memberof RemoteContractCall
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    RemoteContractCall.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.srcChain != null && message.hasOwnProperty("srcChain"))
-            if (!$util.isString(message.srcChain))
-                return "srcChain: string expected";
-        if (message.destChain != null && message.hasOwnProperty("destChain"))
-            if (!$util.isString(message.destChain))
-                return "destChain: string expected";
-        if (message.sender != null && message.hasOwnProperty("sender"))
-            if (!$util.isString(message.sender))
-                return "sender: string expected";
-        if (message.contractAddress != null && message.hasOwnProperty("contractAddress"))
-            if (!$util.isString(message.contractAddress))
-                return "contractAddress: string expected";
-        if (message.data != null && message.hasOwnProperty("data"))
-            if (!(message.data && typeof message.data.length === "number" || $util.isString(message.data)))
-                return "data: buffer expected";
-        return null;
-    };
-
-    /**
-     * Creates a RemoteContractCall message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof RemoteContractCall
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {RemoteContractCall} RemoteContractCall
-     */
-    RemoteContractCall.fromObject = function fromObject(object) {
-        if (object instanceof $root.RemoteContractCall)
-            return object;
-        var message = new $root.RemoteContractCall();
-        if (object.srcChain != null)
-            message.srcChain = String(object.srcChain);
-        if (object.destChain != null)
-            message.destChain = String(object.destChain);
-        if (object.sender != null)
-            message.sender = String(object.sender);
-        if (object.contractAddress != null)
-            message.contractAddress = String(object.contractAddress);
-        if (object.data != null)
-            if (typeof object.data === "string")
-                $util.base64.decode(object.data, message.data = $util.newBuffer($util.base64.length(object.data)), 0);
-            else if (object.data.length)
-                message.data = object.data;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a RemoteContractCall message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof RemoteContractCall
-     * @static
-     * @param {RemoteContractCall} message RemoteContractCall
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    RemoteContractCall.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.defaults) {
-            object.srcChain = "";
-            object.destChain = "";
-            object.sender = "";
-            object.contractAddress = "";
-            if (options.bytes === String)
-                object.data = "";
-            else {
-                object.data = [];
-                if (options.bytes !== Array)
-                    object.data = $util.newBuffer(object.data);
-            }
-        }
-        if (message.srcChain != null && message.hasOwnProperty("srcChain"))
-            object.srcChain = message.srcChain;
-        if (message.destChain != null && message.hasOwnProperty("destChain"))
-            object.destChain = message.destChain;
-        if (message.sender != null && message.hasOwnProperty("sender"))
-            object.sender = message.sender;
-        if (message.contractAddress != null && message.hasOwnProperty("contractAddress"))
-            object.contractAddress = message.contractAddress;
-        if (message.data != null && message.hasOwnProperty("data"))
-            object.data = options.bytes === String ? $util.base64.encode(message.data, 0, message.data.length) : options.bytes === Array ? Array.prototype.slice.call(message.data) : message.data;
-        return object;
-    };
-
-    /**
-     * Converts this RemoteContractCall to JSON.
-     * @function toJSON
-     * @memberof RemoteContractCall
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    RemoteContractCall.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return RemoteContractCall;
 })();
 
 $root.ClientState = (function() {

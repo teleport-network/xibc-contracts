@@ -3,7 +3,7 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-library TransferDataTypes {
+library TokenBindingTypes {
     struct InToken {
         string oriChain;
         string oriToken;
@@ -20,31 +20,23 @@ library TransferDataTypes {
         uint256 previousTime; // timestamp (seconds)
         uint256 currentSupply;
     }
+}
 
-    struct TransferData {
-        address tokenAddress; // zero address if base token
-        string receiver;
-        uint256 amount;
+library CrossChainDataTypes {
+    struct CrossChainData {
+        // path data
         string destChain;
         string relayChain;
-    }
-
-    struct TransferDataMulti {
+        // transfer token data
         address tokenAddress; // zero address if base token
-        address sender;
         string receiver;
         uint256 amount;
-        string destChain;
-    }
-
-    struct TransferPacketData {
-        string srcChain;
-        string destChain;
-        uint64 sequence;
-        string sender;
-        string receiver;
-        bytes amount;
-        string token;
-        string oriToken;
+        // contract call data
+        string contractAddress;
+        bytes callData;
+        // callback data
+        string callbackAddress;
+        // fee option
+        uint64 feeOption;
     }
 }

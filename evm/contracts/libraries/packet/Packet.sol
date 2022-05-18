@@ -5,12 +5,36 @@ pragma experimental ABIEncoderV2;
 
 library PacketTypes {
     struct Packet {
-        uint64 sequence;
-        string sourceChain;
+        bytes data;
+    }
+
+    struct PacketData {
+        // packet base data
+        string srcChain;
         string destChain;
         string relayChain;
-        string[] ports;
-        bytes[] dataList;
+        uint64 sequence;
+        string sender;
+        // transfer data. keep empty if not used.
+        bytes transferData;
+        // call data. keep empty if not used
+        bytes callData;
+        // callback data
+        string callbackAddress;
+        // fee option
+        uint64 feeOption;
+    }
+
+    struct TransferData {
+        string receiver;
+        bytes amount;
+        string token;
+        string oriToken;
+    }
+
+    struct CallData {
+        string contractAddress;
+        bytes callData;
     }
 
     struct Fee {
@@ -18,14 +42,11 @@ library PacketTypes {
         uint256 amount;
     }
 
-    struct Result {
+    struct Acknowledgement {
+        uint64 code;
         bytes result;
         string message;
-    }
-
-    struct Acknowledgement {
-        bytes[] results;
-        string message;
         string relayer;
+        uint64 feeOption;
     }
 }

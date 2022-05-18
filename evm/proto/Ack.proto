@@ -1,7 +1,9 @@
 syntax = "proto3";
 
 message Acknowledgement {
-    repeated bytes results = 1;
-    string message = 2;
-    string relayer = 3;
+    int64 code = 1;
+    bytes result = 2;
+    string message = 3;
+    string relayer = 4;
+    int64 feeOption = 5;
 }
