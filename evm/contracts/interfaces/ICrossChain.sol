@@ -22,7 +22,7 @@ interface ICrossChain {
      * @notice todo
      */
     function onAcknowledgementPacket(
-        bytes calldata packetData,
+        PacketTypes.PacketData calldata packetData,
         uint64 code,
         bytes calldata result,
         string calldata message

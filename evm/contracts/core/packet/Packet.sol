@@ -211,11 +211,13 @@ contract Packet is
         emit PacketReceived(packet);
 
         PacketTypes.Acknowledgement memory ack;
+        // TODO: require success, if failed, gen error ACK. try catch this block
         (ack.code, ack.result, ack.message) = crossChain.onRecvPacket(
             packetData
         );
 
         ack.relayer = msg.sender.addressToString();
+        ack.feeOption = packetData.feeOption;
         bytes memory ackBytes = abi.encode(ack);
         writeAcknowledgement(
             packetData.sequence,
@@ -230,6 +232,7 @@ contract Packet is
 
     /**
      * @notice Verify packet commitment
+     * todo
      */
     function verifyPacketCommitment(
         address sender,
@@ -265,6 +268,7 @@ contract Packet is
 
     /**
      * @notice writeAcknowledgement is called by a module in order to send back a ack message
+     * todo
      */
     function writeAcknowledgement(
         uint64 sequence,
@@ -373,7 +377,7 @@ contract Packet is
         }
 
         crossChain.onAcknowledgementPacket(
-            packet.data,
+            packetData,
             ack.code,
             ack.result,
             ack.message

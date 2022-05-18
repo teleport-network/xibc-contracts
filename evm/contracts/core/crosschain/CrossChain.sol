@@ -322,7 +322,7 @@ contract CrossChain is
             sender: msg.sender.addressToString(),
             transferData: transferData,
             callData: callData,
-            callbackAddress: crossChainData.callbackAddress,
+            callbackAddress: crossChainData.callbackAddress.addressToString(),
             feeOption: crossChainData.feeOption
         });
 
@@ -343,201 +343,152 @@ contract CrossChain is
             string memory message
         )
     {
-        // PacketTypes.PacketData memory packetData = abi.decode(
-        //     data,
-        //     (TransferDataTypes.TransferPacketData)
-        // );
-        // latestPacket = packetData;
-        // address tokenAddress;
-        // address receiver = packetData.receiver.parseAddr();
-        // uint256 amount = packetData.amount.toUint256();
-        // if (bytes(packetData.oriToken).length == 0) {
-        //     // token come in
-        //     tokenAddress = bindingTraces[
-        //         Strings.strConcat(
-        //             Strings.strConcat(packetData.srcChain, "/"),
-        //             packetData.token
-        //         )
-        //     ];
-        //     // check bindings
-        //     if (!bindings[tokenAddress].bound) {
-        //         return
-        //             _newAcknowledgement(
-        //                 false,
-        //                 "onRecvPackt: binding is not exist"
-        //             );
-        //     }
-        //     if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
-        //         return
-        //             _newAcknowledgement(false, "onRecvPackt: invalid amount");
-        //     }
-        //     if (!_mint(tokenAddress, receiver, amount)) {
-        //         return _newAcknowledgement(false, "onRecvPackt: mint failed");
-        //     }
-        //     bindings[tokenAddress].amount += amount;
-        //     return _newAcknowledgement(true, "");
-        // }
-        // tokenAddress = packetData.oriToken.parseAddr();
-        // if (tokenAddress != address(0)) {
-        //     // ERC20 token back to origin
-        //     if (amount > outTokens[tokenAddress][packetData.srcChain]) {
-        //         return
-        //             _newAcknowledgement(
-        //                 false,
-        //                 "onRecvPackt: amount could not be greater than locked amount"
-        //             );
-        //     }
-        //     if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
-        //         return
-        //             _newAcknowledgement(false, "onRecvPackt: invalid amount");
-        //     }
-        //     if (!IERC20(tokenAddress).transfer(receiver, amount)) {
-        //         return
-        //             _newAcknowledgement(
-        //                 false,
-        //                 "onRecvPackt: unlock to receiver failed"
-        //             );
-        //     }
-        //     outTokens[tokenAddress][packetData.srcChain] -= amount;
-        //     return _newAcknowledgement(true, "");
-        // }
-        // // Base token back to origin
-        // if (amount > outTokens[address(0)][packetData.srcChain]) {
-        //     return
-        //         _newAcknowledgement(
-        //             false,
-        //             "onRecvPackt: amount could not be greater than locked amount"
-        //         );
-        // }
-        // if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
-        //     return _newAcknowledgement(false, "onRecvPackt: invalid amount");
-        // }
-        // (bool success, ) = receiver.call{value: amount}("");
-        // if (!success) {
-        //     return
-        //         _newAcknowledgement(
-        //             false,
-        //             "onRecvPackt: unlock to receiver failed"
-        //         );
-        // }
-        // outTokens[address(0)][packetData.srcChain] -= amount;
-        // return _newAcknowledgement(true, "");
+        if (
+            packetData.transferData.length == 0 &&
+            packetData.callData.length == 0
+        ) {
+            return (1, "", "empty pcaket data");
+        }
+
+        if (packetData.transferData.length > 0) {
+            PacketTypes.TransferData memory transferData = abi.decode(
+                packetData.transferData,
+                (PacketTypes.TransferData)
+            );
+
+            address tokenAddress;
+            address receiver = transferData.receiver.parseAddr();
+            uint256 amount = transferData.amount.toUint256();
+            if (bytes(transferData.oriToken).length == 0) {
+                // token come in
+                tokenAddress = bindingTraces[
+                    Strings.strConcat(
+                        Strings.strConcat(packetData.srcChain, "/"),
+                        transferData.token
+                    )
+                ];
+                // check bindings
+                if (!bindings[tokenAddress].bound) {
+                    return (2, "", "token not bound");
+                }
+                if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    return (2, "", "invalid amount");
+                }
+                if (!_mint(tokenAddress, receiver, amount)) {
+                    return (2, "", "mint failed");
+                }
+                bindings[tokenAddress].amount += amount;
+            } else {
+                tokenAddress = transferData.oriToken.parseAddr();
+
+                if (tokenAddress != address(0)) {
+                    // ERC20 token back to origin
+                    if (amount > outTokens[tokenAddress][packetData.srcChain]) {
+                        return (2, "", "amount is greater than locked");
+                    }
+                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                        return (2, "", "exceed the limit");
+                    }
+                    if (!IERC20(tokenAddress).transfer(receiver, amount)) {
+                        return (2, "", "unlock to receiver failed");
+                    }
+                    outTokens[tokenAddress][packetData.srcChain] -= amount;
+                } else {
+                    // Base token back to origin
+                    if (amount > outTokens[address(0)][packetData.srcChain]) {
+                        return (2, "", "amount is greater than locked");
+                    }
+                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                        return (2, "", "exceed the limit");
+                    }
+                    (bool success, ) = receiver.call{value: amount}("");
+                    if (!success) {
+                        return (2, "", "unlock to receiver failed");
+                    }
+                    outTokens[address(0)][packetData.srcChain] -= amount;
+                }
+            }
+        }
+
+        if (packetData.transferData.length > 0) {
+            PacketTypes.CallData memory callData = abi.decode(
+                packetData.callData,
+                (PacketTypes.CallData)
+            );
+            (bool success, bytes memory res) = callData
+                .contractAddress
+                .parseAddr()
+                .call(callData.callData);
+            if (!success) {
+                return (3, "", "execute call data failed");
+            }
+            return (0, res, "");
+        }
+
+        return (0, "", "");
     }
-
-    // function onRecvPacket(bytes calldata data)
-    //     external
-    //     override
-    //     onlyPacket
-    //     nonReentrant
-    //     returns (PacketTypes.Result memory)
-    // {
-    //     RCCDataTypes.RCCPacketData memory packetData = abi.decode(
-    //         data,
-    //         (RCCDataTypes.RCCPacketData)
-    //     );
-    //     require(
-    //         packetData.contractAddress.parseAddr() != address(this),
-    //         "illegal operation"
-    //     );
-
-    //     require(
-    //         packetData.contractAddress.parseAddr() != address(packet),
-    //         "illegal operation"
-    //     );
-
-    //     latestPacket = packetData;
-
-    //     PacketTypes.Result memory result;
-    //     (bool success, bytes memory res) = packetData
-    //         .contractAddress
-    //         .parseAddr()
-    //         .call(packetData.data);
-    //     if (!success) {
-    //         if (res.length != 0) {
-    //             result.message = string(res);
-    //         } else {
-    //             result.message = "onRecvPackt: execute packet failed";
-    //         }
-    //     } else {
-    //         if (res.length == 0) {
-    //             result.result = hex"01";
-    //         } else {
-    //             result.result = res;
-    //         }
-    //     }
-
-    //     return result;
-    // }
 
     /**
      * @notice todo
      */
     function onAcknowledgementPacket(
-        bytes calldata packetData,
+        PacketTypes.PacketData memory packetData,
         uint64 code,
-        bytes calldata result,
-        string calldata message
-    ) external override nonReentrant onlyPacket {
-        // PacketTypes.Acknowledgement memory ack = abi.decode(
-        //     acknowledgement,
-        //     (PacketTypes.Acknowledgement)
-        // );
-        // if (!Bytes.equals(result, hex"01")) {
-        //     _refundTokens(
-        //         abi.decode(data, (TransferDataTypes.TransferPacketData))
-        //     );
-        // }
+        bytes memory result,
+        string memory message
+    ) public override nonReentrant onlyPacket {
+        if (code != 0) {
+            _refundTokens(packetData);
+        }
+        ICallback(packetData.callbackAddress.parseAddr()).callback(
+            code,
+            result,
+            message
+        );
     }
 
-    // function _refundTokens(TransferDataTypes.TransferPacketData memory data)
-    //     private
-    // {
-    //     if (bytes(data.oriToken).length > 0) {
-    //         // refund crossed chain token
-    //         require(
-    //             _mint(
-    //                 data.token.parseAddr(),
-    //                 data.sender.parseAddr(),
-    //                 data.amount.toUint256()
-    //             ),
-    //             "mint back to sender failed"
-    //         );
-    //         bindings[data.token.parseAddr()].amount += data.amount.toUint256();
-    //     } else if (data.token.parseAddr() != address(0)) {
-    //         // refund native ERC20 token
-    //         require(
-    //             IERC20(data.token.parseAddr()).transfer(
-    //                 data.sender.parseAddr(),
-    //                 data.amount.toUint256()
-    //             ),
-    //             "unlock ERC20 token to sender failed"
-    //         );
-    //         outTokens[data.token.parseAddr()][data.destChain] -= data
-    //             .amount
-    //             .toUint256();
-    //     } else {
-    //         // refund base token
-    //         (bool success, ) = data.sender.parseAddr().call{
-    //             value: data.amount.toUint256()
-    //         }("");
-    //         require(success, "unlock base token to sender failed");
-    //         outTokens[address(0)][data.destChain] -= data.amount.toUint256();
-    //     }
-    // }
+    function _refundTokens(PacketTypes.PacketData memory packetData) private {
+        PacketTypes.TransferData memory transferData = abi.decode(
+            packetData.transferData,
+            (PacketTypes.TransferData)
+        );
 
-    // function _newAcknowledgement(bool success, string memory errMsg)
-    //     private
-    //     pure
-    //     returns (PacketTypes.Result memory)
-    // {
-    //     PacketTypes.Result memory result;
-    //     if (success) {
-    //         result.result = hex"01";
-    //     } else {
-    //         result.message = errMsg;
-    //     }
-    //     return result;
-    // }
+        if (bytes(transferData.oriToken).length > 0) {
+            // refund crossed chain token
+            require(
+                _mint(
+                    transferData.token.parseAddr(),
+                    packetData.sender.parseAddr(),
+                    transferData.amount.toUint256()
+                ),
+                "mint back to sender failed"
+            );
+            bindings[transferData.token.parseAddr()].amount += transferData
+                .amount
+                .toUint256();
+        } else if (transferData.token.parseAddr() != address(0)) {
+            // refund native ERC20 token
+            require(
+                IERC20(transferData.token.parseAddr()).transfer(
+                    packetData.sender.parseAddr(),
+                    transferData.amount.toUint256()
+                ),
+                "unlock ERC20 token to sender failed"
+            );
+            outTokens[transferData.token.parseAddr()][
+                packetData.destChain
+            ] -= transferData.amount.toUint256();
+        } else {
+            // refund base token
+            (bool success, ) = packetData.sender.parseAddr().call{
+                value: transferData.amount.toUint256()
+            }("");
+            require(success, "unlock base token to sender failed");
+            outTokens[address(0)][packetData.destChain] -= transferData
+                .amount
+                .toUint256();
+        }
+    }
 
     // ===========================================================================
 

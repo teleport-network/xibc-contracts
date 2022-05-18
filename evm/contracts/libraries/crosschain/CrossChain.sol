@@ -35,7 +35,7 @@ library CrossChainDataTypes {
         string contractAddress;
         bytes callData;
         // callback data
-        string callbackAddress;
+        address callbackAddress;
         // fee option
         uint64 feeOption;
     }

@@ -43,7 +43,7 @@ library PacketTypes {
     }
 
     struct Acknowledgement {
-        uint64 code;
+        uint64 code; // 0: success; 1: system failed; 2: transfer failed; 3: call failed; 4: undefined
         bytes result;
         string message;
         string relayer;
