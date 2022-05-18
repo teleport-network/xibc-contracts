@@ -3,58 +3,97 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/IPacket.sol";
-import "../libraries/core/Packet.sol";
-import "../libraries/utils/Strings.sol";
+import "../../interfaces/IPacket.sol";
+import "../../interfaces/ICrossChain.sol";
+import "../../libraries/packet/Packet.sol";
+import "../../libraries/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Packet is IPacket {
     address public constant packetModuleAddress =
         address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
-    address public constant transferContractAddress =
-        address(0x0000000000000000000000000000000030000001);
-    address public constant rccContractAddress =
-        address(0x0000000000000000000000000000000030000002);
-    address public constant multiCallContractAddress =
-        address(0x0000000000000000000000000000000030000003);
+    address public constant crossChainContractAddress =
+        address(0x0000000000000000000000000000000020000002);
 
     mapping(bytes => uint64) public sequences;
     mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
+    PacketTypes.PacketData public latestPacketData;
+
+    /**
+     * @notice Event triggered when the packet has been sent
+     * @param packet packet data
+     */
+    event PacketSent(PacketTypes.Packet packet);
+
     modifier onlyXIBCModulePacket() {
         require(
-            msg.sender == address(packetModuleAddress),
+            msg.sender == packetModuleAddress,
             "caller must be xibc packet module"
         );
         _;
     }
 
-    modifier onlyXIBCAPP() {
+    modifier onlyCrossChainContract() {
         require(
-            msg.sender == transferContractAddress ||
-                msg.sender == rccContractAddress ||
-                msg.sender == multiCallContractAddress,
+            msg.sender == crossChainContractAddress,
             "caller must be xibc app"
         );
         _;
     }
 
-    /**
-     * @notice set packet fee
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     * @param sequence sequence
-     * @param fee packet fee
-     */
-    function setPacketFee(
-        string memory sourceChain,
-        string memory destChain,
-        uint64 sequence,
+    function sendPacket(
+        PacketTypes.PacketData memory packetData,
         PacketTypes.Fee memory fee
-    ) public payable override onlyXIBCAPP {
+    ) public payable override onlyCrossChainContract {
+        // should validata packet data in teleport
         // Notice: must sent token to this contract before set packet fee
-        packetFees[getAckStatusKey(sourceChain, destChain, sequence)] = fee;
+        packetFees[
+            getAckStatusKey(
+                packetData.srcChain,
+                packetData.destChain,
+                packetData.sequence
+            )
+        ] = fee;
+        emit PacketSent(PacketTypes.Packet({data: abi.encode(packetData)}));
+    }
+
+    /**
+     * @notice todo
+     */
+    function onRecvPacket(PacketTypes.PacketData calldata packetData)
+        external
+        onlyXIBCModulePacket
+        returns (
+            uint64 code,
+            bytes memory result,
+            string memory message
+        )
+    {
+        latestPacketData = packetData;
+        try
+            ICrossChain(crossChainContractAddress).onRecvPacket(packetData)
+        returns (uint64 _code, bytes memory _result, string memory _message) {
+            return (_code, _result, _message);
+        } catch (bytes memory _res) {
+            return (1, "", string(_res));
+        }
+    }
+
+    /**
+     * @notice todo
+     */
+    function OnAcknowledgePacket(
+        PacketTypes.PacketData calldata packetData,
+        PacketTypes.Acknowledgement calldata ack
+    ) external onlyXIBCModulePacket {
+        ICrossChain(crossChainContractAddress).onAcknowledgementPacket(
+            packetData,
+            ack.code,
+            ack.result,
+            ack.message
+        );
     }
 
     /**
@@ -227,5 +266,17 @@ contract Packet is IPacket {
                     Strings.uint642str(sequence)
                 )
             );
+    }
+
+    /**
+     * @notice todo
+     */
+    function getLatestPacketData()
+        external
+        view
+        override
+        returns (PacketTypes.PacketData memory packetData)
+    {
+        return latestPacketData;
     }
 }

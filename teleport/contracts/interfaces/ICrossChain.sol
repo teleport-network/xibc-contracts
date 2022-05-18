@@ -47,6 +47,14 @@ interface ICrossChain {
     /**
      * @notice todo
      */
+    function boundTokenSources(address tokenAddress, uint256 index)
+        external
+        pure
+        returns (string memory tokenSource);
+
+    /**
+     * @notice todo
+     */
     function bindingTraces(string calldata trace)
         external
         pure
@@ -63,8 +71,8 @@ interface ICrossChain {
     /**
      * @notice todo
      */
-    function getBindings(address tokenAddress)
+    function getBindings(string calldata path)
         external
         view
-        returns (TokenBindingTypes.InToken memory binding);
+        returns (TransferDataTypes.InToken memory binding);
 }

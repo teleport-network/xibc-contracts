@@ -45,7 +45,10 @@ contract CrossChain is
     mapping(address => TokenBindingTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
 
     modifier onlyPacket() {
-        require(msg.sender == address(packet), "caller not packet contract");
+        require(
+            msg.sender == address(packet),
+            "caller must be packet contract"
+        );
         _;
     }
 
@@ -205,6 +208,7 @@ contract CrossChain is
             sourceChain,
             crossChainData.destChain
         );
+
         // tansfer data and contractcall data can't be both empty
         require(
             crossChainData.amount != 0 || crossChainData.callData.length != 0,
