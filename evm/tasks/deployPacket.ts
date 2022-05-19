@@ -42,7 +42,7 @@ task("queryRecipt", "query recipt")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(taskArgs.packet)
-        let key = "receipts/" + taskArgs.sourcechain + "/" + taskArgs.destchain + "/sequences/" + taskArgs.sequence
+        let key = taskArgs.sourcechain + "/" + taskArgs.destchain + "/" + taskArgs.sequence
         let packetRec = await packet.receipts(Buffer.from(key, "utf-8"))
         console.log(packetRec)
     })
