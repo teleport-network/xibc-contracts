@@ -17,6 +17,7 @@ contract Packet is IPacket {
 
     mapping(bytes => uint64) public sequences;
     mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
+    mapping(bytes => bytes) public acks; // TODO
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     PacketTypes.PacketData public latestPacketData;

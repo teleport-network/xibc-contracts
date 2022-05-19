@@ -35,6 +35,7 @@ contract Packet is
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
     mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
+    mapping(bytes => bytes) public acks; // TODO
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
