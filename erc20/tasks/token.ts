@@ -45,14 +45,26 @@ task("deployTestToken", "Deploy Testnet ERC20 Token")
         fs.appendFileSync('env.txt', 'export ' + taskArgs.name + '=' + token.address.toLocaleLowerCase() + '\n')
     });
 
-task("hasMinterRole", "Deploy Token")
+task("hasRole", "Deploy Token")
     .addParam("address", "ERC20 contract address")
     .addParam("transfer", "transfer address")
     .setAction(async (taskArgs, hre) => {
         const tokenFactory = await hre.ethers.getContractFactory('ERC20MinterBurnerDecimals')
         const token = await tokenFactory.attach(taskArgs.address)
 
-        console.log(await token.hasRole(keccak256("MINTER_ROLE"), taskArgs.transfer))
+        console.log("MINTER_ROLE",await token.hasRole(keccak256("MINTER_ROLE"), taskArgs.transfer))
+        console.log("BURNER_ROLE",await token.hasRole(keccak256("BURNER_ROLE"), taskArgs.transfer))
+    });
+
+task("grantRole", "Deploy Token")
+    .addParam("address", "ERC20 contract address")
+    .addParam("account", "account address")
+    .setAction(async (taskArgs, hre) => {
+        const tokenFactory = await hre.ethers.getContractFactory('ERC20MinterBurnerDecimals')
+        const token = await tokenFactory.attach(taskArgs.address)
+
+        console.log(await token.grantRole(keccak256("MINTER_ROLE"), taskArgs.account))
+        console.log(await token.grantRole(keccak256("BURNER_ROLE"), taskArgs.account))
     });
 
 task("grantMinterRole", "Deploy Token")
