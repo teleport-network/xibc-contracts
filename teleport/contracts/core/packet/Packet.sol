@@ -64,8 +64,8 @@ contract Packet is IPacket {
     /**
      * @notice todo
      */
-    function onRecvPacket(PacketTypes.Packet calldata packet)
-        external
+    function onRecvPacket(PacketTypes.Packet memory packet)
+        public
         onlyXIBCModulePacket
         returns (
             uint64 code,
