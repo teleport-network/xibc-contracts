@@ -55,7 +55,7 @@ task("queryCommit", "query commit")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(taskArgs.packet)
-        let key = "acks/" + taskArgs.sourcechain + "/" + taskArgs.destchain + "/sequences/" + taskArgs.sequence
+        let key = "commitments/" + taskArgs.sourcechain + "/" + taskArgs.destchain + "/sequences/" + taskArgs.sequence
         let packetRec = await packet.commitments(Buffer.from(key, "utf-8"))
         console.log(packetRec)
     })
