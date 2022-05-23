@@ -9,11 +9,11 @@ import "../proto/Types.sol";
 interface IPacket {
     /**
      * @notice send cross-chain data packets
-     * @param packetData xibc packet data
+     * @param packet xibc packet
      * @param fee packet fee
      */
     function sendPacket(
-        PacketTypes.PacketData calldata packetData,
+        PacketTypes.Packet calldata packet,
         PacketTypes.Fee calldata fee
     ) external payable;
 
@@ -24,20 +24,20 @@ interface IPacket {
      * @param proof height of the proof
      */
     function recvPacket(
-        PacketTypes.Packet calldata packet,
+        bytes calldata packet,
         bytes calldata proof,
         Height.Data calldata height
     ) external;
 
     /**
-     * @notice receive cross-chain data packets from the sending chain
-     * @param packet cross-chain data packets
+     * @notice receive cross-chain packets ack from the dest chain
+     * @param packet cross-chain data packet bytes
      * @param acknowledgement confirmation message of packet on the receiving chain
      * @param proofAcked existence proof of acknowledgement on the receiving chain
      * @param height height of the proof
      */
     function acknowledgePacket(
-        PacketTypes.Packet calldata packet,
+        bytes calldata packet,
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
@@ -68,8 +68,8 @@ interface IPacket {
     /**
      * @notice todo
      */
-    function getLatestPacketData()
+    function getLatestPacket()
         external
         view
-        returns (PacketTypes.PacketData memory packetData);
+        returns (PacketTypes.Packet memory packet);
 }

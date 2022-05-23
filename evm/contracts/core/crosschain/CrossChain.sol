@@ -29,7 +29,7 @@ contract CrossChain is
 
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
 
-    IPacket public packet;
+    IPacket public packetContract;
     IClientManager public clientManager;
     IAccessManager public accessManager;
 
@@ -46,7 +46,7 @@ contract CrossChain is
 
     modifier onlyPacket() {
         require(
-            msg.sender == address(packet),
+            msg.sender == address(packetContract),
             "caller must be packet contract"
         );
         _;
@@ -59,13 +59,13 @@ contract CrossChain is
     }
 
     function initialize(
-        address packetContract,
-        address clientManagerContract,
-        address accessManagerContract
+        address packetContractAddress,
+        address clientManagerContractAddress,
+        address accessManagerContractAddress
     ) public initializer {
-        packet = IPacket(packetContract);
-        clientManager = IClientManager(clientManagerContract);
-        accessManager = IAccessManager(accessManagerContract);
+        packetContract = IPacket(packetContractAddress);
+        clientManager = IClientManager(clientManagerContractAddress);
+        accessManager = IAccessManager(accessManagerContractAddress);
     }
 
     /**
@@ -204,7 +204,7 @@ contract CrossChain is
                 !crossChainData.destChain.equals(crossChainData.relayChain),
             "invalid chains"
         );
-        uint64 sequence = packet.getNextSequenceSend(
+        uint64 sequence = packetContract.getNextSequenceSend(
             sourceChain,
             crossChainData.destChain
         );
@@ -242,7 +242,7 @@ contract CrossChain is
             require(
                 IERC20(fee.tokenAddress).transferFrom(
                     msg.sender,
-                    address(packet),
+                    address(packetContract),
                     fee.amount
                 ),
                 "send fee failed, insufficient allowance"
@@ -318,7 +318,7 @@ contract CrossChain is
             );
         }
 
-        PacketTypes.PacketData memory packetData = PacketTypes.PacketData({
+        PacketTypes.Packet memory packet = PacketTypes.Packet({
             srcChain: sourceChain,
             destChain: crossChainData.destChain,
             relayChain: crossChainData.relayChain,
@@ -330,13 +330,13 @@ contract CrossChain is
             feeOption: crossChainData.feeOption
         });
 
-        packet.sendPacket{value: fee.amount}(packetData, fee);
+        packetContract.sendPacket{value: fee.amount}(packet, fee);
     }
 
     /**
      * @notice todo
      */
-    function onRecvPacket(PacketTypes.PacketData calldata packetData)
+    function onRecvPacket(PacketTypes.Packet calldata packet)
         external
         override
         nonReentrant
@@ -347,16 +347,13 @@ contract CrossChain is
             string memory message
         )
     {
-        if (
-            packetData.transferData.length == 0 &&
-            packetData.callData.length == 0
-        ) {
+        if (packet.transferData.length == 0 && packet.callData.length == 0) {
             return (1, "", "empty pcaket data");
         }
 
-        if (packetData.transferData.length > 0) {
+        if (packet.transferData.length > 0) {
             PacketTypes.TransferData memory transferData = abi.decode(
-                packetData.transferData,
+                packet.transferData,
                 (PacketTypes.TransferData)
             );
 
@@ -367,7 +364,7 @@ contract CrossChain is
                 // token come in
                 tokenAddress = bindingTraces[
                     Strings.strConcat(
-                        Strings.strConcat(packetData.srcChain, "/"),
+                        Strings.strConcat(packet.srcChain, "/"),
                         transferData.token
                     )
                 ];
@@ -387,7 +384,7 @@ contract CrossChain is
 
                 if (tokenAddress != address(0)) {
                     // ERC20 token back to origin
-                    if (amount > outTokens[tokenAddress][packetData.srcChain]) {
+                    if (amount > outTokens[tokenAddress][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
                     if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
@@ -396,10 +393,10 @@ contract CrossChain is
                     if (!IERC20(tokenAddress).transfer(receiver, amount)) {
                         return (2, "", "unlock to receiver failed");
                     }
-                    outTokens[tokenAddress][packetData.srcChain] -= amount;
+                    outTokens[tokenAddress][packet.srcChain] -= amount;
                 } else {
                     // Base token back to origin
-                    if (amount > outTokens[address(0)][packetData.srcChain]) {
+                    if (amount > outTokens[address(0)][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
                     if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
@@ -409,14 +406,14 @@ contract CrossChain is
                     if (!success) {
                         return (2, "", "unlock to receiver failed");
                     }
-                    outTokens[address(0)][packetData.srcChain] -= amount;
+                    outTokens[address(0)][packet.srcChain] -= amount;
                 }
             }
         }
 
-        if (packetData.transferData.length > 0) {
+        if (packet.transferData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(
-                packetData.callData,
+                packet.callData,
                 (PacketTypes.CallData)
             );
             (bool success, bytes memory res) = callData
@@ -436,51 +433,48 @@ contract CrossChain is
      * @notice todo
      */
     function onAcknowledgementPacket(
-        PacketTypes.PacketData memory packetData,
+        PacketTypes.Packet memory packet,
         uint64 code,
         bytes memory result,
         string memory message
     ) public override nonReentrant onlyPacket {
         if (code != 0) {
-            _refundTokens(packetData);
+            // refund tokens
+            PacketTypes.TransferData memory transferData = abi.decode(
+                packet.transferData,
+                (PacketTypes.TransferData)
+            );
+
+            address sender = packet.sender.parseAddr();
+            address tokenAddress = transferData.token.parseAddr();
+            uint256 amount = transferData.amount.toUint256();
+
+            if (bytes(transferData.oriToken).length > 0) {
+                // refund crossed chain token
+                require(
+                    _mint(tokenAddress, sender, amount),
+                    "mint back to sender failed"
+                );
+                bindings[tokenAddress].amount += amount;
+            } else if (tokenAddress != address(0)) {
+                // refund native ERC20 token
+                require(
+                    IERC20(tokenAddress).transfer(sender, amount),
+                    "unlock ERC20 token to sender failed"
+                );
+                outTokens[tokenAddress][packet.destChain] -= amount;
+            } else {
+                // refund base token
+                (bool success, ) = sender.call{value: amount}("");
+                require(success, "unlock base token to sender failed");
+                outTokens[tokenAddress][packet.destChain] -= amount;
+            }
         }
-        ICallback(packetData.callbackAddress.parseAddr()).callback(
+        ICallback(packet.callbackAddress.parseAddr()).callback(
             code,
             result,
             message
         );
-    }
-
-    function _refundTokens(PacketTypes.PacketData memory packetData) private {
-        PacketTypes.TransferData memory transferData = abi.decode(
-            packetData.transferData,
-            (PacketTypes.TransferData)
-        );
-
-        address sender = packetData.sender.parseAddr();
-        address tokenAddress = transferData.token.parseAddr();
-        uint256 amount = transferData.amount.toUint256();
-
-        if (bytes(transferData.oriToken).length > 0) {
-            // refund crossed chain token
-            require(
-                _mint(tokenAddress, sender, amount),
-                "mint back to sender failed"
-            );
-            bindings[tokenAddress].amount += amount;
-        } else if (tokenAddress != address(0)) {
-            // refund native ERC20 token
-            require(
-                IERC20(tokenAddress).transfer(sender, amount),
-                "unlock ERC20 token to sender failed"
-            );
-            outTokens[tokenAddress][packetData.destChain] -= amount;
-        } else {
-            // refund base token
-            (bool success, ) = sender.call{value: amount}("");
-            require(success, "unlock base token to sender failed");
-            outTokens[tokenAddress][packetData.destChain] -= amount;
-        }
     }
 
     // ===========================================================================

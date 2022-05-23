@@ -41,7 +41,7 @@ contract Packet is
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    PacketTypes.PacketData public latestPacketData;
+    PacketTypes.Packet public latestPacket;
 
     /**
      * @notice initialize
@@ -67,9 +67,9 @@ contract Packet is
 
     /**
      * @notice Event triggered when the packet has been sent
-     * @param packet packet data
+     * @param packetBytes packet bytes
      */
-    event PacketSent(PacketTypes.Packet packet);
+    event PacketSent(bytes packetBytes);
 
     /**
      * @notice Event triggered when the packet has been received
@@ -104,44 +104,45 @@ contract Packet is
     }
 
     /**
-     * @notice SendPacket is called by a module in order to send an XIBC packet with single data.
-     * @param packetData xibc packet data
+     * @notice sendPacket is called by a module in order to send an XIBC packet with single data.
+     * @param packet xibc packet
      * @param fee packet fee
      */
     function sendPacket(
-        PacketTypes.PacketData memory packetData,
+        PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
     ) public payable override whenNotPaused {
-        require(packetData.sequence > 0, "packet sequence cannot be 0");
+        // TODO: only crosschain packet
+        require(packet.sequence > 0, "packet sequence cannot be 0");
 
         // TODO: validate packet data
 
         // Notice: must sent token to this contract before set packet fee
         packetFees[
             Host.ackStatusKey(
-                packetData.srcChain,
-                packetData.destChain,
-                packetData.sequence
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
             )
         ] = fee;
 
-        if (bytes(packetData.relayChain).length > 0) {
+        if (bytes(packet.relayChain).length > 0) {
             require(
-                address(clientManager.getClient(packetData.relayChain)) !=
+                address(clientManager.getClient(packet.relayChain)) !=
                     address(0),
                 "light client not found"
             );
         } else {
             require(
-                address(clientManager.getClient(packetData.destChain)) !=
+                address(clientManager.getClient(packet.destChain)) !=
                     address(0),
                 "light client not found"
             );
         }
 
         bytes memory nextSequenceSendKey = Host.nextSequenceSendKey(
-            packetData.srcChain,
-            packetData.destChain
+            packet.srcChain,
+            packet.destChain
         );
 
         if (sequences[nextSequenceSendKey] == 0) {
@@ -149,62 +150,64 @@ contract Packet is
         }
 
         require(
-            packetData.sequence == sequences[nextSequenceSendKey],
+            packet.sequence == sequences[nextSequenceSendKey],
             "packet sequence ≠ next send sequence"
         );
 
         sequences[nextSequenceSendKey]++;
 
-        bytes memory data = abi.encode(packetData);
+        bytes memory bz = abi.encode(packet);
         commitments[
             Host.packetCommitmentKey(
-                packetData.srcChain,
-                packetData.destChain,
-                packetData.sequence
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
             )
-        ] = sha256(Bytes.fromBytes32(sha256(data)));
-        emit PacketSent(PacketTypes.Packet({data: data}));
+        ] = sha256(Bytes.fromBytes32(sha256(bz)));
+        emit PacketSent(bz);
     }
 
     /**
      * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
-     * @param packet xibc packet
+     * @param packetBytes xibc packet bytes
      * @param proof proof commit
      * @param height proof height
      */
     function recvPacket(
-        PacketTypes.Packet calldata packet,
+        bytes calldata packetBytes,
         bytes calldata proof,
         Height.Data calldata height
     ) external override nonReentrant whenNotPaused {
-        PacketTypes.PacketData memory packetData = abi.decode(
-            packet.data,
-            (PacketTypes.PacketData)
+        // TODO: only relayer
+        PacketTypes.Packet memory packet = abi.decode(
+            packetBytes,
+            (PacketTypes.Packet)
         );
-        latestPacketData = packetData;
+        latestPacket = packet;
 
         require(
-            Strings.equals(packetData.destChain, clientManager.getChainName()),
+            Strings.equals(packet.destChain, clientManager.getChainName()),
             "invalid destChain"
         );
 
         bytes memory packetReceiptKey = Host.packetReceiptKey(
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.sequence
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
         );
 
         require(!receipts[packetReceiptKey], "packet has been received");
 
+        bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
         verifyPacketCommitment(
             _msgSender(),
-            packetData.sequence,
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.relayChain,
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
             proof,
             height,
-            Bytes.fromBytes32(sha256(packet.data))
+            packetCommitment
         );
 
         receipts[packetReceiptKey] = true;
@@ -213,7 +216,7 @@ contract Packet is
 
         PacketTypes.Acknowledgement memory ack;
 
-        try crossChain.onRecvPacket(packetData) returns (
+        try crossChain.onRecvPacket(packet) returns (
             uint64 code,
             bytes memory result,
             string memory message
@@ -228,14 +231,14 @@ contract Packet is
         }
 
         ack.relayer = msg.sender.addressToString();
-        ack.feeOption = packetData.feeOption;
+        ack.feeOption = packet.feeOption;
 
         bytes memory ackBytes = abi.encode(ack);
         writeAcknowledgement(
-            packetData.sequence,
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.relayChain,
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
             ackBytes
         );
 
@@ -318,44 +321,44 @@ contract Packet is
 
     /**
      * @notice acknowledgePacket is called by relayer in order to receive an XIBC acknowledgement
-     * @param packet xibc packet
+     * @param packetBytes xibc packet bytes
      * @param acknowledgement acknowledgement from dest chain
      * @param proofAcked ack proof commit
      * @param height ack proof height
      */
     function acknowledgePacket(
-        PacketTypes.Packet calldata packet,
+        bytes calldata packetBytes,
         bytes calldata acknowledgement,
         bytes calldata proofAcked,
         Height.Data calldata height
     ) external override nonReentrant whenNotPaused {
-        PacketTypes.PacketData memory packetData = abi.decode(
-            packet.data,
-            (PacketTypes.PacketData)
+        PacketTypes.Packet memory packet = abi.decode(
+            packetBytes,
+            (PacketTypes.Packet)
         );
 
         require(
-            Strings.equals(packetData.srcChain, clientManager.getChainName()),
+            Strings.equals(packet.srcChain, clientManager.getChainName()),
             "invalid packet"
         );
 
         bytes memory packetCommitmentKey = Host.packetCommitmentKey(
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.sequence
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
         );
 
         require(
-            commitments[packetCommitmentKey] == sha256(packet.data),
+            commitments[packetCommitmentKey] == sha256(packetBytes),
             "commitment bytes are not equal"
         );
 
         verifyPacketAcknowledgement(
             _msgSender(),
-            packetData.sequence,
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.relayChain,
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
             acknowledgement,
             proofAcked,
             height
@@ -363,11 +366,7 @@ contract Packet is
 
         delete commitments[packetCommitmentKey];
 
-        setMaxAckSequence(
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.sequence
-        );
+        setMaxAckSequence(packet.srcChain, packet.destChain, packet.sequence);
 
         emit AckPacket(packet, acknowledgement);
 
@@ -377,9 +376,9 @@ contract Packet is
         );
 
         bytes memory key = Host.ackStatusKey(
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.sequence
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
         );
 
         if (ack.code == 0) {
@@ -389,16 +388,16 @@ contract Packet is
         }
 
         crossChain.onAcknowledgementPacket(
-            packetData,
+            packet,
             ack.code,
             ack.result,
             ack.message
         );
 
         sendPacketFeeToRelayer(
-            packetData.srcChain,
-            packetData.destChain,
-            packetData.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence,
             ack.relayer.parseAddr()
         );
     }
@@ -558,13 +557,13 @@ contract Packet is
     /**
      * @notice todo
      */
-    function getLatestPacketData()
+    function getLatestPacket()
         external
         view
         override
-        returns (PacketTypes.PacketData memory packetData)
+        returns (PacketTypes.Packet memory packet)
     {
-        return latestPacketData;
+        return latestPacket;
     }
 
     /**
