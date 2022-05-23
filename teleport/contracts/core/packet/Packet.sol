@@ -20,13 +20,13 @@ contract Packet is IPacket {
     mapping(bytes => bytes) public acks; // TODO
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
-    PacketTypes.PacketData public latestPacketData;
+    PacketTypes.Packet public latestPacket;
 
     /**
      * @notice Event triggered when the packet has been sent
-     * @param packet packet data
+     * @param packetBytes packet data
      */
-    event PacketSent(PacketTypes.Packet packet);
+    event PacketSent(bytes packetBytes);
 
     modifier onlyXIBCModulePacket() {
         require(
@@ -44,26 +44,27 @@ contract Packet is IPacket {
         _;
     }
 
+    /**
+     * @notice sendPacket is called by a module in order to send an XIBC packet with single data.
+     * @param packet xibc packet
+     * @param fee packet fee
+     */
     function sendPacket(
-        PacketTypes.PacketData memory packetData,
+        PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
     ) public payable override onlyCrossChainContract {
         // should validata packet data in teleport
         // Notice: must sent token to this contract before set packet fee
         packetFees[
-            getAckStatusKey(
-                packetData.srcChain,
-                packetData.destChain,
-                packetData.sequence
-            )
+            getAckStatusKey(packet.srcChain, packet.destChain, packet.sequence)
         ] = fee;
-        emit PacketSent(PacketTypes.Packet({data: abi.encode(packetData)}));
+        emit PacketSent(abi.encode(packet));
     }
 
     /**
      * @notice todo
      */
-    function onRecvPacket(PacketTypes.PacketData calldata packetData)
+    function onRecvPacket(PacketTypes.Packet calldata packet)
         external
         onlyXIBCModulePacket
         returns (
@@ -72,9 +73,9 @@ contract Packet is IPacket {
             string memory message
         )
     {
-        latestPacketData = packetData;
+        latestPacket = packet;
         try
-            ICrossChain(crossChainContractAddress).onRecvPacket(packetData)
+            ICrossChain(crossChainContractAddress).onRecvPacket(packet)
         returns (uint64 _code, bytes memory _result, string memory _message) {
             return (_code, _result, _message);
         } catch (bytes memory _res) {
@@ -86,11 +87,11 @@ contract Packet is IPacket {
      * @notice todo
      */
     function OnAcknowledgePacket(
-        PacketTypes.PacketData calldata packetData,
+        PacketTypes.Packet calldata packet,
         PacketTypes.Acknowledgement calldata ack
     ) external onlyXIBCModulePacket {
         ICrossChain(crossChainContractAddress).onAcknowledgementPacket(
-            packetData,
+            packet,
             ack.code,
             ack.result,
             ack.message
@@ -272,12 +273,12 @@ contract Packet is IPacket {
     /**
      * @notice todo
      */
-    function getLatestPacketData()
+    function getLatestPacket()
         external
         view
         override
-        returns (PacketTypes.PacketData memory packetData)
+        returns (PacketTypes.Packet memory packet)
     {
-        return latestPacketData;
+        return latestPacket;
     }
 }

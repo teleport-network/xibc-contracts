@@ -5,10 +5,6 @@ pragma experimental ABIEncoderV2;
 
 library PacketTypes {
     struct Packet {
-        bytes data;
-    }
-
-    struct PacketData {
         // packet base data
         string srcChain;
         string destChain;

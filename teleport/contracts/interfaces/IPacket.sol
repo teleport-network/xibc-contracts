@@ -7,10 +7,12 @@ import "../libraries/packet/Packet.sol";
 
 interface IPacket {
     /**
-     * @notice todo
+     * @notice send cross-chain data packets
+     * @param packet xibc packet
+     * @param fee packet fee
      */
     function sendPacket(
-        PacketTypes.PacketData calldata packetData,
+        PacketTypes.Packet calldata packet,
         PacketTypes.Fee calldata fee
     ) external payable;
 
@@ -39,8 +41,8 @@ interface IPacket {
     /**
      * @notice todo
      */
-    function getLatestPacketData()
+    function getLatestPacket()
         external
         view
-        returns (PacketTypes.PacketData memory packetData);
+        returns (PacketTypes.Packet memory packet);
 }

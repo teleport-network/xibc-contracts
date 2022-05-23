@@ -18,7 +18,7 @@ interface ICrossChain {
     /**
      * @notice todo
      */
-    function onRecvPacket(PacketTypes.PacketData calldata packetData)
+    function onRecvPacket(PacketTypes.Packet calldata packet)
         external
         returns (
             uint64 code,
@@ -30,7 +30,7 @@ interface ICrossChain {
      * @notice todo
      */
     function onAcknowledgementPacket(
-        PacketTypes.PacketData calldata packetData,
+        PacketTypes.Packet calldata packet,
         uint64 code,
         bytes calldata result,
         string calldata message

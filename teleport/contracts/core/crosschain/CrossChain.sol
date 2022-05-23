@@ -191,7 +191,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     /**
      * @notice todo
      */
-    function onRecvPacket(PacketTypes.PacketData calldata packetData)
+    function onRecvPacket(PacketTypes.Packet calldata packet)
         external
         override
         nonReentrant
@@ -206,57 +206,54 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     }
 
     function onAcknowledgementPacket(
-        PacketTypes.PacketData memory packetData,
+        PacketTypes.Packet memory packet,
         uint64 code,
         bytes memory result,
         string memory message
     ) public override nonReentrant onlyPacket {
         if (code != 0) {
-            _refundTokens(packetData);
+            // refund tokens
+            PacketTypes.TransferData memory transferData = abi.decode(
+                packet.transferData,
+                (PacketTypes.TransferData)
+            );
+
+            address sender = packet.sender.parseAddr();
+            address tokenAddress = transferData.token.parseAddr();
+            uint256 amount = transferData.amount.toUint256();
+
+            if (bytes(transferData.oriToken).length > 0) {
+                // refund crossed chain token back to origin
+                string memory bindingKey = Strings.strConcat(
+                    Strings.strConcat(transferData.token, "/"),
+                    packet.destChain
+                );
+                uint256 realAmount = amount *
+                    10**uint256(bindings[bindingKey].scale);
+                require(
+                    _mint(tokenAddress, sender, realAmount),
+                    "mint back to sender failed"
+                );
+                bindings[bindingKey].amount += realAmount;
+            } else if (tokenAddress != address(0)) {
+                // refund native ERC20 token out
+                require(
+                    IERC20(tokenAddress).transfer(sender, amount),
+                    "unlock to sender failed"
+                );
+                outTokens[tokenAddress][packet.destChain] -= amount;
+            } else {
+                // refund base token out
+                (bool success, ) = sender.call{value: amount}("");
+                require(success, "unlock base token to sender failed");
+                outTokens[tokenAddress][packet.destChain] -= amount;
+            }
         }
-        ICallback(packetData.callbackAddress.parseAddr()).callback(
+        ICallback(packet.callbackAddress.parseAddr()).callback(
             code,
             result,
             message
         );
-    }
-
-    function _refundTokens(PacketTypes.PacketData memory packetData) private {
-        PacketTypes.TransferData memory transferData = abi.decode(
-            packetData.transferData,
-            (PacketTypes.TransferData)
-        );
-
-        address sender = packetData.sender.parseAddr();
-        address tokenAddress = transferData.token.parseAddr();
-        uint256 amount = transferData.amount.toUint256();
-
-        if (bytes(transferData.oriToken).length > 0) {
-            // refund crossed chain token back to origin
-            string memory bindingKey = Strings.strConcat(
-                Strings.strConcat(transferData.token, "/"),
-                packetData.destChain
-            );
-            uint256 realAmount = amount *
-                10**uint256(bindings[bindingKey].scale);
-            require(
-                _mint(tokenAddress, sender, realAmount),
-                "mint back to sender failed"
-            );
-            bindings[bindingKey].amount += realAmount;
-        } else if (tokenAddress != address(0)) {
-            // refund native ERC20 token out
-            require(
-                IERC20(tokenAddress).transfer(sender, amount),
-                "unlock to sender failed"
-            );
-            outTokens[tokenAddress][packetData.destChain] -= amount;
-        } else {
-            // refund base token out
-            (bool success, ) = sender.call{value: amount}("");
-            require(success, "unlock base token to sender failed");
-            outTokens[tokenAddress][packetData.destChain] -= amount;
-        }
     }
 
     // ===========================================================================
