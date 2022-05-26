@@ -35,8 +35,8 @@ contract Packet is
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
-    bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
     PacketTypes.Packet public latestPacket;
 
@@ -88,9 +88,12 @@ contract Packet is
      */
     event AckWritten(PacketTypes.Packet packet, bytes ack);
 
-    // only self can perform related transactions
-    modifier onlySelf() {
-        require(address(this) == _msgSender(), "not authorized");
+    // only onlyCrossChainContract can perform related transactions
+    modifier onlyCrossChainContract() {
+        require(
+            address(crossChain) == _msgSender(),
+            "only cross chain contract authorized"
+        );
         _;
     }
 
@@ -108,8 +111,7 @@ contract Packet is
     function sendPacket(
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
-    ) public payable override whenNotPaused {
-        // TODO: only crosschain contract
+    ) public payable override whenNotPaused onlyCrossChainContract {
         require(packet.sequence > 0, "packet sequence cannot be 0");
 
         // TODO: validate packet data
@@ -174,8 +176,13 @@ contract Packet is
         bytes calldata packetBytes,
         bytes calldata proof,
         Height.Data calldata height
-    ) external override nonReentrant whenNotPaused {
-        // TODO: only relayer
+    )
+        external
+        override
+        nonReentrant
+        whenNotPaused
+        onlyAuthorizee(RELAYER_ROLE)
+    {
         PacketTypes.Packet memory packet = abi.decode(
             packetBytes,
             (PacketTypes.Packet)
@@ -231,7 +238,7 @@ contract Packet is
         ack.feeOption = packet.feeOption;
 
         bytes memory ackBytes = abi.encode(ack);
-        writeAcknowledgement(
+        _writeAcknowledgement(
             packet.sequence,
             packet.srcChain,
             packet.destChain,
@@ -255,7 +262,7 @@ contract Packet is
         bytes memory proof,
         Height.Data memory height,
         bytes memory commitBytes
-    ) internal view {
+    ) private view {
         IClient client;
         if (
             Strings.equals(destChain, clientManager.getChainName()) &&
@@ -279,16 +286,16 @@ contract Packet is
     }
 
     /**
-     * @notice writeAcknowledgement is called by a module in order to send back a ack message
+     * @notice _writeAcknowledgement is called by a module in order to send back a ack message
      * todo
      */
-    function writeAcknowledgement(
+    function _writeAcknowledgement(
         uint64 sequence,
         string memory sourceChain,
         string memory destChain,
         string memory relayChain,
         bytes memory acknowledgement
-    ) internal {
+    ) private {
         bytes memory packetAcknowledgementKey = Host.packetAcknowledgementKey(
             sourceChain,
             destChain,
@@ -349,7 +356,7 @@ contract Packet is
             "commitment bytes are not equal"
         );
 
-        verifyPacketAcknowledgement(
+        _verifyPacketAcknowledgement(
             _msgSender(),
             packet.sequence,
             packet.srcChain,
@@ -396,7 +403,7 @@ contract Packet is
             ack.message
         );
 
-        sendPacketFeeToRelayer(
+        _sendPacketFeeToRelayer(
             packet.srcChain,
             packet.destChain,
             packet.sequence,
@@ -411,12 +418,12 @@ contract Packet is
      * @param sequence sequence
      * @param relayer relayer address
      */
-    function sendPacketFeeToRelayer(
+    function _sendPacketFeeToRelayer(
         string memory sourceChain,
         string memory destChain,
         uint64 sequence,
         address relayer
-    ) internal {
+    ) private {
         PacketTypes.Fee memory fee = packetFees[
             Host.commonUniqueKey(sourceChain, destChain, sequence)
         ];
@@ -430,7 +437,7 @@ contract Packet is
     /**
      * @notice verify packet acknowledgement
      */
-    function verifyPacketAcknowledgement(
+    function _verifyPacketAcknowledgement(
         address sender,
         uint64 sequence,
         string memory sourceChain,
@@ -439,7 +446,7 @@ contract Packet is
         bytes memory acknowledgement,
         bytes memory proofAcked,
         Height.Data memory height
-    ) internal view {
+    ) private view {
         IClient client;
         if (
             Strings.equals(sourceChain, clientManager.getChainName()) &&

@@ -244,7 +244,7 @@ contract Packet is IPacket {
     function getNextSequenceSendKey(
         string memory sourceChain,
         string memory destChain
-    ) internal pure returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         return
             bytes(
                 Strings.strConcat(
@@ -264,7 +264,7 @@ contract Packet is IPacket {
         string memory sourceChain,
         string memory destChain,
         uint64 sequence
-    ) internal pure returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         return
             bytes(
                 Strings.strConcat(

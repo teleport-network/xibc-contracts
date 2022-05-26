@@ -14,7 +14,9 @@ contract AccessManager is AccessControlUpgradeable {
     bytes32 public constant REGISTER_RELAYER_ROLE =
         keccak256("REGISTER_RELAYER_ROLE");
 
+    // packet
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
     // transfer
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");

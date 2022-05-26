@@ -150,8 +150,8 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
      * @param tokenAddress token address
      * @param amount token amount
      */
-    function updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
-        internal
+    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
+        private
         returns (bool)
     {
         TransferDataTypes.TimeBasedSupplyLimit memory limit = limits[
@@ -373,7 +373,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                 if (!bindings[bindingKey].bound) {
                     return (2, "", "token not bound");
                 }
-                if (updateTimeBasedLimtSupply(tokenAddress, realAmount)) {
+                if (_updateTimeBasedLimtSupply(tokenAddress, realAmount)) {
                     return (2, "", "invalid amount");
                 }
                 if (!_mint(tokenAddress, receiver, realAmount)) {
@@ -388,7 +388,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                     if (amount > outTokens[tokenAddress][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
-                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
                         return (2, "", "exceed the limit");
                     }
                     if (!IERC20(tokenAddress).transfer(receiver, amount)) {
@@ -400,7 +400,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                     if (amount > outTokens[address(0)][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
-                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
                         return (2, "", "exceed the limit");
                     }
                     (bool success, ) = receiver.call{value: amount}("");

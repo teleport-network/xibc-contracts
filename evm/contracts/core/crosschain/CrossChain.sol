@@ -162,8 +162,8 @@ contract CrossChain is
      * @param tokenAddress token address
      * @param amount token amount
      */
-    function updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
-        internal
+    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
+        private
         returns (bool)
     {
         TokenBindingTypes.TimeBasedSupplyLimit memory limit = limits[
@@ -370,7 +370,7 @@ contract CrossChain is
                 if (!bindings[tokenAddress].bound) {
                     return (2, "", "token not bound");
                 }
-                if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
                     return (2, "", "invalid amount");
                 }
                 if (!_mint(tokenAddress, receiver, amount)) {
@@ -385,7 +385,7 @@ contract CrossChain is
                     if (amount > outTokens[tokenAddress][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
-                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
                         return (2, "", "exceed the limit");
                     }
                     if (!IERC20(tokenAddress).transfer(receiver, amount)) {
@@ -397,7 +397,7 @@ contract CrossChain is
                     if (amount > outTokens[address(0)][packet.srcChain]) {
                         return (2, "", "amount is greater than locked");
                     }
-                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
                         return (2, "", "exceed the limit");
                     }
                     (bool success, ) = receiver.call{value: amount}("");
