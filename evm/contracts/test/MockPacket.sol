@@ -1,643 +1,593 @@
-// // SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 
-// pragma solidity ^0.6.8;
-// pragma experimental ABIEncoderV2;
+pragma solidity ^0.6.8;
+pragma experimental ABIEncoderV2;
 
-// import "../libraries/packet/Packet.sol";
-// import "../libraries/host/Host.sol";
-// import "../interfaces/IClientManager.sol";
-// import "../interfaces/IClient.sol";
-// import "../interfaces/IModule.sol";
-// import "../interfaces/IPacket.sol";
-// import "../interfaces/IRouting.sol";
-// import "../interfaces/IAccessManager.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-// import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "../libraries/host/Host.sol";
+import "../interfaces/IClientManager.sol";
+import "../interfaces/IClient.sol";
+import "../interfaces/IPacket.sol";
+import "../interfaces/ICrossChain.sol";
+import "../interfaces/IAccessManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-// contract MockPacket is
-//     Initializable,
-//     OwnableUpgradeable,
-//     IPacket,
-//     PausableUpgradeable,
-//     ReentrancyGuardUpgradeable
-// {
-//     using Strings for *;
-//     using Bytes for *;
+contract MockPacket is
+    Initializable,
+    OwnableUpgradeable,
+    IPacket,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
+    using Bytes for *;
 
-//     IClientManager public clientManager;
-//     IRouting public routing;
-//     IAccessManager public accessManager;
+    IClientManager public clientManager;
+    IAccessManager public accessManager;
+    ICrossChain public crossChain;
 
-//     mapping(bytes => uint64) public sequences;
-//     mapping(bytes => bytes32) public commitments;
-//     mapping(bytes => bool) public receipts;
-//     mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
-//     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
+    mapping(bytes => uint64) public sequences;
+    mapping(bytes => bytes32) public commitments;
+    mapping(bytes => bool) public receipts;
+    mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
+    mapping(bytes => PacketTypes.Acknowledgement) public acks;
+    mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
-//     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
-//     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
-//     uint256 public version;
+    PacketTypes.Packet public latestPacket;
 
-//     function setVersion(uint256 _version) public {
-//         version = _version;
-//     }
+    uint256 public version; // used for upgrade
 
-//     /**
-//      * @notice initialize
-//      * @param clientManagerContract clientManager address
-//      * @param routingContract routing address
-//      * @param accessManagerContract accessManager address
-//      */
-//     function initialize(
-//         address clientManagerContract,
-//         address routingContract,
-//         address accessManagerContract
-//     ) public initializer {
-//         require(
-//             clientManagerContract != address(0) &&
-//                 routingContract != address(0) &&
-//                 accessManagerContract != address(0),
-//             "clientManager and routing and accessManager cannot be empty"
-//         );
-//         clientManager = IClientManager(clientManagerContract);
-//         routing = IRouting(routingContract);
-//         accessManager = IAccessManager(accessManagerContract);
-//     }
+    /**
+     * @notice used for upgrade
+     */
+    function setVersion(uint256 _version) public {
+        version = _version;
+    }
 
-//     /**
-//      * @notice Event triggered when the packet has been sent
-//      * @param packet packet data
-//      */
-//     event PacketSent(PacketTypes.Packet packet);
+    /**
+     * @notice initialize
+     * @param clientManagerContract clientManager address
+     * @param accessManagerContract accessManager address
+     * @param crossChainContract crossChainContract address
+     */
+    function initialize(
+        address clientManagerContract,
+        address accessManagerContract,
+        address crossChainContract
+    ) public initializer {
+        require(
+            clientManagerContract != address(0) &&
+                accessManagerContract != address(0) &&
+                crossChainContract != address(0),
+            "clientManager, accessManager and crossChainContract cannot be empty"
+        );
+        clientManager = IClientManager(clientManagerContract);
+        accessManager = IAccessManager(accessManagerContract);
+        crossChain = ICrossChain(crossChainContract);
+    }
 
-//     /**
-//      * @notice Event triggered when the packet has been received
-//      * @param packet packet data
-//      */
-//     event PacketReceived(PacketTypes.Packet packet);
+    /**
+     * @notice Event triggered when the packet has been sent
+     * @param packetBytes packet bytes
+     */
+    event PacketSent(bytes packetBytes);
 
-//     /**
-//      * @notice Event triggered when the write ack
-//      * @param packet packet data
-//      * @param ack ack bytes
-//      */
-//     event AckPacket(PacketTypes.Packet packet, bytes ack);
+    /**
+     * @notice Event triggered when the packet has been received
+     * @param packet packet data
+     */
+    event PacketReceived(PacketTypes.Packet packet);
 
-//     /**
-//      * @notice Event triggered when receive ack
-//      * @param packet packet data
-//      * @param ack ack bytes
-//      */
-//     event AckWritten(PacketTypes.Packet packet, bytes ack);
+    /**
+     * @notice Event triggered when the write ack
+     * @param packet packet data
+     * @param ack ack bytes
+     */
+    event AckPacket(PacketTypes.Packet packet, bytes ack);
 
-//     // only self can perform related transactions
-//     modifier onlySelf() {
-//         require(address(this) == _msgSender(), "not authorized");
-//         _;
-//     }
+    /**
+     * @notice Event triggered when receive ack
+     * @param packet packet data
+     * @param ack ack bytes
+     */
+    event AckWritten(PacketTypes.Packet packet, bytes ack);
 
-//     // only authorized accounts can perform related transactions
-//     modifier onlyAuthorizee(bytes32 role) {
-//         require(accessManager.hasRole(role, _msgSender()), "not authorized");
-//         _;
-//     }
+    // only onlyCrossChainContract can perform related transactions
+    modifier onlyCrossChainContract() {
+        require(
+            address(crossChain) == _msgSender(),
+            "only cross chain contract authorized"
+        );
+        _;
+    }
 
-//     /**
-//      * @notice SendPacket is called by a module in order to send an XIBC packet with single data.
-//      * @param packet xibc packet
-//      * @param fee packet fee
-//      */
-//     function sendPacket(
-//         PacketTypes.Packet memory packet,
-//         PacketTypes.Fee memory fee
-//     ) public payable override whenNotPaused {
-//         require(
-//             packet.dataList.length == 1 && packet.ports.length == 1,
-//             "should be one packet data"
-//         );
-//         require(packet.sequence > 0, "packet sequence cannot be 0");
-//         require(
-//             address(routing.getModule(packet.ports[0])) == _msgSender(),
-//             "module has not been registered to routing contract"
-//         );
+    // only authorized accounts can perform related transactions
+    modifier onlyAuthorizee(bytes32 role) {
+        require(accessManager.hasRole(role, _msgSender()), "not authorized");
+        _;
+    }
 
-//         // Notice: must sent token to this contract before set packet fee
-//         packetFees[
-//             Host.ackStatusKey(
-//                 packet.sourceChain,
-//                 packet.destChain,
-//                 packet.sequence
-//             )
-//         ] = fee;
+    /**
+     * @notice sendPacket is called by a module in order to send an XIBC packet with single data.
+     * @param packet xibc packet
+     * @param fee packet fee
+     */
+    function sendPacket(
+        PacketTypes.Packet memory packet,
+        PacketTypes.Fee memory fee
+    ) public payable override whenNotPaused onlyCrossChainContract {
+        require(packet.sequence > 0, "packet sequence cannot be 0");
 
-//         if (bytes(packet.relayChain).length > 0) {
-//             require(
-//                 address(clientManager.getClient(packet.relayChain)) !=
-//                     address(0),
-//                 "light client not found"
-//             );
-//         } else {
-//             require(
-//                 address(clientManager.getClient(packet.destChain)) !=
-//                     address(0),
-//                 "light client not found"
-//             );
-//         }
-//         bytes memory nextSequenceSendKey = Host.nextSequenceSendKey(
-//             packet.sourceChain,
-//             packet.destChain
-//         );
-//         if (sequences[nextSequenceSendKey] == 0) {
-//             sequences[nextSequenceSendKey] = 1;
-//         }
-//         require(
-//             packet.sequence == sequences[nextSequenceSendKey],
-//             "packet sequence ≠ next send sequence"
-//         );
-//         sequences[nextSequenceSendKey]++;
-//         commitments[
-//             Host.packetCommitmentKey(
-//                 packet.sourceChain,
-//                 packet.destChain,
-//                 packet.sequence
-//             )
-//         ] = sha256(
-//             Bytes.fromBytes32(
-//                 sha256(Bytes.concat(bytes(packet.ports[0]), packet.dataList[0]))
-//             )
-//         );
-//         emit PacketSent(packet);
-//     }
+        // TODO: validate packet data
 
-//     /**
-//      * @notice sendMultiPacket is called by a module in order to send an XIBC packet with multi data.
-//      * @param packet xibc packet
-//      * @param fee packet fee
-//      */
-//     function sendMultiPacket(
-//         PacketTypes.Packet memory packet,
-//         PacketTypes.Fee memory fee
-//     ) public payable override onlyAuthorizee(MULTISEND_ROLE) whenNotPaused {
-//         require(packet.sequence > 0, "packet sequence cannot be 0");
-//         require(
-//             packet.dataList.length == packet.ports.length &&
-//                 packet.ports.length > 0,
-//             "invalid packet data or ports"
-//         );
+        // Notice: must sent token to this contract before set packet fee
+        packetFees[
+            Host.commonUniqueKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = fee;
 
-//         // Notice: must sent token to this contract before set packet fee
-//         packetFees[
-//             Host.ackStatusKey(
-//                 packet.sourceChain,
-//                 packet.destChain,
-//                 packet.sequence
-//             )
-//         ] = fee;
+        if (bytes(packet.relayChain).length > 0) {
+            require(
+                address(clientManager.getClient(packet.relayChain)) !=
+                    address(0),
+                "client not found"
+            );
+        } else {
+            require(
+                address(clientManager.getClient(packet.destChain)) !=
+                    address(0),
+                "client not found"
+            );
+        }
 
-//         for (uint64 i = 0; i < packet.ports.length; i++) {
-//             require(
-//                 packet.dataList[i].length > 0,
-//                 "data bytes cannot be empty"
-//             );
-//         }
+        bytes memory nextSequenceSendKey = Host.nextSequenceSendKey(
+            packet.srcChain,
+            packet.destChain
+        );
 
-//         if (bytes(packet.relayChain).length > 0) {
-//             require(
-//                 address(clientManager.getClient(packet.relayChain)) !=
-//                     address(0),
-//                 "light client not found"
-//             );
-//         } else {
-//             require(
-//                 address(clientManager.getClient(packet.destChain)) !=
-//                     address(0),
-//                 "light client not found"
-//             );
-//         }
+        if (sequences[nextSequenceSendKey] == 0) {
+            sequences[nextSequenceSendKey] = 1;
+        }
 
-//         bytes memory nextSequenceSendKey = Host.nextSequenceSendKey(
-//             packet.sourceChain,
-//             packet.destChain
-//         );
+        require(
+            packet.sequence == sequences[nextSequenceSendKey],
+            "packet sequence ≠ next send sequence"
+        );
 
-//         if (sequences[nextSequenceSendKey] == 0) {
-//             sequences[nextSequenceSendKey] = 1;
-//         }
+        sequences[nextSequenceSendKey]++;
 
-//         require(
-//             packet.sequence == sequences[nextSequenceSendKey],
-//             "packet sequence ≠ next send sequence"
-//         );
+        bytes memory bz = abi.encode(packet);
+        commitments[
+            Host.packetCommitmentKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = sha256(Bytes.fromBytes32(sha256(bz)));
+        emit PacketSent(bz);
+    }
 
-//         sequences[nextSequenceSendKey]++;
+    /**
+     * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
+     * @param packetBytes xibc packet bytes
+     * @param proof proof commit
+     * @param height proof height
+     */
+    function recvPacket(
+        bytes calldata packetBytes,
+        bytes calldata proof,
+        Height.Data calldata height
+    )
+        external
+        override
+        nonReentrant
+        whenNotPaused
+        onlyAuthorizee(RELAYER_ROLE)
+    {
+        PacketTypes.Packet memory packet = abi.decode(
+            packetBytes,
+            (PacketTypes.Packet)
+        );
+        latestPacket = packet;
 
-//         bytes memory dataSum;
-//         for (uint64 i = 0; i < packet.ports.length; i++) {
-//             dataSum = Bytes.concat(
-//                 dataSum,
-//                 Bytes.fromBytes32(
-//                     sha256(
-//                         Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
-//                     )
-//                 )
-//             );
-//         }
+        require(
+            Strings.equals(packet.destChain, clientManager.getChainName()),
+            "invalid destChain"
+        );
 
-//         commitments[
-//             Host.packetCommitmentKey(
-//                 packet.sourceChain,
-//                 packet.destChain,
-//                 packet.sequence
-//             )
-//         ] = sha256(dataSum);
+        bytes memory packetReceiptKey = Host.packetReceiptKey(
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
+        );
 
-//         emit PacketSent(packet);
-//     }
+        require(!receipts[packetReceiptKey], "packet has been received");
 
-//     /**
-//      * @notice recvPacket is called by any relayer in order to receive & process an XIBC packet
-//      * @param packet xibc packet
-//      * @param proof proof commit
-//      * @param height proof height
-//      */
-//     function recvPacket(
-//         PacketTypes.Packet calldata packet,
-//         bytes calldata proof,
-//         Height.Data calldata height
-//     ) external override nonReentrant whenNotPaused {
-//         PacketTypes.Acknowledgement memory ack;
-//         try this.executePacket(packet) returns (bytes[] memory results) {
-//             ack.results = results;
-//         } catch Error(string memory message) {
-//             ack.message = message;
-//         }
-//         ack.relayer = msg.sender.addressToString();
-//         bytes memory ackBytes = abi.encode(ack);
-//         writeAcknowledgement(
-//             packet.sequence,
-//             packet.sourceChain,
-//             packet.destChain,
-//             packet.relayChain,
-//             ackBytes
-//         );
-//         emit AckWritten(packet, ackBytes);
-//     }
+        bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
+        _verifyPacketCommitment(
+            _msgSender(),
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
+            proof,
+            height,
+            packetCommitment
+        );
 
-//     /**
-//      * @notice executePacket ensures that every data is executed correctly
-//      * @param packet xibc packet
-//      */
-//     function executePacket(PacketTypes.Packet calldata packet)
-//         external
-//         onlySelf
-//         whenNotPaused
-//         returns (bytes[] memory)
-//     {
-//         bytes[] memory results = new bytes[](packet.ports.length);
-//         for (uint64 i = 0; i < packet.ports.length; i++) {
-//             IModule imodule = routing.getModule(packet.ports[i]);
-//             require(
-//                 address(imodule) != address(0),
-//                 Strings.strConcat(Strings.uint642str(i), ": module not found!")
-//             );
-//             PacketTypes.Result memory res = imodule.onRecvPacket(
-//                 packet.dataList[i]
-//             );
-//             require(
-//                 res.result.length > 0,
-//                 Strings.strConcat(
-//                     Strings.strConcat(Strings.uint642str(i), ": "),
-//                     res.message
-//                 )
-//             );
-//             results[i] = res.result;
-//         }
-//         return results;
-//     }
+        receipts[packetReceiptKey] = true;
 
-//     /**
-//      * @notice Verify packet commitment
-//      */
-//     function verifyPacketCommitment(
-//         address sender,
-//         uint64 sequence,
-//         string memory sourceChain,
-//         string memory destChain,
-//         string memory relayChain,
-//         bytes memory proof,
-//         Height.Data memory height,
-//         bytes memory commitBytes
-//     ) internal {
-//         IClient client;
-//         if (
-//             Strings.equals(destChain, clientManager.getChainName()) &&
-//             bytes(relayChain).length > 0
-//         ) {
-//             client = clientManager.getClient(relayChain);
-//         } else {
-//             client = clientManager.getClient(sourceChain);
-//         }
-//         require(address(client) != address(0), "light client not found!");
+        emit PacketReceived(packet);
 
-//         client.verifyPacketCommitment(
-//             sender,
-//             height,
-//             proof,
-//             sourceChain,
-//             destChain,
-//             sequence,
-//             commitBytes
-//         );
-//     }
+        PacketTypes.Acknowledgement memory ack;
 
-//     /**
-//      * @notice writeAcknowledgement is called by a module in order to send back a ack message
-//      */
-//     function writeAcknowledgement(
-//         uint64 sequence,
-//         string memory sourceChain,
-//         string memory destChain,
-//         string memory relayChain,
-//         bytes memory acknowledgement
-//     ) internal {
-//         bytes memory packetAcknowledgementKey = Host.packetAcknowledgementKey(
-//             sourceChain,
-//             destChain,
-//             sequence
-//         );
-//         require(
-//             commitments[packetAcknowledgementKey] == bytes32(0),
-//             "acknowledgement for packet already exists"
-//         );
-//         require(acknowledgement.length != 0, "acknowledgement cannot be empty");
-//         IClient client;
-//         if (
-//             bytes(relayChain).length > 0 &&
-//             Strings.equals(destChain, clientManager.getChainName())
-//         ) {
-//             client = clientManager.getClient(relayChain);
-//         } else {
-//             client = clientManager.getClient(sourceChain);
-//         }
+        try crossChain.onRecvPacket(packet) returns (
+            uint64 code,
+            bytes memory result,
+            string memory message
+        ) {
+            ack.code = code;
+            ack.result = result;
+            ack.message = message;
+        } catch (bytes memory res) {
+            ack.code = 1;
+            ack.result = "";
+            ack.message = string(res);
+        }
 
-//         require(address(client) != address(0), "light client not found");
+        ack.relayer = msg.sender.addressToString();
+        ack.feeOption = packet.feeOption;
 
-//         commitments[packetAcknowledgementKey] = sha256(acknowledgement);
-//     }
+        bytes memory ackBytes = abi.encode(ack);
+        _writeAcknowledgement(
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
+            ackBytes
+        );
 
-//     /**
-//      * @notice acknowledgePacket is called by relayer in order to receive an XIBC acknowledgement
-//      * @param packet xibc packet
-//      * @param acknowledgement acknowledgement from dest chain
-//      * @param proofAcked ack proof commit
-//      * @param height ack proof height
-//      */
-//     function acknowledgePacket(
-//         PacketTypes.Packet calldata packet,
-//         bytes calldata acknowledgement,
-//         bytes calldata proofAcked,
-//         Height.Data calldata height
-//     ) external override nonReentrant whenNotPaused {
-//         require(
-//             Strings.equals(packet.sourceChain, clientManager.getChainName()),
-//             "invalid packet"
-//         );
+        emit AckWritten(packet, ackBytes);
+    }
 
-//         bytes memory dataSum;
-//         for (uint64 i = 0; i < packet.ports.length; i++) {
-//             dataSum = Bytes.concat(
-//                 dataSum,
-//                 Bytes.fromBytes32(
-//                     sha256(
-//                         Bytes.concat(bytes(packet.ports[i]), packet.dataList[i])
-//                     )
-//                 )
-//             );
-//         }
+    /**
+     * @notice Verify packet commitment
+     * todo
+     */
+    function _verifyPacketCommitment(
+        address sender,
+        uint64 sequence,
+        string memory sourceChain,
+        string memory destChain,
+        string memory relayChain,
+        bytes memory proof,
+        Height.Data memory height,
+        bytes memory commitBytes
+    ) private view {
+        IClient client;
+        if (
+            Strings.equals(destChain, clientManager.getChainName()) &&
+            bytes(relayChain).length > 0
+        ) {
+            client = clientManager.getClient(relayChain);
+        } else {
+            client = clientManager.getClient(sourceChain);
+        }
+        require(address(client) != address(0), "client not found");
 
-//         bytes memory packetCommitmentKey = Host.packetCommitmentKey(
-//             packet.sourceChain,
-//             packet.destChain,
-//             packet.sequence
-//         );
+        client.verifyPacketCommitment(
+            sender,
+            height,
+            proof,
+            sourceChain,
+            destChain,
+            sequence,
+            commitBytes
+        );
+    }
 
-//         require(
-//             commitments[packetCommitmentKey] == sha256(dataSum),
-//             "commitment bytes are not equal"
-//         );
+    /**
+     * @notice _writeAcknowledgement is called by a module in order to send back a ack message
+     * todo
+     */
+    function _writeAcknowledgement(
+        uint64 sequence,
+        string memory sourceChain,
+        string memory destChain,
+        string memory relayChain,
+        bytes memory acknowledgement
+    ) private {
+        bytes memory packetAcknowledgementKey = Host.packetAcknowledgementKey(
+            sourceChain,
+            destChain,
+            sequence
+        );
+        require(
+            commitments[packetAcknowledgementKey] == bytes32(0),
+            "acknowledgement for packet already exists"
+        );
+        require(acknowledgement.length != 0, "acknowledgement cannot be empty");
 
-//         verifyPacketAcknowledgement(
-//             _msgSender(),
-//             packet.sequence,
-//             packet.sourceChain,
-//             packet.destChain,
-//             packet.relayChain,
-//             acknowledgement,
-//             proofAcked,
-//             height
-//         );
+        IClient client;
+        if (
+            bytes(relayChain).length > 0 &&
+            Strings.equals(destChain, clientManager.getChainName())
+        ) {
+            client = clientManager.getClient(relayChain);
+        } else {
+            client = clientManager.getClient(sourceChain);
+        }
 
-//         delete commitments[packetCommitmentKey];
+        require(address(client) != address(0), "client not found");
 
-//         emit AckPacket(packet, acknowledgement);
+        commitments[packetAcknowledgementKey] = sha256(acknowledgement);
+    }
 
-//         PacketTypes.Acknowledgement memory ack = abi.decode(
-//             acknowledgement,
-//             (PacketTypes.Acknowledgement)
-//         );
+    /**
+     * @notice acknowledgePacket is called by relayer in order to receive an XIBC acknowledgement
+     * @param packetBytes xibc packet bytes
+     * @param acknowledgement acknowledgement from dest chain
+     * @param proofAcked ack proof commit
+     * @param height ack proof height
+     */
+    function acknowledgePacket(
+        bytes calldata packetBytes,
+        bytes calldata acknowledgement,
+        bytes calldata proofAcked,
+        Height.Data calldata height
+    ) external override nonReentrant whenNotPaused {
+        PacketTypes.Packet memory packet = abi.decode(
+            packetBytes,
+            (PacketTypes.Packet)
+        );
 
-//         if (ack.results.length > 0) {
-//             ackStatus[
-//                 Host.ackStatusKey(
-//                     packet.sourceChain,
-//                     packet.destChain,
-//                     packet.sequence
-//                 )
-//             ] = 1;
-//             for (uint64 i = 0; i < packet.ports.length; i++) {
-//                 IModule module = routing.getModule(packet.ports[i]);
-//                 module.onAcknowledgementPacket(
-//                     packet.dataList[i],
-//                     ack.results[i]
-//                 );
-//             }
-//         } else {
-//             ackStatus[
-//                 Host.ackStatusKey(
-//                     packet.sourceChain,
-//                     packet.destChain,
-//                     packet.sequence
-//                 )
-//             ] = 2;
-//             for (uint64 i = 0; i < packet.ports.length; i++) {
-//                 IModule module = routing.getModule(packet.ports[i]);
-//                 module.onAcknowledgementPacket(packet.dataList[i], hex"");
-//             }
-//         }
+        require(
+            Strings.equals(packet.srcChain, clientManager.getChainName()),
+            "invalid packet"
+        );
 
-//         sendPacketFeeToRelayer(
-//             packet.sourceChain,
-//             packet.destChain,
-//             packet.sequence,
-//             ack.relayer.parseAddr()
-//         );
-//     }
+        bytes memory packetCommitmentKey = Host.packetCommitmentKey(
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
+        );
 
-//     /**
-//      * @notice send packet fee to relayer
-//      * @param sourceChain source chain name
-//      * @param destChain destination chain name
-//      * @param sequence sequence
-//      * @param relayer relayer address
-//      */
-//     function sendPacketFeeToRelayer(
-//         string memory sourceChain,
-//         string memory destChain,
-//         uint64 sequence,
-//         address relayer
-//     ) internal {
-//         PacketTypes.Fee memory fee = packetFees[
-//             Host.ackStatusKey(sourceChain, destChain, sequence)
-//         ];
-//         if (fee.tokenAddress == address(0)) {
-//             payable(relayer).transfer(fee.amount);
-//         } else {
-//             require(IERC20(fee.tokenAddress).transfer(relayer, fee.amount), "");
-//         }
-//     }
+        require(
+            commitments[packetCommitmentKey] == sha256(packetBytes),
+            "commitment bytes are not equal"
+        );
 
-//     /**
-//      * @notice verify packet acknowledgement
-//      */
-//     function verifyPacketAcknowledgement(
-//         address sender,
-//         uint64 sequence,
-//         string memory sourceChain,
-//         string memory destChain,
-//         string memory relayChain,
-//         bytes memory acknowledgement,
-//         bytes memory proofAcked,
-//         Height.Data memory height
-//     ) internal {
-//         IClient client;
-//         if (
-//             Strings.equals(sourceChain, clientManager.getChainName()) &&
-//             bytes(relayChain).length > 0
-//         ) {
-//             require(
-//                 address(clientManager.getClient(relayChain)) != address(0),
-//                 "light client not found"
-//             );
-//             client = clientManager.getClient(relayChain);
-//         } else {
-//             require(
-//                 address(clientManager.getClient(destChain)) != address(0),
-//                 "light client not found"
-//             );
-//             client = clientManager.getClient(destChain);
-//         }
-//         client.verifyPacketAcknowledgement(
-//             sender,
-//             height,
-//             proofAcked,
-//             sourceChain,
-//             destChain,
-//             sequence,
-//             Bytes.fromBytes32(sha256(acknowledgement))
-//         );
-//     }
+        _verifyPacketAcknowledgement(
+            _msgSender(),
+            packet.sequence,
+            packet.srcChain,
+            packet.destChain,
+            packet.relayChain,
+            acknowledgement,
+            proofAcked,
+            height
+        );
 
-//     /**
-//      * @notice Get packet next sequence to send
-//      * @param sourceChain name of source chain
-//      * @param destChain name of destination chain
-//      */
-//     function getNextSequenceSend(
-//         string memory sourceChain,
-//         string memory destChain
-//     ) public view override returns (uint64) {
-//         uint64 seq = sequences[
-//             Host.nextSequenceSendKey(sourceChain, destChain)
-//         ];
-//         if (seq == 0) {
-//             seq = 1;
-//         }
-//         return seq;
-//     }
+        delete commitments[packetCommitmentKey];
 
-//     /**
-//      * @notice get the next sequence of sourceChain/destChain
-//      * @param sourceChain source chain name
-//      * @param destChain destination chain name
-//      * @param sequence sequence
-//      */
-//     function getAckStatus(
-//         string calldata sourceChain,
-//         string calldata destChain,
-//         uint64 sequence
-//     ) external view override returns (uint8) {
-//         return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
-//     }
+        emit AckPacket(packet, acknowledgement);
 
-//     /**
-//      * @notice set packet fee
-//      * @param sourceChain source chain name
-//      * @param destChain destination chain name
-//      * @param sequence sequence
-//      * @param amount add fee amount
-//      */
-//     function addPacketFee(
-//         string memory sourceChain,
-//         string memory destChain,
-//         uint64 sequence,
-//         uint256 amount
-//     ) public payable whenNotPaused {
-//         bytes memory key = Host.ackStatusKey(sourceChain, destChain, sequence);
+        PacketTypes.Acknowledgement memory ack = abi.decode(
+            acknowledgement,
+            (PacketTypes.Acknowledgement)
+        );
 
-//         require(ackStatus[key] == uint8(0), "invalid packet status");
+        bytes memory key = Host.commonUniqueKey(
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence
+        );
 
-//         PacketTypes.Fee memory fee = packetFees[key];
+        if (ack.code == 0) {
+            ackStatus[key] = 1;
+        } else {
+            ackStatus[key] = 2;
+        }
 
-//         if (fee.tokenAddress == address(0)) {
-//             require(msg.value > 0 && msg.value == amount, "invalid value");
-//         } else {
-//             require(msg.value == 0, "invalid value");
-//             require(
-//                 IERC20(fee.tokenAddress).transferFrom(
-//                     msg.sender,
-//                     address(this),
-//                     amount
-//                 ),
-//                 "transfer ERC20 failed"
-//             );
-//         }
+        acks[
+            Host.commonUniqueKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = ack;
 
-//         packetFees[key].amount += amount;
-//     }
+        crossChain.onAcknowledgementPacket(
+            packet,
+            ack.code,
+            ack.result,
+            ack.message
+        );
 
-//     /**
-//      * @dev Pauses all cross-chain transfers.
-//      *
-//      * Requirements:
-//      *
-//      * - the caller must have the `PAUSER_ROLE`.
-//      */
-//     function pause() public virtual onlyAuthorizee(PAUSER_ROLE) {
-//         _pause();
-//     }
+        _sendPacketFeeToRelayer(
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence,
+            ack.relayer.parseAddr()
+        );
+    }
 
-//     /**
-//      * @dev Unpauses all cross-chain transfers.
-//      *
-//      * Requirements:
-//      *
-//      * - the caller must have the `PAUSER_ROLE`.
-//      */
-//     function unpause() public virtual onlyAuthorizee(PAUSER_ROLE) {
-//         _unpause();
-//     }
-// }
+    /**
+     * @notice send packet fee to relayer
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param relayer relayer address
+     */
+    function _sendPacketFeeToRelayer(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence,
+        address relayer
+    ) private {
+        PacketTypes.Fee memory fee = packetFees[
+            Host.commonUniqueKey(sourceChain, destChain, sequence)
+        ];
+        if (fee.tokenAddress == address(0)) {
+            payable(relayer).transfer(fee.amount);
+        } else {
+            require(IERC20(fee.tokenAddress).transfer(relayer, fee.amount), "");
+        }
+    }
+
+    /**
+     * @notice verify packet acknowledgement
+     */
+    function _verifyPacketAcknowledgement(
+        address sender,
+        uint64 sequence,
+        string memory sourceChain,
+        string memory destChain,
+        string memory relayChain,
+        bytes memory acknowledgement,
+        bytes memory proofAcked,
+        Height.Data memory height
+    ) private view {
+        IClient client;
+        if (
+            Strings.equals(sourceChain, clientManager.getChainName()) &&
+            bytes(relayChain).length > 0
+        ) {
+            require(
+                address(clientManager.getClient(relayChain)) != address(0),
+                "client not found"
+            );
+            client = clientManager.getClient(relayChain);
+        } else {
+            require(
+                address(clientManager.getClient(destChain)) != address(0),
+                "client not found"
+            );
+            client = clientManager.getClient(destChain);
+        }
+        client.verifyPacketAcknowledgement(
+            sender,
+            height,
+            proofAcked,
+            sourceChain,
+            destChain,
+            sequence,
+            Bytes.fromBytes32(sha256(acknowledgement))
+        );
+    }
+
+    /**
+     * @notice Get packet next sequence to send
+     * @param sourceChain name of source chain
+     * @param destChain name of destination chain
+     */
+    function getNextSequenceSend(
+        string memory sourceChain,
+        string memory destChain
+    ) public view override returns (uint64) {
+        uint64 seq = sequences[
+            Host.nextSequenceSendKey(sourceChain, destChain)
+        ];
+        if (seq == 0) {
+            seq = 1;
+        }
+        return seq;
+    }
+
+    /**
+     * @notice get the next sequence of sourceChain/destChain
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     */
+    function getAckStatus(
+        string calldata sourceChain,
+        string calldata destChain,
+        uint64 sequence
+    ) external view override returns (uint8) {
+        return
+            ackStatus[Host.commonUniqueKey(sourceChain, destChain, sequence)];
+    }
+
+    /**
+     * @notice set packet fee
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     * @param amount add fee amount
+     */
+    function addPacketFee(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence,
+        uint256 amount
+    ) public payable whenNotPaused {
+        bytes memory key = Host.commonUniqueKey(
+            sourceChain,
+            destChain,
+            sequence
+        );
+
+        require(ackStatus[key] == uint8(0), "invalid packet status");
+
+        PacketTypes.Fee memory fee = packetFees[key];
+
+        if (fee.tokenAddress == address(0)) {
+            require(msg.value > 0 && msg.value == amount, "invalid value");
+        } else {
+            require(msg.value == 0, "invalid value");
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amount
+                ),
+                "transfer ERC20 failed"
+            );
+        }
+
+        packetFees[key].amount += amount;
+    }
+
+    /**
+     * @notice todo
+     */
+    function getLatestPacket()
+        external
+        view
+        override
+        returns (PacketTypes.Packet memory packet)
+    {
+        return latestPacket;
+    }
+
+    /**
+     * @dev Pauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function pause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses all cross-chain transfers.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function unpause() public virtual onlyAuthorizee(PAUSER_ROLE) {
+        _unpause();
+    }
+}

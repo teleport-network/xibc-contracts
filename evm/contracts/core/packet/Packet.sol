@@ -129,13 +129,13 @@ contract Packet is
             require(
                 address(clientManager.getClient(packet.relayChain)) !=
                     address(0),
-                "light client not found"
+                "client not found"
             );
         } else {
             require(
                 address(clientManager.getClient(packet.destChain)) !=
                     address(0),
-                "light client not found"
+                "client not found"
             );
         }
 
@@ -272,7 +272,7 @@ contract Packet is
         } else {
             client = clientManager.getClient(sourceChain);
         }
-        require(address(client) != address(0), "light client not found!");
+        require(address(client) != address(0), "client not found");
 
         client.verifyPacketCommitment(
             sender,
@@ -317,7 +317,7 @@ contract Packet is
             client = clientManager.getClient(sourceChain);
         }
 
-        require(address(client) != address(0), "light client not found");
+        require(address(client) != address(0), "client not found");
 
         commitments[packetAcknowledgementKey] = sha256(acknowledgement);
     }
@@ -454,13 +454,13 @@ contract Packet is
         ) {
             require(
                 address(clientManager.getClient(relayChain)) != address(0),
-                "light client not found"
+                "client not found"
             );
             client = clientManager.getClient(relayChain);
         } else {
             require(
                 address(clientManager.getClient(destChain)) != address(0),
-                "light client not found"
+                "client not found"
             );
             client = clientManager.getClient(destChain);
         }

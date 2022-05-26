@@ -56,6 +56,9 @@ contract CrossChain is
         _;
     }
 
+    /**
+     * @notice todo
+     */
     function initialize(
         address packetContractAddress,
         address clientManagerContractAddress,
