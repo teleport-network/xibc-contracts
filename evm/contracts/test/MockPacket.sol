@@ -387,7 +387,6 @@
 //         require(address(client) != address(0), "light client not found");
 
 //         commitments[packetAcknowledgementKey] = sha256(acknowledgement);
-//         setMaxAckSequence(sourceChain, destChain, sequence);
 //     }
 
 //     /**
@@ -443,12 +442,6 @@
 //         );
 
 //         delete commitments[packetCommitmentKey];
-
-//         setMaxAckSequence(
-//             packet.sourceChain,
-//             packet.destChain,
-//             packet.sequence
-//         );
 
 //         emit AckPacket(packet, acknowledgement);
 
@@ -574,26 +567,6 @@
 //             seq = 1;
 //         }
 //         return seq;
-//     }
-
-//     /**
-//      * @notice set max ack sequence
-//      * @param sourceChain source chain name
-//      * @param destChain destination chain name
-//      * @param sequence max ack sequence
-//      */
-//     function setMaxAckSequence(
-//         string memory sourceChain,
-//         string memory destChain,
-//         uint64 sequence
-//     ) internal {
-//         uint64 currentMaxAckSeq = sequences[
-//             Host.MaxAckSeqKey(sourceChain, destChain)
-//         ];
-//         if (sequence > currentMaxAckSeq) {
-//             currentMaxAckSeq = sequence;
-//         }
-//         sequences[Host.MaxAckSeqKey(sourceChain, destChain)] = currentMaxAckSeq;
 //     }
 
 //     /**

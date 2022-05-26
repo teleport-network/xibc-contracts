@@ -35,7 +35,7 @@ contract Packet is
     mapping(bytes => bytes32) public commitments;
     mapping(bytes => bool) public receipts;
     mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
-    mapping(bytes => bytes) public acks; // TODO
+    mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     bytes32 public constant MULTISEND_ROLE = keccak256("MULTISEND_ROLE");
@@ -112,14 +112,14 @@ contract Packet is
         PacketTypes.Packet memory packet,
         PacketTypes.Fee memory fee
     ) public payable override whenNotPaused {
-        // TODO: only crosschain packet
+        // TODO: only crosschain contract
         require(packet.sequence > 0, "packet sequence cannot be 0");
 
         // TODO: validate packet data
 
         // Notice: must sent token to this contract before set packet fee
         packetFees[
-            Host.ackStatusKey(
+            Host.commonUniqueKey(
                 packet.srcChain,
                 packet.destChain,
                 packet.sequence
@@ -316,7 +316,6 @@ contract Packet is
         require(address(client) != address(0), "light client not found");
 
         commitments[packetAcknowledgementKey] = sha256(acknowledgement);
-        setMaxAckSequence(sourceChain, destChain, sequence);
     }
 
     /**
@@ -366,8 +365,6 @@ contract Packet is
 
         delete commitments[packetCommitmentKey];
 
-        setMaxAckSequence(packet.srcChain, packet.destChain, packet.sequence);
-
         emit AckPacket(packet, acknowledgement);
 
         PacketTypes.Acknowledgement memory ack = abi.decode(
@@ -375,7 +372,7 @@ contract Packet is
             (PacketTypes.Acknowledgement)
         );
 
-        bytes memory key = Host.ackStatusKey(
+        bytes memory key = Host.commonUniqueKey(
             packet.srcChain,
             packet.destChain,
             packet.sequence
@@ -386,6 +383,14 @@ contract Packet is
         } else {
             ackStatus[key] = 2;
         }
+
+        acks[
+            Host.commonUniqueKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = ack;
 
         crossChain.onAcknowledgementPacket(
             packet,
@@ -416,7 +421,7 @@ contract Packet is
         address relayer
     ) internal {
         PacketTypes.Fee memory fee = packetFees[
-            Host.ackStatusKey(sourceChain, destChain, sequence)
+            Host.commonUniqueKey(sourceChain, destChain, sequence)
         ];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
@@ -467,26 +472,6 @@ contract Packet is
     }
 
     /**
-     * @notice set max ack sequence
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     * @param sequence max ack sequence
-     */
-    function setMaxAckSequence(
-        string memory sourceChain,
-        string memory destChain,
-        uint64 sequence
-    ) internal {
-        uint64 currentMaxAckSeq = sequences[
-            Host.MaxAckSeqKey(sourceChain, destChain)
-        ];
-        if (sequence > currentMaxAckSeq) {
-            currentMaxAckSeq = sequence;
-        }
-        sequences[Host.MaxAckSeqKey(sourceChain, destChain)] = currentMaxAckSeq;
-    }
-
-    /**
      * @notice get packet next sequence to send
      * @param sourceChain name of source chain
      * @param destChain name of destination chain
@@ -515,7 +500,8 @@ contract Packet is
         string calldata destChain,
         uint64 sequence
     ) external view override returns (uint8) {
-        return ackStatus[Host.ackStatusKey(sourceChain, destChain, sequence)];
+        return
+            ackStatus[Host.commonUniqueKey(sourceChain, destChain, sequence)];
     }
 
     /**
@@ -531,7 +517,11 @@ contract Packet is
         uint64 sequence,
         uint256 amount
     ) public payable whenNotPaused {
-        bytes memory key = Host.ackStatusKey(sourceChain, destChain, sequence);
+        bytes memory key = Host.commonUniqueKey(
+            sourceChain,
+            destChain,
+            sequence
+        );
 
         require(ackStatus[key] == uint8(0), "invalid packet status");
 

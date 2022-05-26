@@ -17,7 +17,7 @@ contract Packet is IPacket {
 
     mapping(bytes => uint64) public sequences;
     mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
-    mapping(bytes => bytes) public acks; // TODO
+    mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
     PacketTypes.Packet public latestPacket;
@@ -56,7 +56,11 @@ contract Packet is IPacket {
         // should validata packet data in teleport
         // Notice: must sent token to this contract before set packet fee
         packetFees[
-            getAckStatusKey(packet.srcChain, packet.destChain, packet.sequence)
+            getCommonUniqueKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
         ] = fee;
         emit PacketSent(abi.encode(packet));
     }
@@ -90,6 +94,13 @@ contract Packet is IPacket {
         PacketTypes.Packet calldata packet,
         PacketTypes.Acknowledgement calldata ack
     ) external onlyXIBCModulePacket {
+        acks[
+            getCommonUniqueKey(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence
+            )
+        ] = ack;
         ICrossChain(crossChainContractAddress).onAcknowledgementPacket(
             packet,
             ack.code,
@@ -111,7 +122,7 @@ contract Packet is IPacket {
         uint64 sequence,
         uint256 amount
     ) public payable {
-        bytes memory key = getAckStatusKey(sourceChain, destChain, sequence);
+        bytes memory key = getCommonUniqueKey(sourceChain, destChain, sequence);
 
         require(ackStatus[key] == uint8(0), "invalid packet status");
 
@@ -148,7 +159,7 @@ contract Packet is IPacket {
         address relayer
     ) external onlyXIBCModulePacket {
         PacketTypes.Fee memory fee = packetFees[
-            getAckStatusKey(sourceChain, destChain, sequence)
+            getCommonUniqueKey(sourceChain, destChain, sequence)
         ];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
@@ -193,7 +204,7 @@ contract Packet is IPacket {
         uint64 sequence,
         uint8 state
     ) external onlyXIBCModulePacket {
-        ackStatus[getAckStatusKey(sourceChain, destChain, sequence)] = state;
+        ackStatus[getCommonUniqueKey(sourceChain, destChain, sequence)] = state;
     }
 
     /**
@@ -223,7 +234,7 @@ contract Packet is IPacket {
         string calldata destChain,
         uint64 sequence
     ) external view override returns (uint8) {
-        return ackStatus[getAckStatusKey(sourceChain, destChain, sequence)];
+        return ackStatus[getCommonUniqueKey(sourceChain, destChain, sequence)];
     }
 
     /**
@@ -245,12 +256,12 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice get ack status key
+     * @notice get common unique key
      * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatusKey(
+    function getCommonUniqueKey(
         string memory sourceChain,
         string memory destChain,
         uint64 sequence

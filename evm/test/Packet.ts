@@ -251,11 +251,9 @@ describe('Packet', () => {
         await packet.recvPacket(pkt, proof, height)
         let ackPath = "acks/" + destChainName + "/" + srcChainName + "/sequences/" + 1
         let receiptPath = destChainName + "/" + srcChainName + "/" + 1
-        let maxAckSeqPath = destChainName + "/" + srcChainName
         let ackCommit = await packet.commitments(Buffer.from(ackPath, "utf-8"))
         expect(ackCommit).to.equal(sha256(ackByte))
         expect(await packet.receipts(Buffer.from(receiptPath, "utf-8"))).to.equal(true)
-        expect(await packet.sequences(Buffer.from(maxAckSeqPath, "utf-8"))).to.equal(1)
     })
 
     it("upgrade packet", async () => {

@@ -15,8 +15,16 @@ library Host {
         string memory sourceChain,
         string memory destChain
     ) internal pure returns (bytes memory) {
-        return bytes(packetPath(sourceChain, destChain));
+        return
+            bytes(
+                Strings.strConcat(
+                    Strings.strConcat(sourceChain, "/"),
+                    destChain
+                )
+            );
     }
+
+    // ================================================================
 
     /**
      * @notice packetCommitmentPath defines the next send sequence counter store path
@@ -32,7 +40,16 @@ library Host {
         return
             Strings.strConcat(
                 Strings.strConcat(
-                    packetCommitmentPrefixPath(sourceChain, destChain),
+                    Strings.strConcat(
+                        Strings.strConcat(
+                            "commitments/",
+                            Strings.strConcat(
+                                Strings.strConcat(sourceChain, "/"),
+                                destChain
+                            )
+                        ),
+                        "/sequences"
+                    ),
                     "/"
                 ),
                 Strings.uint642str(sequence)
@@ -53,24 +70,7 @@ library Host {
         return bytes(packetCommitmentPath(sourceChain, destChain, sequence));
     }
 
-    /**
-     * @notice packetCommitmentPrefixPath returns the store key of under which a packet commitment. should be same with teleport
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function packetCommitmentPrefixPath(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(
-                    "commitments/",
-                    packetPath(sourceChain, destChain)
-                ),
-                "/sequences"
-            );
-    }
+    // ================================================================
 
     /**
      * @notice packetAcknowledgementPath defines the packet acknowledgement store path
@@ -86,7 +86,16 @@ library Host {
         return
             Strings.strConcat(
                 Strings.strConcat(
-                    packetAcknowledgementPrefixPath(sourceChain, destChain),
+                    Strings.strConcat(
+                        Strings.strConcat(
+                            "acks/",
+                            Strings.strConcat(
+                                Strings.strConcat(sourceChain, "/"),
+                                destChain
+                            )
+                        ),
+                        "/sequences"
+                    ),
                     "/"
                 ),
                 Strings.uint642str(sequence)
@@ -108,21 +117,7 @@ library Host {
             bytes(packetAcknowledgementPath(sourceChain, destChain, sequence));
     }
 
-    /**
-     * @notice packetAcknowledgementPrefixPath defines the prefix for commitments to packet data fields store path. should be same with teleport
-     *  @param sourceChain source chain name
-     *  @param destChain destination chain name
-     */
-    function packetAcknowledgementPrefixPath(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat("acks/", packetPath(sourceChain, destChain)),
-                "/sequences"
-            );
-    }
+    // ================================================================
 
     /**
      * @notice packetReceiptPath defines the packet acknowledgement store path
@@ -137,7 +132,13 @@ library Host {
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(packetPath(sourceChain, destChain), "/"),
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(sourceChain, "/"),
+                        destChain
+                    ),
+                    "/"
+                ),
                 Strings.uint642str(sequence)
             );
     }
@@ -156,32 +157,7 @@ library Host {
         return bytes(packetReceiptPath(sourceChain, destChain, sequence));
     }
 
-    /**
-     * @notice packetPath
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function packetPath(string memory sourceChain, string memory destChain)
-        internal
-        pure
-        returns (string memory)
-    {
-        return
-            Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain);
-    }
-
-    /**
-     * @notice MaxAckSeqKey returns the store key of current max ack height is stored
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function MaxAckSeqKey(string memory sourceChain, string memory destChain)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return bytes(packetPath(sourceChain, destChain));
-    }
+    // ================================================================
 
     /**
      * @notice ackStatusKey returns the store key of ack status
@@ -189,12 +165,12 @@ library Host {
      * @param destChain destination chain name
      * @param sequence sequence
      */
-    function ackStatusKey(
+    function commonUniqueKey(
         string memory sourceChain,
         string memory destChain,
         uint64 sequence
     ) internal pure returns (bytes memory) {
-        return bytes(ackStatusPath(sourceChain, destChain, sequence));
+        return bytes(commonUniquePath(sourceChain, destChain, sequence));
     }
 
     /**
@@ -203,14 +179,20 @@ library Host {
      *  @param destChain destination chain name
      *  @param sequence sequence
      */
-    function ackStatusPath(
+    function commonUniquePath(
         string memory sourceChain,
         string memory destChain,
         uint64 sequence
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(packetPath(sourceChain, destChain), "/"),
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(sourceChain, "/"),
+                        destChain
+                    ),
+                    "/"
+                ),
                 Strings.uint642str(sequence)
             );
     }
