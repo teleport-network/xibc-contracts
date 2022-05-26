@@ -3,10 +3,9 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
+import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/ICrossChain.sol";
-import "../../libraries/packet/Packet.sol";
-import "../../libraries/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Packet is IPacket {

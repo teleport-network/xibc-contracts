@@ -3,8 +3,6 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../client/ClientManager.sol";
-import "../../libraries/packet/Packet.sol";
 import "../../libraries/host/Host.sol";
 import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IClient.sol";
@@ -24,7 +22,6 @@ contract Packet is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable
 {
-    using Strings for *;
     using Bytes for *;
 
     IClientManager public clientManager;

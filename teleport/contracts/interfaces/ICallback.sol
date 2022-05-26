@@ -8,6 +8,9 @@ interface ICallback {
      * @notice todo
      */
     function callback(
+        string calldata srcChain,
+        string calldata destChain,
+        uint64 sequence,
         uint64 code,
         bytes calldata result,
         string calldata message

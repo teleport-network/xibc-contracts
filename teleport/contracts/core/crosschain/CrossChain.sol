@@ -3,8 +3,6 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../libraries/packet/Packet.sol";
-import "../../libraries/crosschain/CrossChain.sol";
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ICrossChain.sol";
@@ -477,6 +475,9 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             }
         }
         ICallback(packet.callbackAddress.parseAddr()).callback(
+            packet.srcChain,
+            packet.destChain,
+            packet.sequence,
             code,
             result,
             message
