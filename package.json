@@ -1,8 +1,12 @@
 {
-  "name": "xibc-contracts",
-  "version": "0.1.0",
-  "main": "index.js",
-  "repository": "git@github.com:teleport-network/xibc-contracts.git",
-  "author": "",
-  "license": "Apache License 2.0"
+    "name": "xibc-contracts",
+    "version": "0.1.0",
+    "main": "index.js",
+    "repository": "git@github.com:teleport-network/xibc-contracts.git",
+    "author": "",
+    "license": "Apache License 2.0",
+    "devDependencies": {
+        "prettier": "^2.6.2",
+        "prettier-plugin-solidity": "^1.0.0-beta.19"
+    }
 }
