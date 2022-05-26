@@ -203,7 +203,7 @@ contract Packet is
         require(!receipts[packetReceiptKey], "packet has been received");
 
         bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
-        verifyPacketCommitment(
+        _verifyPacketCommitment(
             _msgSender(),
             packet.sequence,
             packet.srcChain,
@@ -253,7 +253,7 @@ contract Packet is
      * @notice Verify packet commitment
      * todo
      */
-    function verifyPacketCommitment(
+    function _verifyPacketCommitment(
         address sender,
         uint64 sequence,
         string memory sourceChain,
