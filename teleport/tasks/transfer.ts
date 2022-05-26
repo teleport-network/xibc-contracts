@@ -1,7 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task, types } from "hardhat/config"
 
-const transferContractAddress = "0x0000000000000000000000000000000030000001"
+const crossChainContractAddress = "0x0000000000000000000000000000000020000002"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
@@ -19,57 +19,61 @@ task("queryBalance", "Query Balance")
         console.log("balance: ", balance.toString())
     })
 
-
-task("transfer", "Transfer token")
-    .addParam("transfer", "transfer contract address")
-    .addParam("address", "ERC20 contract address")
+task("crossChain", "Cross chain call")
+    .addParam("destchain", "dest chain name")
+    .addParam("token", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
-    .addParam("destchain", "dest chain name")
-    .addParam("relaychain", "relay chain name", "", types.string, true)
-    .addParam("relayfeeaddress", "relay fee token address")
-    .addParam("relayfeeamout", "relay fee amout")
+    .addParam("contract", "contract call address")
+    .addParam("calldata", "contract call data")
+    .addParam("callback", "callback address")
+    .addParam("feetoken", "relay fee token address")
+    .addParam("feeamout", "relay fee amout")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
+        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
 
-        let transferdata = {
-            tokenAddress: taskArgs.address,
+        let crossChainData = {
+            destChain: taskArgs.destchain,
+            relayChain: "",
+            tokenAddress: taskArgs.tokenaddress,
             receiver: taskArgs.receiver,
             amount: taskArgs.amount,
-            destChain: taskArgs.destchain,
-            relayChain: taskArgs.relaychain,
+            contractAddress: taskArgs.contract,
+            callData: taskArgs.calldata,
+            callbackAddress: taskArgs.callback,
+            feeOption: taskArgs.feeoption,
         }
 
         let fee = {
-            tokenAddress: taskArgs.relayfeeaddress,
-            amount: taskArgs.relayfeeamout,
+            tokenAddress: taskArgs.feetoken,
+            amount: taskArgs.feeamout,
         }
-        let res = await transfer.sendTransfer(transferdata, fee)
+
+        let res = await crossChain.crossChainCall(crossChainData, fee)
         console.log(await res.wait())
     })
 
 task("queryBindings", "query ERC20 token trace")
-    .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
+        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
 
-        let res = await transfer.bindings(taskArgs.address)
+        let res = await crossChain.bindings(taskArgs.address)
         console.log(await res)
     })
 
 
 task("queryTrace", "Token")
-    .addParam("transfer", "transfer address")
     .addParam("srcchain", "srcchain name")
     .addParam("token", "token address")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
+        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
 
-        let trace = await transfer.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
+        let trace = await crossChain.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
         console.log(trace)
     });
+
 module.exports = {}

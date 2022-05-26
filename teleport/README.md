@@ -14,14 +14,15 @@ yarn & yarn compile
 Call Transfer
 
 ```bash
-yarn hardhat transferBase \
-    --transfer $TRANSFER_CONTRACT_ADDRESS \
-    --address $TOKEN_ADDRESS \
-    --receiver $RECEIVER_ADDRESS \
-    --amount $AMOUNT \
+yarn hardhat crossChain \
     --destchain $DEST_CHAIN \
-    --relaychain $RELAY_CHAIN_NAME \
-    --relayfeeaddress $FEE_TOKEN \
-    --relayfeeamout $FEE_AMOUNT \
+    --token $TOKEN_ADDRESS \
+    --receiver $RECEIVER \
+    --amount $AMOUNT \
+    --contract $CONTRACT_ADDRESS \
+    --calldata $CALLDATA \
+    --callback $CALLBACK_ADDRESS \
+    --feetoken $FEE_TOKEN_ADDRESS \
+    --feeamout $FEE_AMOUNT \
     --network $NETWORK_NAME
 ```
