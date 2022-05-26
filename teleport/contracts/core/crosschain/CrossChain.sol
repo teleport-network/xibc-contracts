@@ -185,7 +185,148 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         CrossChainDataTypes.CrossChainData memory crossChainData,
         PacketTypes.Fee memory fee
     ) public payable override nonReentrant {
-        // TODO
+        require(
+            !nativeChainName.equals(crossChainData.destChain) ||
+                !nativeChainName.equals(crossChainData.relayChain) ||
+                !crossChainData.destChain.equals(crossChainData.relayChain),
+            "invalid chains"
+        );
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
+            nativeChainName,
+            crossChainData.destChain
+        );
+
+        // tansfer data and contractcall data can't be both empty
+        require(
+            crossChainData.amount != 0 || crossChainData.callData.length != 0,
+            "invalid data"
+        );
+
+        bytes memory transferData;
+        bytes memory callData;
+
+        // validate transfer data contract call data
+        if (crossChainData.callData.length != 0) {
+            require(
+                bytes(crossChainData.contractAddress).length > 0,
+                "invalid contract address"
+            );
+
+            callData = abi.encode(
+                PacketTypes.CallData({
+                    contractAddress: crossChainData.contractAddress,
+                    callData: crossChainData.callData
+                })
+            );
+        }
+
+        uint256 msgValue = 0;
+        if (fee.tokenAddress == address(0)) {
+            // add fee amount to value
+            msgValue += fee.amount;
+        } else if (fee.amount > 0) {
+            // send fee to packet
+            require(
+                IERC20(fee.tokenAddress).transferFrom(
+                    msg.sender,
+                    packetContractAddress,
+                    fee.amount
+                ),
+                "send fee failed, insufficient allowance"
+            );
+        }
+        if (crossChainData.amount != 0) {
+            // validate transfer data
+            require(
+                bytes(crossChainData.receiver).length > 0,
+                "invalid receiver"
+            );
+            string memory oriToken = "";
+            if (crossChainData.tokenAddress == address(0)) {
+                // transfer base token
+                require(
+                    msg.value == crossChainData.amount + msgValue,
+                    "invalid value"
+                );
+                msgValue += crossChainData.amount;
+                outTokens[address(0)][
+                    crossChainData.destChain
+                ] += crossChainData.amount;
+            } else {
+                // transfer ERC20
+
+                string memory bindingKey = Strings.strConcat(
+                    Strings.strConcat(
+                        crossChainData.tokenAddress.addressToString(),
+                        "/"
+                    ),
+                    crossChainData.destChain
+                );
+
+                // if transfer crossed chain token
+                if (bindings[bindingKey].bound) {
+                    // back to origin
+                    uint256 realAmount = crossChainData.amount *
+                        10**uint256(bindings[bindingKey].scale);
+
+                    require(
+                        bindings[bindingKey].amount >= realAmount,
+                        "insufficient liquidity"
+                    );
+
+                    require(
+                        _burn(
+                            crossChainData.tokenAddress,
+                            msg.sender,
+                            realAmount
+                        ),
+                        "burn token failed"
+                    );
+
+                    bindings[bindingKey].amount -= realAmount;
+                    oriToken = bindings[bindingKey].oriToken;
+                } else {
+                    // outgoing
+                    require(
+                        IERC20(crossChainData.tokenAddress).transferFrom(
+                            msg.sender,
+                            address(this),
+                            crossChainData.amount
+                        ),
+                        "lock failed, insufficient allowance"
+                    );
+                    outTokens[crossChainData.tokenAddress][
+                        crossChainData.destChain
+                    ] += crossChainData.amount;
+                }
+            }
+
+            transferData = abi.encode(
+                PacketTypes.TransferData({
+                    receiver: crossChainData.receiver,
+                    amount: crossChainData.amount.toBytes(),
+                    token: crossChainData.tokenAddress.addressToString(),
+                    oriToken: oriToken
+                })
+            );
+        }
+
+        PacketTypes.Packet memory packet = PacketTypes.Packet({
+            srcChain: nativeChainName,
+            destChain: crossChainData.destChain,
+            relayChain: crossChainData.relayChain,
+            sequence: sequence,
+            sender: msg.sender.addressToString(),
+            transferData: transferData,
+            callData: callData,
+            callbackAddress: crossChainData.callbackAddress.addressToString(),
+            feeOption: crossChainData.feeOption
+        });
+
+        IPacket(packetContractAddress).sendPacket{value: fee.amount}(
+            packet,
+            fee
+        );
     }
 
     /**
@@ -202,7 +343,93 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             string memory message
         )
     {
-        // TODO
+        if (packet.transferData.length == 0 && packet.callData.length == 0) {
+            return (1, "", "empty pcaket data");
+        }
+
+        if (packet.transferData.length > 0) {
+            PacketTypes.TransferData memory transferData = abi.decode(
+                packet.transferData,
+                (PacketTypes.TransferData)
+            );
+
+            address tokenAddress;
+            address receiver = transferData.receiver.parseAddr();
+            uint256 amount = transferData.amount.toUint256();
+            if (bytes(transferData.oriToken).length == 0) {
+                // token come in
+                tokenAddress = bindingTraces[
+                    Strings.strConcat(
+                        Strings.strConcat(packet.srcChain, "/"),
+                        transferData.token
+                    )
+                ];
+                string memory bindingKey = Strings.strConcat(
+                    Strings.strConcat(tokenAddress.addressToString(), "/"),
+                    packet.srcChain
+                );
+                uint256 realAmount = amount *
+                    10**uint256(bindings[bindingKey].scale);
+
+                // check bindings
+                if (!bindings[bindingKey].bound) {
+                    return (2, "", "token not bound");
+                }
+                if (updateTimeBasedLimtSupply(tokenAddress, realAmount)) {
+                    return (2, "", "invalid amount");
+                }
+                if (!_mint(tokenAddress, receiver, realAmount)) {
+                    return (2, "", "mint failed");
+                }
+                bindings[bindingKey].amount += realAmount;
+            } else {
+                tokenAddress = transferData.oriToken.parseAddr();
+
+                if (tokenAddress != address(0)) {
+                    // ERC20 token back to origin
+                    if (amount > outTokens[tokenAddress][packet.srcChain]) {
+                        return (2, "", "amount is greater than locked");
+                    }
+                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                        return (2, "", "exceed the limit");
+                    }
+                    if (!IERC20(tokenAddress).transfer(receiver, amount)) {
+                        return (2, "", "unlock to receiver failed");
+                    }
+                    outTokens[tokenAddress][packet.srcChain] -= amount;
+                } else {
+                    // Base token back to origin
+                    if (amount > outTokens[address(0)][packet.srcChain]) {
+                        return (2, "", "amount is greater than locked");
+                    }
+                    if (updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                        return (2, "", "exceed the limit");
+                    }
+                    (bool success, ) = receiver.call{value: amount}("");
+                    if (!success) {
+                        return (2, "", "unlock to receiver failed");
+                    }
+                    outTokens[address(0)][packet.srcChain] -= amount;
+                }
+            }
+        }
+
+        if (packet.transferData.length > 0) {
+            PacketTypes.CallData memory callData = abi.decode(
+                packet.callData,
+                (PacketTypes.CallData)
+            );
+            (bool success, bytes memory res) = callData
+                .contractAddress
+                .parseAddr()
+                .call(callData.callData);
+            if (!success) {
+                return (3, "", "execute call data failed");
+            }
+            return (0, res, "");
+        }
+
+        return (0, "", "");
     }
 
     function onAcknowledgementPacket(
