@@ -91,9 +91,9 @@ contract Packet is IPacket {
      * @notice todo
      */
     function OnAcknowledgePacket(
-        PacketTypes.Packet calldata packet,
-        PacketTypes.Acknowledgement calldata ack
-    ) external onlyXIBCModulePacket {
+        PacketTypes.Packet memory packet,
+        PacketTypes.Acknowledgement memory ack
+    ) public onlyXIBCModulePacket {
         acks[
             getCommonUniqueKey(
                 packet.srcChain,
