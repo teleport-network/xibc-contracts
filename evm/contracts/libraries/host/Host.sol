@@ -7,21 +7,6 @@ import "../utils/Strings.sol";
 
 library Host {
     /**
-     * @notice nextSequenceSendKey returns the store key for the send sequence of a particular
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
-     */
-    function nextSequenceSendKey(string memory sourceChain, string memory destChain)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return bytes(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain));
-    }
-
-    // ================================================================
-
-    /**
      * @notice packetCommitmentPath defines the next send sequence counter store path
      *  @param sourceChain source chain name
      *  @param destChain destination chain name
@@ -107,33 +92,19 @@ library Host {
     /**
      * @notice packetReceiptPath defines the packet acknowledgement store path
      * @param sourceChain source chain name
-     * @param destChain destination chain name
      * @param sequence sequence
      */
-    function packetReceiptPath(
-        string memory sourceChain,
-        string memory destChain,
-        uint64 sequence
-    ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain), "/"),
-                Strings.uint642str(sequence)
-            );
+    function packetReceiptPath(string memory sourceChain, uint64 sequence) internal pure returns (string memory) {
+        return Strings.strConcat(Strings.strConcat(sourceChain, "/"), Strings.uint642str(sequence));
     }
 
     /**
      * @notice packetReceiptKey returns the store key of under which a packet
      * @param sourceChain source chain name
-     * @param destChain destination chain name
      * @param sequence sequence
      */
-    function packetReceiptKey(
-        string memory sourceChain,
-        string memory destChain,
-        uint64 sequence
-    ) internal pure returns (bytes memory) {
-        return bytes(packetReceiptPath(sourceChain, destChain, sequence));
+    function packetReceiptKey(string memory sourceChain, uint64 sequence) internal pure returns (bytes memory) {
+        return bytes(packetReceiptPath(sourceChain, sequence));
     }
 
     // ================================================================

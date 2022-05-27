@@ -48,10 +48,9 @@ interface IPacket {
 
     /**
      * @notice get the next sequence of sourceChain/destChain
-     * @param sourceChain source chain name
      * @param destChain destination chain name
      */
-    function getNextSequenceSend(string calldata sourceChain, string calldata destChain) external view returns (uint64);
+    function getNextSequenceSend(string calldata destChain) external view returns (uint64);
 
     /**
      * @notice get the next sequence of sourceChain/destChain

@@ -74,7 +74,6 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         if (consState.root.length == 0) {
             return Status.Unknown;
         }
-
         if (uint256(consState.timestamp.secs + clientState.trusting_period) <= block.timestamp) {
             return Status.Expired;
         }
@@ -92,7 +91,6 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         onlyClientManager
     {
         ClientStateCodec.decode(clientState, clientStateBz);
-
         uint128 key = getStorageKey(clientState.latest_height);
         consensusStates[key] = ConsensusStateCodec.decode(consensusStateBz);
         processedTime[key] = block.timestamp;

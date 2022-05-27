@@ -172,7 +172,7 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
     {
         string memory sourceChain = packetContract.chainName();
         require(!sourceChain.equals(crossChainData.destChain), "invalid destChain");
-        uint64 sequence = packetContract.getNextSequenceSend(sourceChain, crossChainData.destChain);
+        uint64 sequence = packetContract.getNextSequenceSend(crossChainData.destChain);
 
         // tansfer data and contractcall data can't be both empty
         require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");
@@ -242,10 +242,10 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
 
             transferData = abi.encode(
                 PacketTypes.TransferData({
-                    receiver: crossChainData.receiver,
-                    amount: crossChainData.amount.toBytes(),
                     token: crossChainData.tokenAddress.addressToString(),
-                    oriToken: oriToken
+                    oriToken: oriToken,
+                    amount: crossChainData.amount.toBytes(),
+                    receiver: crossChainData.receiver
                 })
             );
         }

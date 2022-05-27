@@ -25,13 +25,14 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     IAccessManager public accessManager;
     ICrossChain public crossChain;
 
-    mapping(bytes => uint64) public sequences;
+    mapping(bytes => uint64) public sequences; // map(bytes(destChain) => sequence)
     mapping(bytes => bytes32) public commitments;
-    mapping(bytes => bool) public receipts;
+    mapping(bytes => bool) public receipts; // map(bytes(srcChain/sequence) => sequence)
     mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
@@ -42,23 +43,30 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      * @param _chainName chain name
      * @param _clientManagerContract clientManager address
      * @param _accessManagerContract accessManager address
-     * @param _crossChainContract crossChainContract address
      */
     function initialize(
         string memory _chainName,
         address _clientManagerContract,
-        address _accessManagerContract,
-        address _crossChainContract
+        address _accessManagerContract
     ) public initializer {
         require(
-            _clientManagerContract != address(0) &&
-                _accessManagerContract != address(0) &&
-                _crossChainContract != address(0),
-            "clientManager, accessManager and crossChainContract cannot be empty"
+            !_chainName.equals("") && _clientManagerContract != address(0) && _accessManagerContract != address(0),
+            "invalid chainName, clientManagerContract or accessManager"
         );
         chainName = _chainName;
         clientManager = IClientManager(_clientManagerContract);
         accessManager = IAccessManager(_accessManagerContract);
+    }
+
+    /**
+     * @notice initialize cross chain contract
+     * @param _crossChainContract crossChainContract address
+     */
+    function initCrossChain(address _crossChainContract) public onlyAuthorizee(DEFAULT_ADMIN_ROLE) {
+        require(
+            _crossChainContract != address(0),
+            "clientManager, accessManager and crossChainContract cannot be empty"
+        );
         crossChain = ICrossChain(_crossChainContract);
     }
 
@@ -112,7 +120,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         whenNotPaused
         onlyCrossChainContract
     {
-        require(clientManager.client().status() == IClient.Status.Active, "invalid client");
+        require(address(clientManager.client()) != address(0), "invalid client");
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(packet.srcChain.equals(chainName), "srcChain mismatch");
         require(!packet.destChain.equals(chainName), "invalid destChain");
@@ -120,20 +128,17 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         // Notice: must sent token to this contract before set packet fee
         packetFees[Host.commonUniqueKey(packet.srcChain, packet.destChain, packet.sequence)] = fee;
 
-        bytes memory nextSequenceSendKey = Host.nextSequenceSendKey(packet.srcChain, packet.destChain);
+        bytes memory nextSequenceSendKey = bytes(packet.destChain);
 
         if (sequences[nextSequenceSendKey] == 0) {
             sequences[nextSequenceSendKey] = 1;
         }
 
         require(packet.sequence == sequences[nextSequenceSendKey], "packet sequence ≠ next send sequence");
-
         sequences[nextSequenceSendKey]++;
 
         bytes memory bz = abi.encode(packet);
-        commitments[Host.packetCommitmentKey(packet.srcChain, packet.destChain, packet.sequence)] = sha256(
-            Bytes.fromBytes32(sha256(bz))
-        );
+        commitments[Host.packetCommitmentKey(packet.srcChain, packet.destChain, packet.sequence)] = sha256(bz);
         emit PacketSent(bz);
     }
 
@@ -148,13 +153,13 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         bytes calldata proof,
         Height.Data calldata height
     ) external override nonReentrant whenNotPaused onlyAuthorizee(RELAYER_ROLE) {
-        require(clientManager.client().status() == IClient.Status.Active, "invalid client");
+        require(address(clientManager.client()) != address(0), "invalid client");
 
         PacketTypes.Packet memory packet = abi.decode(packetBytes, (PacketTypes.Packet));
         latestPacket = packet;
 
         require(packet.destChain.equals(chainName), "invalid destChain");
-        bytes memory packetReceiptKey = Host.packetReceiptKey(packet.srcChain, packet.destChain, packet.sequence);
+        bytes memory packetReceiptKey = Host.packetReceiptKey(packet.srcChain, packet.sequence);
         require(!receipts[packetReceiptKey], "packet has been received");
 
         bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
@@ -246,7 +251,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         bytes calldata proofAcked,
         Height.Data calldata height
     ) external override nonReentrant whenNotPaused {
-        require(clientManager.client().status() == IClient.Status.Active, "invalid client");
+        require(address(clientManager.client()) != address(0), "invalid client");
 
         PacketTypes.Packet memory packet = abi.decode(packetBytes, (PacketTypes.Packet));
         require(packet.srcChain.equals(chainName), "invalid packet");
@@ -326,16 +331,10 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
     /**
      * @notice get packet next sequence to send
-     * @param sourceChain name of source chain
      * @param destChain name of destination chain
      */
-    function getNextSequenceSend(string memory sourceChain, string memory destChain)
-        public
-        view
-        override
-        returns (uint64)
-    {
-        uint64 seq = sequences[Host.nextSequenceSendKey(sourceChain, destChain)];
+    function getNextSequenceSend(string memory destChain) public view override returns (uint64) {
+        uint64 seq = sequences[bytes(destChain)];
         if (seq == 0) {
             seq = 1;
         }

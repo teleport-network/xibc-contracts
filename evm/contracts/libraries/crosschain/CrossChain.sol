@@ -28,8 +28,8 @@ library CrossChainDataTypes {
         string destChain;
         // transfer token data
         address tokenAddress; // zero address if base token
-        string receiver;
         uint256 amount;
+        string receiver;
         // contract call data
         string contractAddress;
         bytes callData;
