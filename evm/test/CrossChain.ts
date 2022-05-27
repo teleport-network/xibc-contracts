@@ -1,6 +1,6 @@
 import { Signer, BigNumber, utils } from "ethers"
 import chai from "chai"
-import { CrossChain, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { CrossChain, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { web3 } from "hardhat"
 
 const { expect } = chai
@@ -12,6 +12,7 @@ let client = require("./proto/compiled.js")
 describe('CrossChain', () => {
     let accounts: Signer[]
     let crossChain: CrossChain
+    let execute: Execute
     let packetContract: Packet
     let clientManager: ClientManager
     let tendermint: MockTendermint
@@ -21,7 +22,6 @@ describe('CrossChain', () => {
     const chainName = "teleport"
     const testChainName = "testChainName"
 
-
     before('deploy CrossChain', async () => {
         accounts = await ethers.getSigners()
         await deployAccessManager()
@@ -30,6 +30,7 @@ describe('CrossChain', () => {
         await deployHost()
         await deployPacket()
         await deployCrossChain()
+        await deployExecute()
         await deployToken()
     })
 
@@ -194,7 +195,7 @@ describe('CrossChain', () => {
         expect(outToken).to.eq(0)
         expect(balances.toString()).to.eq("10000000000000")
 
-        let allowances = (await erc20Contract.allowance(crossChain.address, "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"))
+        let allowances = (await erc20Contract.allowance(execute.address, "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"))
         expect(allowances.toString()).to.equal("1")
     })
 
@@ -465,7 +466,18 @@ describe('CrossChain', () => {
             ]
         ) as CrossChain
 
-        // init crossChain address after crossChain deployed
+        // init crossChain address after crossChain contract deployed
         await packetContract.initCrossChain(crossChain.address,)
+    }
+
+    const deployExecute = async () => {
+        const executeFactory = await ethers.getContractFactory('Execute', accounts[0])
+        execute = await upgrades.deployProxy(
+            executeFactory,
+            [crossChain.address]
+        ) as Execute
+
+        // init execute address after execute contract deployed
+        await crossChain.initExecute(execute.address,)
     }
 })

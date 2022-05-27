@@ -9,6 +9,7 @@ import "../interfaces/IClientManager.sol";
 import "../interfaces/IPacket.sol";
 import "../interfaces/ICallback.sol";
 import "../interfaces/ICrossChain.sol";
+import "../interfaces/IExecute.sol";
 import "../interfaces/IERC20XIBC.sol";
 import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,11 +21,13 @@ contract MockCrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reent
     using Strings for *;
     using Bytes for *;
 
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
 
     IPacket public packetContract;
     IClientManager public clientManager;
     IAccessManager public accessManager;
+    IExecute public executeContract;
 
     // token come in
     address[] public override boundTokens;
@@ -61,13 +64,31 @@ contract MockCrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reent
      * @notice todo
      */
     function initialize(
-        address packetContractAddress,
-        address clientManagerContractAddress,
-        address accessManagerContractAddress
+        address _packetContractAddress,
+        address _clientManagerContractAddress,
+        address _accessManagerContractAddress
     ) public initializer {
-        packetContract = IPacket(packetContractAddress);
-        clientManager = IClientManager(clientManagerContractAddress);
-        accessManager = IAccessManager(accessManagerContractAddress);
+        require(
+            _packetContractAddress != address(0) &&
+                _clientManagerContractAddress != address(0) &&
+                _accessManagerContractAddress != address(0),
+            "invalid contract address"
+        );
+        packetContract = IPacket(_packetContractAddress);
+        clientManager = IClientManager(_clientManagerContractAddress);
+        accessManager = IAccessManager(_accessManagerContractAddress);
+    }
+
+    /**
+     * @notice initialize execute contract
+     * @param _executeContractAddress crossChainContract address
+     */
+    function initExecute(address _executeContractAddress) public onlyAuthorizee(DEFAULT_ADMIN_ROLE) {
+        require(
+            _executeContractAddress != address(0),
+            "clientManager, accessManager and crossChainContract cannot be empty"
+        );
+        executeContract = IExecute(_executeContractAddress);
     }
 
     /**
@@ -346,7 +367,7 @@ contract MockCrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reent
 
         if (packet.callData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
-            (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
+            (bool success, bytes memory res) = executeContract.execute(callData);
             if (!success) {
                 return (3, "", "execute call data failed");
             }

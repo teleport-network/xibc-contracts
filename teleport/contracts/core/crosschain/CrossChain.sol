@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ICrossChain.sol";
+import "../../interfaces/IExecute.sol";
 import "../../interfaces/IERC20XIBC.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/ICallback.sol";
@@ -18,6 +19,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
 
     address public constant aggregateModuleAddress = address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
     address public constant packetContractAddress = address(0x0000000000000000000000000000000020000001);
+    address public constant executeContractAddress = address(0x0000000000000000000000000000000020000003);
 
     // token come in
     address[] public override boundTokens;
@@ -327,7 +329,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
 
         if (packet.callData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
-            (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
+            (bool success, bytes memory res) = IExecute(executeContractAddress).execute(callData);
             if (!success) {
                 return (3, "", "execute call data failed");
             }

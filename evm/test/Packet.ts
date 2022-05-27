@@ -1,5 +1,5 @@
 import { Signer, BigNumber, utils } from "ethers"
-import { MockCrossChain, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { MockCrossChain, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { sha256 } from "ethers/lib/utils"
 import chai from "chai"
 
@@ -13,6 +13,7 @@ describe('Packet', () => {
     let clientManager: ClientManager
     let tendermint: MockTendermint
     let crossChain: MockCrossChain
+    let execute: Execute
     let accessManager: AccessManager
     let accounts: Signer[]
     let packetContract: Packet
@@ -28,6 +29,7 @@ describe('Packet', () => {
         await deployTendermint()
         await deployPacket()
         await deployCrossChain()
+        await deployExecute()
         await deployToken()
     })
 
@@ -286,7 +288,18 @@ describe('Packet', () => {
             ]
         ) as MockCrossChain
 
-        // init crossChain address after crossChain deployed
+        // init crossChain address after crossChain contract deployed
         await packetContract.initCrossChain(crossChain.address,)
+    }
+
+    const deployExecute = async () => {
+        const executeFactory = await ethers.getContractFactory('Execute', accounts[0])
+        execute = await upgrades.deployProxy(
+            executeFactory,
+            [crossChain.address]
+        ) as Execute
+
+        // init execute address after execute contract deployed
+        await crossChain.initExecute(execute.address,)
     }
 })

@@ -19,6 +19,10 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     using Strings for *;
     using Bytes for *;
 
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+
     string public override chainName;
 
     IClientManager public clientManager;
@@ -31,10 +35,6 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
-
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
     PacketTypes.Packet public latestPacket;
 
@@ -63,10 +63,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      * @param _crossChainContract crossChainContract address
      */
     function initCrossChain(address _crossChainContract) public onlyAuthorizee(DEFAULT_ADMIN_ROLE) {
-        require(
-            _crossChainContract != address(0),
-            "clientManager, accessManager and crossChainContract cannot be empty"
-        );
+        require(_crossChainContract != address(0), "invalid crossChainContract address");
         crossChain = ICrossChain(_crossChainContract);
     }
 
