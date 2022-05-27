@@ -225,10 +225,10 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
 
             transferData = abi.encode(
                 PacketTypes.TransferData({
-                    receiver: crossChainData.receiver,
-                    amount: crossChainData.amount.toBytes(),
                     token: crossChainData.tokenAddress.addressToString(),
-                    oriToken: oriToken
+                    oriToken: oriToken,
+                    amount: crossChainData.amount.toBytes(),
+                    receiver: crossChainData.receiver
                 })
             );
         }

@@ -21,10 +21,10 @@ library PacketTypes {
     }
 
     struct TransferData {
-        string receiver;
-        bytes amount;
         string token;
         string oriToken;
+        bytes amount;
+        string receiver;
     }
 
     struct CallData {
