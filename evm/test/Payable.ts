@@ -16,7 +16,6 @@ describe('Payable', () => {
         accounts = await ethers.getSigners()
         await deployTestRecl()
         await deployPayable()
-
     })
 
     it("proxySend", async () => {
@@ -31,9 +30,9 @@ describe('Payable', () => {
     })
 
     it("proxySend", async () => {
-        await payable.send(recl.address,{value:1})
-        await payable.transfer(recl.address,{value:1})
-        await payable.call(recl.address,{value:1})
+        await payable.send(recl.address, { value: 1 })
+        await payable.transfer(recl.address, { value: 1 })
+        await payable.call(recl.address, { value: 1 })
     })
 
     const deployTestRecl = async () => {
@@ -47,5 +46,4 @@ describe('Payable', () => {
         const PayableFactory = await ethers.getContractFactory('TestPayable')
         payable = await PayableFactory.deploy()
     }
-
 })

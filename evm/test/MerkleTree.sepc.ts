@@ -21,12 +21,10 @@ describe('TestMerkleTree', () => {
         const headerCodec = await HeaderCodec.deploy()
         await headerCodec.deployed()
 
-        const lcFactory = await ethers.getContractFactory('TestLightClient',
-            {
-                libraries: {
-                    HeaderCodec: headerCodec.address,
-                },
-            })
+        const lcFactory = await ethers.getContractFactory(
+            'TestLightClient',
+            { libraries: { HeaderCodec: headerCodec.address, }, }
+        )
         light = await lcFactory.deploy() as TestLightClient
     })
 
