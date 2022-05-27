@@ -210,7 +210,6 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
                 require(msg.value == crossChainData.amount + msgValue, "invalid value");
-                msgValue += crossChainData.amount;
                 outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
@@ -381,14 +380,16 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
                 outTokens[tokenAddress][packet.destChain] -= amount;
             }
         }
-        ICallback(packet.callbackAddress.parseAddr()).callback(
-            packet.srcChain,
-            packet.destChain,
-            packet.sequence,
-            code,
-            result,
-            message
-        );
+        if (packet.callbackAddress.parseAddr() != address(0)) {
+            ICallback(packet.callbackAddress.parseAddr()).callback(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence,
+                code,
+                result,
+                message
+            );
+        }
     }
 
     // ===========================================================================

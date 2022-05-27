@@ -190,7 +190,6 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
                 require(msg.value == crossChainData.amount + msgValue, "invalid value");
-                msgValue += crossChainData.amount;
                 outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
@@ -206,7 +205,6 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                     uint256 realAmount = crossChainData.amount * 10**uint256(bindings[bindingKey].scale);
 
                     require(bindings[bindingKey].amount >= realAmount, "insufficient liquidity");
-
                     require(_burn(crossChainData.tokenAddress, msg.sender, realAmount), "burn token failed");
 
                     bindings[bindingKey].amount -= realAmount;
