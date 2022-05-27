@@ -1,19 +1,15 @@
-import { Signer } from "ethers"
 import chai from "chai"
 import { TestRecl, TestPayable } from '../typechain'
 import { web3 } from "hardhat"
+
 const { ethers } = require("hardhat")
 const { expect } = chai
 
-let client = require("./proto/compiled.js")
-
 describe('Payable', () => {
-    let accounts: Signer[]
     let recl: TestRecl
     let payable: TestPayable
 
     before('deploy Payable', async () => {
-        accounts = await ethers.getSigners()
         await deployTestRecl()
         await deployPayable()
     })

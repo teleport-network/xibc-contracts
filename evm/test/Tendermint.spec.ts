@@ -1,11 +1,12 @@
 import { ethers, upgrades } from "hardhat"
-import { Signer, utils } from "ethers"
-import chai from "chai"
+import { Signer } from "ethers"
 import { ClientManager, Tendermint, AccessManager } from '../typechain'
+import chai from "chai"
+import keccak256 from 'keccak256'
+
+const { expect } = chai
 
 let client = require("./proto/compiled.js")
-const keccak256 = require('keccak256')
-const { expect } = chai
 
 describe('Tendermint', () => {
     let accounts: Signer[]

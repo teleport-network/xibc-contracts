@@ -55,14 +55,14 @@ yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth
 # When multiple light clients need to be created, multiple instances need to be deployed (Tendermint contracts)
 yarn hardhat deployTendermint --network $NETWORK_NAME
 
-# Deploy Routing
-yarn hardhat deployRouting --network $NETWORK_NAME
-
 # Deploy Packet
 yarn hardhat deployPacket --network $NETWORK_NAME
 
-# Deploy Transfer
-yarn hardhat deployTransfer --network $NETWORK_NAME
+# Deploy CrossChain
+yarn hardhat deployCrossChain --network $NETWORK_NAME
+
+# Init CrossChain address in Packet
+# 
 
 # Deploy Proxy
 yarn hardhat deployProxy --network $NETWORK_NAME 

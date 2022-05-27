@@ -1,9 +1,9 @@
 import { ethers, upgrades } from "hardhat"
 import { Signer, utils } from "ethers"
-import chai from "chai"
 import { ClientManager, TssClient, AccessManager } from '../typechain'
+import chai from "chai"
+import keccak256 from 'keccak256'
 
-const keccak256 = require('keccak256')
 const { expect } = chai
 
 describe('TSS', () => {
