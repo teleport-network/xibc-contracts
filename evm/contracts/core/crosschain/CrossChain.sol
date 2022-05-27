@@ -16,12 +16,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract CrossChain is
-    Initializable,
-    ICrossChain,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
+contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -43,10 +38,7 @@ contract CrossChain is
     mapping(address => TokenBindingTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
 
     modifier onlyPacket() {
-        require(
-            msg.sender == address(packetContract),
-            "caller must be packet contract"
-        );
+        require(msg.sender == address(packetContract), "caller must be packet contract");
         _;
     }
 
@@ -81,12 +73,7 @@ contract CrossChain is
         string calldata oriChain
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(tokenAddress != address(0), "invalid ERC20 address");
-
-        string memory sourceChain = clientManager.getChainName();
-        require(
-            !sourceChain.equals(oriChain),
-            "sourceChain can't equal to oriChain"
-        );
+        require(!oriChain.equals(packetContract.chainName()), "sourceChain can't equal to oriChain");
 
         if (bindings[tokenAddress].bound) {
             // rebind
@@ -99,10 +86,7 @@ contract CrossChain is
             boundTokens.push(tokenAddress);
         }
 
-        string memory key = Strings.strConcat(
-            Strings.strConcat(oriChain, "/"),
-            oriToken
-        );
+        string memory key = Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken);
 
         bindings[tokenAddress] = TokenBindingTypes.InToken({
             oriChain: oriChain,
@@ -130,10 +114,7 @@ contract CrossChain is
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(!limits[tokenAddress].enable, "already enable");
         require(
-            timePeriod > 0 &&
-                minAmount > 0 &&
-                maxAmount > minAmount &&
-                timeBasedLimit > maxAmount,
+            timePeriod > 0 && minAmount > 0 && maxAmount > minAmount && timeBasedLimit > maxAmount,
             "invalid limit"
         );
 
@@ -152,10 +133,7 @@ contract CrossChain is
      * @notice disable time based supply limit
      * @param tokenAddress token address
      */
-    function disableTimeBasedSupplyLimit(address tokenAddress)
-        external
-        onlyAuthorizee(BIND_TOKEN_ROLE)
-    {
+    function disableTimeBasedSupplyLimit(address tokenAddress) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(limits[tokenAddress].enable, "not enable");
         delete limits[tokenAddress];
     }
@@ -165,22 +143,14 @@ contract CrossChain is
      * @param tokenAddress token address
      * @param amount token amount
      */
-    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
-        private
-        returns (bool)
-    {
-        TokenBindingTypes.TimeBasedSupplyLimit memory limit = limits[
-            tokenAddress
-        ];
+    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount) private returns (bool) {
+        TokenBindingTypes.TimeBasedSupplyLimit memory limit = limits[tokenAddress];
         if (limit.enable) {
             if (amount < limit.minAmount || amount > limit.maxAmount) {
                 return true;
             }
             if (block.timestamp - limit.previousTime < limit.timePeriod) {
-                require(
-                    limit.currentSupply + amount < limit.timeBasedLimit,
-                    "exceeded time based limit"
-                );
+                require(limit.currentSupply + amount < limit.timeBasedLimit, "exceeded time based limit");
 
                 limits[tokenAddress].currentSupply += amount;
             } else {
@@ -194,37 +164,25 @@ contract CrossChain is
     /**
      * @notice todo
      */
-    function crossChainCall(
-        CrossChainDataTypes.CrossChainData memory crossChainData,
-        PacketTypes.Fee memory fee
-    ) public payable override nonReentrant {
-        string memory sourceChain = clientManager.getChainName();
-        require(
-            !sourceChain.equals(crossChainData.destChain) ||
-                !sourceChain.equals(crossChainData.relayChain) ||
-                !crossChainData.destChain.equals(crossChainData.relayChain),
-            "invalid chains"
-        );
-        uint64 sequence = packetContract.getNextSequenceSend(
-            sourceChain,
-            crossChainData.destChain
-        );
+    function crossChainCall(CrossChainDataTypes.CrossChainData memory crossChainData, PacketTypes.Fee memory fee)
+        public
+        payable
+        override
+        nonReentrant
+    {
+        string memory sourceChain = packetContract.chainName();
+        require(!sourceChain.equals(crossChainData.destChain), "invalid destChain");
+        uint64 sequence = packetContract.getNextSequenceSend(sourceChain, crossChainData.destChain);
 
         // tansfer data and contractcall data can't be both empty
-        require(
-            crossChainData.amount != 0 || crossChainData.callData.length != 0,
-            "invalid data"
-        );
+        require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");
 
         bytes memory transferData;
         bytes memory callData;
 
         // validate transfer data contract call data
         if (crossChainData.callData.length != 0) {
-            require(
-                bytes(crossChainData.contractAddress).length > 0,
-                "invalid contract address"
-            );
+            require(bytes(crossChainData.contractAddress).length > 0, "invalid contract address");
 
             callData = abi.encode(
                 PacketTypes.CallData({
@@ -241,57 +199,33 @@ contract CrossChain is
         } else if (fee.amount > 0) {
             // send fee to packet
             require(
-                IERC20(fee.tokenAddress).transferFrom(
-                    msg.sender,
-                    address(packetContract),
-                    fee.amount
-                ),
+                IERC20(fee.tokenAddress).transferFrom(msg.sender, address(packetContract), fee.amount),
                 "send fee failed, insufficient allowance"
             );
         }
         if (crossChainData.amount != 0) {
             // validate transfer data
-            require(
-                bytes(crossChainData.receiver).length > 0,
-                "invalid receiver"
-            );
+            require(bytes(crossChainData.receiver).length > 0, "invalid receiver");
             string memory oriToken = "";
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
-                require(
-                    msg.value == crossChainData.amount + msgValue,
-                    "invalid value"
-                );
+                require(msg.value == crossChainData.amount + msgValue, "invalid value");
                 msgValue += crossChainData.amount;
-                outTokens[address(0)][
-                    crossChainData.destChain
-                ] += crossChainData.amount;
+                outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
                 if (bindings[crossChainData.tokenAddress].bound) {
                     // back to origin
                     require(
-                        Strings.equals(
-                            crossChainData.destChain,
-                            bindings[crossChainData.tokenAddress].oriChain
-                        ),
+                        crossChainData.destChain.equals(bindings[crossChainData.tokenAddress].oriChain),
                         "destChain does not match the bound one"
                     );
                     require(
-                        bindings[crossChainData.tokenAddress].amount >=
-                            crossChainData.amount,
+                        bindings[crossChainData.tokenAddress].amount >= crossChainData.amount,
                         "insufficient liquidity"
                     );
-                    require(
-                        _burn(
-                            crossChainData.tokenAddress,
-                            msg.sender,
-                            crossChainData.amount
-                        ),
-                        "burn token failed"
-                    );
-                    bindings[crossChainData.tokenAddress]
-                        .amount -= crossChainData.amount;
+                    require(_burn(crossChainData.tokenAddress, msg.sender, crossChainData.amount), "burn token failed");
+                    bindings[crossChainData.tokenAddress].amount -= crossChainData.amount;
                     oriToken = bindings[crossChainData.tokenAddress].oriToken;
                 } else {
                     // outgoing
@@ -303,9 +237,7 @@ contract CrossChain is
                         ),
                         "lock failed, insufficient allowance"
                     );
-                    outTokens[crossChainData.tokenAddress][
-                        crossChainData.destChain
-                    ] += crossChainData.amount;
+                    outTokens[crossChainData.tokenAddress][crossChainData.destChain] += crossChainData.amount;
                 }
             }
 
@@ -322,7 +254,6 @@ contract CrossChain is
         PacketTypes.Packet memory packet = PacketTypes.Packet({
             srcChain: sourceChain,
             destChain: crossChainData.destChain,
-            relayChain: crossChainData.relayChain,
             sequence: sequence,
             sender: msg.sender.addressToString(),
             transferData: transferData,
@@ -331,7 +262,7 @@ contract CrossChain is
             feeOption: crossChainData.feeOption
         });
 
-        packetContract.sendPacket{value: fee.amount}(packet, fee);
+        packetContract.sendPacket{value: msgValue}(packet, fee);
     }
 
     /**
@@ -353,10 +284,7 @@ contract CrossChain is
         }
 
         if (packet.transferData.length > 0) {
-            PacketTypes.TransferData memory transferData = abi.decode(
-                packet.transferData,
-                (PacketTypes.TransferData)
-            );
+            PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
             address tokenAddress;
             address receiver = transferData.receiver.parseAddr();
@@ -364,10 +292,7 @@ contract CrossChain is
             if (bytes(transferData.oriToken).length == 0) {
                 // token come in
                 tokenAddress = bindingTraces[
-                    Strings.strConcat(
-                        Strings.strConcat(packet.srcChain, "/"),
-                        transferData.token
-                    )
+                    Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
                 ];
                 // check bindings
                 if (!bindings[tokenAddress].bound) {
@@ -413,14 +338,8 @@ contract CrossChain is
         }
 
         if (packet.transferData.length > 0) {
-            PacketTypes.CallData memory callData = abi.decode(
-                packet.callData,
-                (PacketTypes.CallData)
-            );
-            (bool success, bytes memory res) = callData
-                .contractAddress
-                .parseAddr()
-                .call(callData.callData);
+            PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
+            (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
             if (!success) {
                 return (3, "", "execute call data failed");
             }
@@ -441,10 +360,7 @@ contract CrossChain is
     ) public override nonReentrant onlyPacket {
         if (code != 0) {
             // refund tokens
-            PacketTypes.TransferData memory transferData = abi.decode(
-                packet.transferData,
-                (PacketTypes.TransferData)
-            );
+            PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
             address sender = packet.sender.parseAddr();
             address tokenAddress = transferData.token.parseAddr();
@@ -452,17 +368,11 @@ contract CrossChain is
 
             if (bytes(transferData.oriToken).length > 0) {
                 // refund crossed chain token
-                require(
-                    _mint(tokenAddress, sender, amount),
-                    "mint back to sender failed"
-                );
+                require(_mint(tokenAddress, sender, amount), "mint back to sender failed");
                 bindings[tokenAddress].amount += amount;
             } else if (tokenAddress != address(0)) {
                 // refund native ERC20 token
-                require(
-                    IERC20(tokenAddress).transfer(sender, amount),
-                    "unlock ERC20 token to sender failed"
-                );
+                require(IERC20(tokenAddress).transfer(sender, amount), "unlock ERC20 token to sender failed");
                 outTokens[tokenAddress][packet.destChain] -= amount;
             } else {
                 // refund base token
@@ -512,12 +422,7 @@ contract CrossChain is
     /**
      * @notice todo
      */
-    function getBindings(address token)
-        external
-        view
-        override
-        returns (TokenBindingTypes.InToken memory inToken)
-    {
+    function getBindings(address token) external view override returns (TokenBindingTypes.InToken memory inToken) {
         return bindings[token];
     }
 }

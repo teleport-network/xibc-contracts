@@ -10,8 +10,7 @@ import "../../libraries/packet/Packet.sol";
 contract Proxy {
     using Bytes for *;
 
-    address public constant agentContractAddress =
-        address(0x0000000000000000000000000000000040000001);
+    address public constant agentContractAddress = address(0x0000000000000000000000000000000040000001);
 
     struct AgentData {
         address refundAddressOnTeleport;
@@ -36,7 +35,6 @@ contract Proxy {
         return
             CrossChainDataTypes.CrossChainData({
                 destChain: agentData.destChain,
-                relayChain: "",
                 tokenAddress: agentData.tokenAddress,
                 receiver: agentData.receiver,
                 amount: agentData.amount,
@@ -50,11 +48,7 @@ contract Proxy {
     /**
      * @notice todo
      */
-    function _generateCalldata(AgentData memory agentData)
-        private
-        pure
-        returns (bytes memory)
-    {
+    function _generateCalldata(AgentData memory agentData) private pure returns (bytes memory) {
         bytes memory agentSendData = abi.encodeWithSignature(
             "send(address,address,string,string,uint256)",
             agentData.tokenAddress,
@@ -66,10 +60,7 @@ contract Proxy {
 
         return
             abi.encode(
-                PacketTypes.CallData({
-                    contractAddress: agentContractAddress.addressToString(),
-                    callData: agentSendData
-                })
+                PacketTypes.CallData({contractAddress: agentContractAddress.addressToString(), callData: agentSendData})
             );
     }
 }

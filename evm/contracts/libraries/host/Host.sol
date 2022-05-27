@@ -11,17 +11,12 @@ library Host {
      * @param sourceChain source chain name
      * @param destChain destination chain name
      */
-    function nextSequenceSendKey(
-        string memory sourceChain,
-        string memory destChain
-    ) internal pure returns (bytes memory) {
-        return
-            bytes(
-                Strings.strConcat(
-                    Strings.strConcat(sourceChain, "/"),
-                    destChain
-                )
-            );
+    function nextSequenceSendKey(string memory sourceChain, string memory destChain)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return bytes(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain));
     }
 
     // ================================================================
@@ -43,10 +38,7 @@ library Host {
                     Strings.strConcat(
                         Strings.strConcat(
                             "commitments/",
-                            Strings.strConcat(
-                                Strings.strConcat(sourceChain, "/"),
-                                destChain
-                            )
+                            Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)
                         ),
                         "/sequences"
                     ),
@@ -87,13 +79,7 @@ library Host {
             Strings.strConcat(
                 Strings.strConcat(
                     Strings.strConcat(
-                        Strings.strConcat(
-                            "acks/",
-                            Strings.strConcat(
-                                Strings.strConcat(sourceChain, "/"),
-                                destChain
-                            )
-                        ),
+                        Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)),
                         "/sequences"
                     ),
                     "/"
@@ -113,8 +99,7 @@ library Host {
         string memory destChain,
         uint64 sequence
     ) internal pure returns (bytes memory) {
-        return
-            bytes(packetAcknowledgementPath(sourceChain, destChain, sequence));
+        return bytes(packetAcknowledgementPath(sourceChain, destChain, sequence));
     }
 
     // ================================================================
@@ -132,13 +117,7 @@ library Host {
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(sourceChain, "/"),
-                        destChain
-                    ),
-                    "/"
-                ),
+                Strings.strConcat(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain), "/"),
                 Strings.uint642str(sequence)
             );
     }
@@ -186,13 +165,7 @@ library Host {
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(sourceChain, "/"),
-                        destChain
-                    ),
-                    "/"
-                ),
+                Strings.strConcat(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain), "/"),
                 Strings.uint642str(sequence)
             );
     }

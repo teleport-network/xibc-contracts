@@ -8,11 +8,7 @@ import "../libraries/commitment/Merkle.sol";
 import "../proto/ProtoBufRuntime.sol";
 
 contract TestMerkleTree {
-    function hashFromByteSlices(bytes[] memory data)
-        public
-        pure
-        returns (bytes32)
-    {
+    function hashFromByteSlices(bytes[] memory data) public pure returns (bytes32) {
         return MerkleTree.hashFromByteSlices(data);
     }
 

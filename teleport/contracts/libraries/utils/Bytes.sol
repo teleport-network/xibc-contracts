@@ -20,11 +20,7 @@ library Bytes {
         }
     }
 
-    function fromBytes32(bytes32 data)
-        internal
-        pure
-        returns (bytes memory bts)
-    {
+    function fromBytes32(bytes32 data) internal pure returns (bytes memory bts) {
         bts = new bytes(32);
         assembly {
             mstore(
@@ -44,22 +40,14 @@ library Bytes {
         return result;
     }
 
-    function toUint64(bytes memory _bytes, uint256 _start)
-        internal
-        pure
-        returns (uint64 ret)
-    {
+    function toUint64(bytes memory _bytes, uint256 _start) internal pure returns (uint64 ret) {
         require(_bytes.length >= _start + 8, "toUint64_outOfBounds");
         assembly {
             ret := mload(add(add(_bytes, 0x8), _start))
         }
     }
 
-    function uint64ToBigEndian(uint64 v)
-        internal
-        pure
-        returns (bytes memory ret)
-    {
+    function uint64ToBigEndian(uint64 v) internal pure returns (bytes memory ret) {
         ret = new bytes(8);
         ret[0] = bytes1(uint8(v >> 56));
         ret[1] = bytes1(uint8(v >> 48));
@@ -77,11 +65,7 @@ library Bytes {
     // Equality means that:
     //  - 'self.length == other.length'
     //  - For 'n' in '[0, self.length)', 'self[n] == other[n]'
-    function equals(bytes memory self, bytes memory other)
-        internal
-        pure
-        returns (bool)
-    {
+    function equals(bytes memory self, bytes memory other) internal pure returns (bool) {
         if (self.length != other.length) {
             return false;
         }
@@ -120,11 +104,7 @@ library Bytes {
         return Memory.toBytes(addr + startIndex, len);
     }
 
-    function hasPrefix(bytes memory s, bytes memory prefix)
-        internal
-        pure
-        returns (bool)
-    {
+    function hasPrefix(bytes memory s, bytes memory prefix) internal pure returns (bool) {
         if (s.length < prefix.length) {
             return false;
         }
@@ -140,11 +120,7 @@ library Bytes {
     // Returns the concatenated arrays:
     //  [self[0], self[1], ... , self[self.length - 1], other[0], other[1], ... , other[other.length - 1]]
     // The length of the new array is 'self.length + other.length'
-    function concat(bytes memory self, bytes memory other)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function concat(bytes memory self, bytes memory other) internal pure returns (bytes memory) {
         bytes memory ret = new bytes(self.length + other.length);
         (uint256 src, uint256 srcLen) = Memory.fromBytes(self);
         (uint256 src2, uint256 src2Len) = Memory.fromBytes(other);
@@ -163,11 +139,7 @@ library Bytes {
         return number;
     }
 
-    function addressToString(address _address)
-        internal
-        pure
-        returns (string memory)
-    {
+    function addressToString(address _address) internal pure returns (string memory) {
         bytes memory alphabet = "0123456789abcdef";
         bytes20 data = bytes20(_address);
 
@@ -181,11 +153,7 @@ library Bytes {
         return string(str);
     }
 
-    function parseAddr(string memory _a)
-        internal
-        pure
-        returns (address _parsedAddress)
-    {
+    function parseAddr(string memory _a) internal pure returns (address _parsedAddress) {
         bytes memory tmp = bytes(_a);
         uint160 iaddr = 0;
         uint160 b1;
@@ -214,11 +182,7 @@ library Bytes {
     }
 
     // 32 bytes take high 128 bits
-    function cutBytes32(bytes32 source)
-        internal
-        pure
-        returns (bytes memory bts)
-    {
+    function cutBytes32(bytes32 source) internal pure returns (bytes memory bts) {
         bts = new bytes(16);
         assembly {
             mstore(

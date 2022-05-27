@@ -26,16 +26,11 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
 
     mapping(string => AgentData) public agentData; // map[destChain/sequence]AgentData
 
-    address public constant packetContractAddress =
-        address(0x0000000000000000000000000000000020000001);
-    address public constant crossChainContractAddress =
-        address(0x0000000000000000000000000000000020000002);
+    IPacket public constant packetContract = IPacket(0x0000000000000000000000000000000020000001);
+    ICrossChain public constant crossChainContract = ICrossChain(0x0000000000000000000000000000000020000002);
 
     modifier onlyCrossChain() {
-        require(
-            msg.sender == crossChainContractAddress,
-            "caller must be XIBC CrossChain contract"
-        );
+        require(msg.sender == address(crossChainContract), "caller must be XIBC CrossChain contract");
         _;
     }
 
@@ -63,23 +58,18 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
         }
         */
 
-        require(!Strings.equals(destChain, "teleport"), "invalid destChain");
+        require(!destChain.equals(packetContract.chainName()), "invalid destChain");
 
         (
             uint256 msgValue,
             uint256 realFeeAmount,
             uint256 realAmountAvailable,
             uint256 realAmountSend
-        ) = checkPacketSyncAndGetAmountSrcChain(
-                tokenAddress,
-                destChain,
-                feeAmount
-            );
+        ) = checkPacketSyncAndGetAmountSrcChain(tokenAddress, destChain, feeAmount);
 
-        ICrossChain(crossChainContractAddress).crossChainCall{value: msgValue}(
+        crossChainContract.crossChainCall{value: msgValue}(
             CrossChainDataTypes.CrossChainData({
                 destChain: destChain,
-                relayChain: "",
                 tokenAddress: tokenAddress,
                 receiver: receiver,
                 amount: realAmountSend,
@@ -91,14 +81,8 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             PacketTypes.Fee({tokenAddress: tokenAddress, amount: realFeeAmount})
         );
 
-        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
-            "teleport",
-            destChain
-        );
-        string memory sequencesKey = Strings.strConcat(
-            Strings.strConcat(destChain, "/"),
-            Strings.uint642str(sequence)
-        );
+        uint64 sequence = packetContract.getNextSequenceSend(packetContract.chainName(), destChain);
+        string memory sequencesKey = Strings.strConcat(Strings.strConcat(destChain, "/"), Strings.uint642str(sequence));
 
         agentData[sequencesKey] = AgentData({
             sent: true,
@@ -126,74 +110,47 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             uint256
         )
     {
-        PacketTypes.Packet memory packet = IPacket(packetContractAddress)
-            .getLatestPacket();
+        PacketTypes.Packet memory packet = packetContract.getLatestPacket();
+        PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
-        PacketTypes.TransferData memory transferData = abi.decode(
-            packet.transferData,
-            (PacketTypes.TransferData)
-        );
-
-        require(
-            transferData.receiver.equals(address(this).addressToString()),
-            "must synchronize"
-        );
+        require(transferData.receiver.equals(address(this).addressToString()), "must synchronize");
 
         IERC20 token = IERC20(tokenAddress);
-
         if (bytes(transferData.oriToken).length != 0) {
-            require(
-                transferData.oriToken.equals(tokenAddress.addressToString()),
-                "invalid token address"
-            );
+            require(transferData.oriToken.equals(tokenAddress.addressToString()), "invalid token address");
             uint256 amount = transferData.amount.toUint256();
-
             if (tokenAddress != address(0)) {
-                token.approve(crossChainContractAddress, amount);
+                token.approve(address(crossChainContract), amount);
                 return (0, feeAmount, amount - feeAmount, amount - feeAmount);
             }
-
             return (amount, feeAmount, amount - feeAmount, amount - feeAmount);
         }
 
-        address tokenAddressOnTeleport = ICrossChain(crossChainContractAddress)
-            .bindingTraces(
-                Strings.strConcat(
-                    Strings.strConcat(packet.srcChain, "/"),
-                    transferData.token
-                )
-            );
-
-        require(
-            tokenAddressOnTeleport == tokenAddress,
-            "invalid token address"
+        address tokenAddressOnTeleport = crossChainContract.bindingTraces(
+            Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
         );
+
+        require(tokenAddressOnTeleport == tokenAddress, "invalid token address");
 
         string memory bindingKeySrc = Strings.strConcat(
             Strings.strConcat(tokenAddress.addressToString(), "/"),
             packet.srcChain
         );
-
         string memory bindingKeyDest = Strings.strConcat(
             Strings.strConcat(tokenAddress.addressToString(), "/"),
             destChain
         );
 
-        uint256 scaleSrc = ICrossChain(crossChainContractAddress)
-            .getBindings(bindingKeySrc)
-            .scale;
-        uint256 scaleDest = ICrossChain(crossChainContractAddress)
-            .getBindings(bindingKeyDest)
-            .scale; // will be 0 if not bound
+        uint256 scaleSrc = crossChainContract.getBindings(bindingKeySrc).scale;
+        uint256 scaleDest = crossChainContract.getBindings(bindingKeyDest).scale; // will be 0 if not bound
 
-        uint256 realAmountRecv = transferData.amount.toUint256() *
-            10**uint256(scaleSrc);
+        uint256 realAmountRecv = transferData.amount.toUint256() * 10**uint256(scaleSrc);
         uint256 realFeeAmount = feeAmount * 10**uint256(scaleSrc);
 
         uint256 realAmountAvailable = realAmountRecv - realFeeAmount;
         uint256 realAmountSend = realAmountAvailable / 10**uint256(scaleDest);
 
-        token.approve(crossChainContractAddress, realAmountRecv);
+        token.approve(address(crossChainContract), realAmountRecv);
 
         return (0, realFeeAmount, realAmountAvailable, realAmountSend);
     }
@@ -210,21 +167,13 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
         string calldata
     ) external override onlyCrossChain {
         if (code != 0) {
-            require(
-                IPacket(packetContractAddress).getAckStatus(
-                    "teleport",
-                    destChain,
-                    sequence
-                ) == 2,
-                "not err ack"
-            );
-
+            require(packetContract.getAckStatus(packetContract.chainName(), destChain, sequence) == 2, "not err ack");
             string memory sequencesKey = Strings.strConcat(
                 Strings.strConcat(destChain, "/"),
                 Strings.uint642str(sequence)
             );
-
             require(agentData[sequencesKey].sent, "not exist");
+
             AgentData memory data = agentData[sequencesKey];
             delete agentData[sequencesKey];
 
@@ -234,10 +183,7 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             }
 
             require(
-                IERC20(data.tokenAddress).transfer(
-                    data.refundAddressOnTeleport,
-                    data.amount
-                ),
+                IERC20(data.tokenAddress).transfer(data.refundAddressOnTeleport, data.amount),
                 "refund failed, ERC20 transfer err"
             );
         }

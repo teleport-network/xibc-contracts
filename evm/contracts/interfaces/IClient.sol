@@ -36,10 +36,7 @@ interface IClient {
      * @param clientState initial configuration of light client
      * @param consensusState The consensus state of the light client under the current clientState
      */
-    function initializeState(
-        bytes calldata clientState,
-        bytes calldata consensusState
-    ) external;
+    function initializeState(bytes calldata clientState, bytes calldata consensusState) external;
 
     /**
      * @notice when the light client status is sent incorrectly, the light client status needs to be upgraded
@@ -64,8 +61,7 @@ interface IClient {
      * @param caller the msg.sender of manager contract
      * @param header the consensus block header of the target chain
      */
-    function checkHeaderAndUpdateState(address caller, bytes calldata header)
-        external;
+    function checkHeaderAndUpdateState(address caller, bytes calldata header) external;
 
     /**
      * @notice verify the commitment of the cross-chain data package

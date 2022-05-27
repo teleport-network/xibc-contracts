@@ -9,20 +9,12 @@ import "../proto/Tendermint.sol";
 import "../clients/light-clients/tendermint/Codec.sol";
 
 contract TestLightClient {
-    function genValidatorSetHash(bytes memory data)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function genValidatorSetHash(bytes memory data) public pure returns (bytes memory) {
         ValidatorSet.Data memory set = ValidatorSet.decode(data);
         return LightClient.genValidatorSetHash(set);
     }
 
-    function genHeaderHash(bytes memory data)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function genHeaderHash(bytes memory data) public pure returns (bytes memory) {
         Header.Data memory header = HeaderCodec.decode(data);
         return LightClient.genHeaderHash(header.signed_header.header);
     }

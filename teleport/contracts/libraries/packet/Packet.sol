@@ -8,7 +8,6 @@ library PacketTypes {
         // packet base data
         string srcChain;
         string destChain;
-        string relayChain;
         uint64 sequence;
         string sender;
         // transfer data. keep empty if not used.

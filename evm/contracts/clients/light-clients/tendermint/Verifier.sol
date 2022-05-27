@@ -75,11 +75,7 @@ library Verifier {
         );
         string[] memory path = new string[](2);
         path[0] = string(state.merkle_prefix.key_prefix);
-        path[1] = Host.packetAcknowledgementPath(
-            sourceChain,
-            destChain,
-            sequence
-        );
+        path[1] = Host.packetAcknowledgementPath(sourceChain, destChain, sequence);
         Merkle.verifyMembership(
             ProofCodec.decode(proof),
             getDefaultProofSpecs(state.proof_specs),
@@ -89,11 +85,7 @@ library Verifier {
         );
     }
 
-    function getDefaultProofSpecs(ProofSpec.Data[] storage specs)
-        internal
-        view
-        returns (ProofSpec.Data[] memory)
-    {
+    function getDefaultProofSpecs(ProofSpec.Data[] storage specs) internal view returns (ProofSpec.Data[] memory) {
         if (specs.length > 0) {
             return specs;
         }
@@ -114,14 +106,7 @@ library Verifier {
             hex"00"
         );
 
-        iavlSpec.inner_spec = InnerSpec.Data(
-            childOrder,
-            33,
-            4,
-            12,
-            "",
-            PROOFS_PROTO_GLOBAL_ENUMS.HashOp.SHA256
-        );
+        iavlSpec.inner_spec = InnerSpec.Data(childOrder, 33, 4, 12, "", PROOFS_PROTO_GLOBAL_ENUMS.HashOp.SHA256);
         defaultSpecs[0] = iavlSpec;
 
         tmSpec.leaf_spec = LeafOp.Data(
@@ -132,14 +117,7 @@ library Verifier {
             hex"00"
         );
 
-        tmSpec.inner_spec = InnerSpec.Data(
-            childOrder,
-            33,
-            1,
-            1,
-            "",
-            PROOFS_PROTO_GLOBAL_ENUMS.HashOp.SHA256
-        );
+        tmSpec.inner_spec = InnerSpec.Data(childOrder, 33, 1, 1, "", PROOFS_PROTO_GLOBAL_ENUMS.HashOp.SHA256);
         defaultSpecs[1] = tmSpec;
         return defaultSpecs;
     }

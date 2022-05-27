@@ -7,24 +7,24 @@ import "../libraries/packet/Packet.sol";
 
 interface IPacket {
     /**
+     * @notice get the name of this chain
+     * @return returns the name of this chain
+     */
+    function chainName() external view returns (string memory);
+
+    /**
      * @notice send cross-chain data packets
      * @param packet xibc packet
      * @param fee packet fee
      */
-    function sendPacket(
-        PacketTypes.Packet calldata packet,
-        PacketTypes.Fee calldata fee
-    ) external payable;
+    function sendPacket(PacketTypes.Packet calldata packet, PacketTypes.Fee calldata fee) external payable;
 
     /**
      * @notice get the next sequence of sourceChain/destChain
      * @param sourceChain source chain name
      * @param destChain destination chain name
      */
-    function getNextSequenceSend(
-        string calldata sourceChain,
-        string calldata destChain
-    ) external view returns (uint64);
+    function getNextSequenceSend(string calldata sourceChain, string calldata destChain) external view returns (uint64);
 
     /**
      * @notice get the next sequence of sourceChain/destChain
@@ -41,8 +41,5 @@ interface IPacket {
     /**
      * @notice todo
      */
-    function getLatestPacket()
-        external
-        view
-        returns (PacketTypes.Packet memory packet);
+    function getLatestPacket() external view returns (PacketTypes.Packet memory packet);
 }

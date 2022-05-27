@@ -9,10 +9,10 @@ import "../../interfaces/ICrossChain.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Packet is IPacket {
-    address public constant packetModuleAddress =
-        address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
-    address public constant crossChainContractAddress =
-        address(0x0000000000000000000000000000000020000002);
+    string public override chainName;
+
+    address public constant packetModuleAddress = address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
+    address public constant crossChainContractAddress = address(0x0000000000000000000000000000000020000002);
 
     mapping(bytes => uint64) public sequences;
     mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
@@ -28,19 +28,21 @@ contract Packet is IPacket {
     event PacketSent(bytes packetBytes);
 
     modifier onlyXIBCModulePacket() {
-        require(
-            msg.sender == packetModuleAddress,
-            "caller must be xibc packet module"
-        );
+        require(msg.sender == packetModuleAddress, "caller must be xibc packet module");
         _;
     }
 
     modifier onlyCrossChainContract() {
-        require(
-            msg.sender == crossChainContractAddress,
-            "caller must be xibc app"
-        );
+        require(msg.sender == crossChainContractAddress, "caller must be xibc app");
         _;
+    }
+
+    /**
+     * @notice init chain name
+     * @param _chainName chain name
+     */
+    function initChainName(string memory _chainName) public onlyXIBCModulePacket {
+        chainName = _chainName;
     }
 
     /**
@@ -48,19 +50,15 @@ contract Packet is IPacket {
      * @param packet xibc packet
      * @param fee packet fee
      */
-    function sendPacket(
-        PacketTypes.Packet memory packet,
-        PacketTypes.Fee memory fee
-    ) public payable override onlyCrossChainContract {
+    function sendPacket(PacketTypes.Packet memory packet, PacketTypes.Fee memory fee)
+        public
+        payable
+        override
+        onlyCrossChainContract
+    {
         // should validata packet data in teleport
         // Notice: must sent token to this contract before set packet fee
-        packetFees[
-            getCommonUniqueKey(
-                packet.srcChain,
-                packet.destChain,
-                packet.sequence
-            )
-        ] = fee;
+        packetFees[getCommonUniqueKey(packet.srcChain, packet.destChain, packet.sequence)] = fee;
         emit PacketSent(abi.encode(packet));
     }
 
@@ -77,9 +75,11 @@ contract Packet is IPacket {
         )
     {
         latestPacket = packet;
-        try
-            ICrossChain(crossChainContractAddress).onRecvPacket(packet)
-        returns (uint64 _code, bytes memory _result, string memory _message) {
+        try ICrossChain(crossChainContractAddress).onRecvPacket(packet) returns (
+            uint64 _code,
+            bytes memory _result,
+            string memory _message
+        ) {
             return (_code, _result, _message);
         } catch (bytes memory _res) {
             return (1, "", string(_res));
@@ -89,23 +89,12 @@ contract Packet is IPacket {
     /**
      * @notice todo
      */
-    function OnAcknowledgePacket(
-        PacketTypes.Packet memory packet,
-        PacketTypes.Acknowledgement memory ack
-    ) public onlyXIBCModulePacket {
-        acks[
-            getCommonUniqueKey(
-                packet.srcChain,
-                packet.destChain,
-                packet.sequence
-            )
-        ] = ack;
-        ICrossChain(crossChainContractAddress).onAcknowledgementPacket(
-            packet,
-            ack.code,
-            ack.result,
-            ack.message
-        );
+    function OnAcknowledgePacket(PacketTypes.Packet memory packet, PacketTypes.Acknowledgement memory ack)
+        public
+        onlyXIBCModulePacket
+    {
+        acks[getCommonUniqueKey(packet.srcChain, packet.destChain, packet.sequence)] = ack;
+        ICrossChain(crossChainContractAddress).onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
     }
 
     /**
@@ -131,14 +120,7 @@ contract Packet is IPacket {
             require(msg.value > 0 && msg.value == amount, "invalid value");
         } else {
             require(msg.value == 0, "invalid value");
-            require(
-                IERC20(fee.tokenAddress).transferFrom(
-                    msg.sender,
-                    address(this),
-                    amount
-                ),
-                "transfer ERC20 failed"
-            );
+            require(IERC20(fee.tokenAddress).transferFrom(msg.sender, address(this), amount), "transfer ERC20 failed");
         }
 
         packetFees[key].amount += amount;
@@ -157,16 +139,11 @@ contract Packet is IPacket {
         uint64 sequence,
         address relayer
     ) external onlyXIBCModulePacket {
-        PacketTypes.Fee memory fee = packetFees[
-            getCommonUniqueKey(sourceChain, destChain, sequence)
-        ];
+        PacketTypes.Fee memory fee = packetFees[getCommonUniqueKey(sourceChain, destChain, sequence)];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
         } else {
-            require(
-                IERC20(fee.tokenAddress).transfer(relayer, fee.amount),
-                "transfer ERC20 failed"
-            );
+            require(IERC20(fee.tokenAddress).transfer(relayer, fee.amount), "transfer ERC20 failed");
         }
     }
 
@@ -211,10 +188,12 @@ contract Packet is IPacket {
      * @param sourceChain name of source chain
      * @param destChain name of destination chain
      */
-    function getNextSequenceSend(
-        string memory sourceChain,
-        string memory destChain
-    ) public view override returns (uint64) {
+    function getNextSequenceSend(string memory sourceChain, string memory destChain)
+        public
+        view
+        override
+        returns (uint64)
+    {
         uint64 seq = sequences[getNextSequenceSendKey(sourceChain, destChain)];
         if (seq == 0) {
             seq = 1;
@@ -241,17 +220,12 @@ contract Packet is IPacket {
      * @param sourceChain name of source chain
      * @param destChain name of destination chain
      */
-    function getNextSequenceSendKey(
-        string memory sourceChain,
-        string memory destChain
-    ) public pure returns (bytes memory) {
-        return
-            bytes(
-                Strings.strConcat(
-                    Strings.strConcat(sourceChain, "/"),
-                    destChain
-                )
-            );
+    function getNextSequenceSendKey(string memory sourceChain, string memory destChain)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return bytes(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain));
     }
 
     /**
@@ -268,13 +242,7 @@ contract Packet is IPacket {
         return
             bytes(
                 Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(
-                            Strings.strConcat(sourceChain, "/"),
-                            destChain
-                        ),
-                        "/"
-                    ),
+                    Strings.strConcat(Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain), "/"),
                     Strings.uint642str(sequence)
                 )
             );
@@ -283,12 +251,7 @@ contract Packet is IPacket {
     /**
      * @notice todo
      */
-    function getLatestPacket()
-        external
-        view
-        override
-        returns (PacketTypes.Packet memory packet)
-    {
+    function getLatestPacket() external view override returns (PacketTypes.Packet memory packet) {
         return latestPacket;
     }
 }

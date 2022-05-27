@@ -10,11 +10,7 @@ library TimestampLib {
         return int64(block.timestamp);
     }
 
-    function add(Timestamp.Data memory self, int64 second)
-        internal
-        pure
-        returns (Timestamp.Data memory target)
-    {
+    function add(Timestamp.Data memory self, int64 second) internal pure returns (Timestamp.Data memory target) {
         target.secs = self.secs + second;
         target.nanos = self.nanos;
         return target;
@@ -30,11 +26,7 @@ library TimestampLib {
         return target;
     }
 
-    function lessThan(Timestamp.Data memory self, Timestamp.Data memory t2)
-        internal
-        pure
-        returns (bool)
-    {
+    function lessThan(Timestamp.Data memory self, Timestamp.Data memory t2) internal pure returns (bool) {
         if (self.secs < t2.secs) {
             return true;
         }
@@ -44,11 +36,7 @@ library TimestampLib {
         return false;
     }
 
-    function greaterThan(Timestamp.Data memory self, Timestamp.Data memory t2)
-        internal
-        pure
-        returns (bool)
-    {
+    function greaterThan(Timestamp.Data memory self, Timestamp.Data memory t2) internal pure returns (bool) {
         if (self.secs > t2.secs) {
             return true;
         }

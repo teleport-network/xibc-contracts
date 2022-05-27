@@ -115,11 +115,7 @@ library Strings {
      * @param _first First string
      * @param _second Second string
      */
-    function strConcat(string memory _first, string memory _second)
-        internal
-        pure
-        returns (string memory)
-    {
+    function strConcat(string memory _first, string memory _second) internal pure returns (string memory) {
         return string(Bytes.concat(bytes(_first), bytes(_second)));
     }
 
@@ -173,11 +169,7 @@ library Strings {
      * @param needle The text to search for in `self`.
      * @return The part of `self` up to the first occurrence of `delim`.
      */
-    function split(slice memory self, slice memory needle)
-        internal
-        pure
-        returns (slice memory token)
-    {
+    function split(slice memory self, slice memory needle) internal pure returns (slice memory token) {
         split(self, needle, token);
     }
 
@@ -190,11 +182,7 @@ library Strings {
      * @param needle The text to search for in `self`.
      * @return The part of `self` after the last occurrence of `delim`.
      */
-    function rsplit(slice memory self, slice memory needle)
-        internal
-        pure
-        returns (slice memory token)
-    {
+    function rsplit(slice memory self, slice memory needle) internal pure returns (slice memory token) {
         rsplit(self, needle, token);
     }
 
@@ -247,23 +235,11 @@ library Strings {
      * @param needle The text to search for in `self`.
      * @return The number of occurrences of `needle` found in `self`.
      */
-    function count(slice memory self, slice memory needle)
-        internal
-        pure
-        returns (uint256 cnt)
-    {
-        uint256 ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr) +
-            needle._len;
+    function count(slice memory self, slice memory needle) internal pure returns (uint256 cnt) {
+        uint256 ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr) + needle._len;
         while (ptr <= self._ptr + self._len) {
             cnt++;
-            ptr =
-                findPtr(
-                    self._len - (ptr - self._ptr),
-                    ptr,
-                    needle._len,
-                    needle._ptr
-                ) +
-                needle._len;
+            ptr = findPtr(self._len - (ptr - self._ptr), ptr, needle._len, needle._ptr) + needle._len;
         }
     }
 
@@ -275,11 +251,7 @@ library Strings {
      * @param needle The text to search for.
      * @return `self`.
      */
-    function rfind(slice memory self, slice memory needle)
-        internal
-        pure
-        returns (slice memory)
-    {
+    function rfind(slice memory self, slice memory needle) internal pure returns (slice memory) {
         uint256 ptr = rfindPtr(self._len, self._ptr, needle._len, needle._ptr);
         self._len = ptr - self._ptr;
         return self;
@@ -293,11 +265,7 @@ library Strings {
      * @return A newly allocated string containing all the slices in `parts`,
      *         joined with `self`.
      */
-    function join(slice memory self, slice[] memory parts)
-        internal
-        pure
-        returns (string memory)
-    {
+    function join(slice memory self, slice[] memory parts) internal pure returns (string memory) {
         if (parts.length == 0) return "";
 
         uint256 length = self._len * (parts.length - 1);
@@ -327,11 +295,7 @@ library Strings {
      * @param second The second slice to compare.
      * @return True if the string are equal, false otherwise.
      */
-    function equals(string memory first, string memory second)
-        internal
-        pure
-        returns (bool)
-    {
+    function equals(string memory first, string memory second) internal pure returns (bool) {
         if (bytes(first).length != bytes(second).length) {
             return false;
         }
@@ -344,11 +308,7 @@ library Strings {
      * @param needle The slice to search for.
      * @return True if the slice starts with the provided text, false otherwise.
      */
-    function startsWith(slice memory self, slice memory needle)
-        internal
-        pure
-        returns (bool)
-    {
+    function startsWith(slice memory self, slice memory needle) internal pure returns (bool) {
         if (self._len < needle._len) {
             return false;
         }
@@ -362,10 +322,7 @@ library Strings {
             let length := mload(needle)
             let selfptr := mload(add(self, 0x20))
             let needleptr := mload(add(needle, 0x20))
-            equal := eq(
-                keccak256(selfptr, length),
-                keccak256(needleptr, length)
-            )
+            equal := eq(keccak256(selfptr, length), keccak256(needleptr, length))
         }
         return equal;
     }
@@ -377,11 +334,7 @@ library Strings {
      * @param other The second slice to concatenate.
      * @return The concatenation of the two strings.
      */
-    function concat(slice memory self, slice memory other)
-        internal
-        pure
-        returns (string memory)
-    {
+    function concat(slice memory self, slice memory other) internal pure returns (string memory) {
         string memory ret = new string(self._len + other._len);
         uint256 retptr;
         assembly {

@@ -18,19 +18,9 @@ library Merkle {
         bytes memory value
     ) internal pure {
         validateVerificationArgs(proof, specs, root);
-        require(
-            path.key_path.length == specs.length,
-            "path.key_path.length != specs.length"
-        );
+        require(path.key_path.length == specs.length, "path.key_path.length != specs.length");
         require(value.length > 0, "empty value in membership proof");
-        verifyChainedMembershipProof(
-            root.hash,
-            specs,
-            proof.proofs,
-            path,
-            value,
-            0
-        );
+        verifyChainedMembershipProof(root.hash, specs, proof.proofs, path, value, 0);
     }
 
     // verifyChainedMembershipProof takes a list of proofs and specs and verifies each proof sequentially ensuring that the value is committed to
@@ -69,17 +59,10 @@ library Merkle {
             }
         }
         // Check that chained proof root equals passed-in root
-        require(
-            Bytes.equals(subroot, root),
-            "chained proof root does not match given root"
-        );
+        require(Bytes.equals(subroot, root), "chained proof root does not match given root");
     }
 
-    function getKey(MerklePath.Data memory keys, uint256 i)
-        private
-        pure
-        returns (bytes memory)
-    {
+    function getKey(MerklePath.Data memory keys, uint256 i) private pure returns (bytes memory) {
         // TODO url.PathUnescape(keys.key_path[i])
         return bytes(keys.key_path[i]);
     }
@@ -91,10 +74,7 @@ library Merkle {
     ) private pure {
         require(proof.proofs.length > 0, "proof cannot be empty");
         require(root.hash.length > 0, "root cannot be empty");
-        require(
-            proof.proofs.length == specs.length,
-            "length of specs not equal to length of proof "
-        );
+        require(proof.proofs.length == specs.length, "length of specs not equal to length of proof ");
         for (uint256 i = 0; i < specs.length; i++) {
             require(specs[i].inner_spec.child_order.length > 0, "spec invalid");
         }

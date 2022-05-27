@@ -35,10 +35,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
 
     // check if caller is clientManager
     modifier onlyClientManager() {
-        require(
-            msg.sender == clientManager,
-            "caller not client manager contract"
-        );
+        require(msg.sender == clientManager, "caller not client manager contract");
         _;
     }
 
@@ -56,12 +53,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice returns the latest height of the current light client
      */
-    function getLatestHeight()
-        external
-        view
-        override
-        returns (Height.Data memory)
-    {
+    function getLatestHeight() external view override returns (Height.Data memory) {
         return clientState.latest_height;
     }
 
@@ -69,11 +61,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
      * @notice return the consensus status information of the specified height
      * @param height height of the consensus status
      */
-    function getConsensusState(Height.Data memory height)
-        public
-        view
-        returns (ConsensusState.Data memory)
-    {
+    function getConsensusState(Height.Data memory height) public view returns (ConsensusState.Data memory) {
         uint128 key = getStorageKey(height);
         return consensusStates[key];
     }
@@ -82,17 +70,12 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
      * @notice return the status of the current light client
      */
     function status() external view override returns (Status) {
-        ConsensusState.Data storage consState = consensusStates[
-            getStorageKey(clientState.latest_height)
-        ];
+        ConsensusState.Data storage consState = consensusStates[getStorageKey(clientState.latest_height)];
         if (consState.root.length == 0) {
             return Status.Unknown;
         }
 
-        if (
-            uint256(consState.timestamp.secs + clientState.trusting_period) <=
-            block.timestamp
-        ) {
+        if (uint256(consState.timestamp.secs + clientState.trusting_period) <= block.timestamp) {
             return Status.Expired;
         }
         return Status.Active;
@@ -103,10 +86,11 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
      * @param clientStateBz light client status
      * @param consensusStateBz light client consensus status
      */
-    function initializeState(
-        bytes calldata clientStateBz,
-        bytes calldata consensusStateBz
-    ) external override onlyClientManager {
+    function initializeState(bytes calldata clientStateBz, bytes calldata consensusStateBz)
+        external
+        override
+        onlyClientManager
+    {
         ClientStateCodec.decode(clientState, clientStateBz);
 
         uint128 key = getStorageKey(clientState.latest_height);
@@ -137,41 +121,26 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
      * @param caller the msg.sender of manager contract
      * @param headerBz block header of the counterparty chain
      */
-    function checkHeaderAndUpdateState(address caller, bytes calldata headerBz)
-        external
-        override
-        onlyClientManager
-    {
+    function checkHeaderAndUpdateState(address caller, bytes calldata headerBz) external override onlyClientManager {
         // SimpleHeader memory header = abi.decode(headerBz, (SimpleHeader));
         Header.Data memory header = HeaderCodec.decode(headerBz);
 
-        ConsensusState.Data memory tmConsState = consensusStates[
-            getStorageKey(header.trusted_height)
-        ];
+        ConsensusState.Data memory tmConsState = consensusStates[getStorageKey(header.trusted_height)];
 
-        bytes memory vsh = LightClientGenValHash.genValidatorSetHash(
-            header.trusted_validators
-        );
+        bytes memory vsh = LightClientGenValHash.genValidatorSetHash(header.trusted_validators);
 
         // check heaer
+        require(Bytes.equals(vsh, tmConsState.next_validators_hash), "invalid validator set");
         require(
-            Bytes.equals(vsh, tmConsState.next_validators_hash),
-            "invalid validator set"
-        );
-        require(
-            uint64(header.signed_header.header.height) >
-                header.trusted_height.revision_height,
+            uint64(header.signed_header.header.height) > header.trusted_height.revision_height,
             "invalid block height"
         );
 
         SignedHeader.Data memory trustedHeader;
         trustedHeader.header.chain_id = clientState.chain_id;
-        trustedHeader.header.height = int64(
-            clientState.latest_height.revision_height
-        );
+        trustedHeader.header.height = int64(clientState.latest_height.revision_height);
         trustedHeader.header.time = tmConsState.timestamp;
-        trustedHeader.header.next_validators_hash = tmConsState
-            .next_validators_hash;
+        trustedHeader.header.next_validators_hash = tmConsState.next_validators_hash;
 
         Timestamp.Data memory currentTimestamp;
         currentTimestamp.secs = int64(block.timestamp);
@@ -193,23 +162,15 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         );
 
         // update the client state of the light client
-        if (
-            uint64(header.signed_header.header.height) >
-            clientState.latest_height.revision_height
-        ) {
-            clientState.latest_height.revision_height = uint64(
-                header.signed_header.header.height
-            );
+        if (uint64(header.signed_header.header.height) > clientState.latest_height.revision_height) {
+            clientState.latest_height.revision_height = uint64(header.signed_header.header.height);
         }
 
         // save the consensus state of the light client
         ConsensusState.Data memory newConsState;
         newConsState.timestamp = header.signed_header.header.time;
         newConsState.root = header.signed_header.header.app_hash;
-        newConsState.next_validators_hash = header
-            .signed_header
-            .header
-            .next_validators_hash;
+        newConsState.next_validators_hash = header.signed_header.header.next_validators_hash;
 
         uint128 key = getStorageKey(
             Height.Data({
@@ -285,11 +246,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         );
     }
 
-    function getStorageKey(Height.Data memory data)
-        private
-        pure
-        returns (uint128 ret)
-    {
+    function getStorageKey(Height.Data memory data) private pure returns (uint128 ret) {
         ret = data.revision_number;
         ret = (ret << 64);
         ret |= (data.revision_height % MAX_SIZE);

@@ -8,36 +8,19 @@ import "./IClient.sol";
 interface IClientManager {
     /**
      * @notice get client
-     * @param chainName the name of the chain
-     * @return returns the client instance of the specified chainName
+     * @return returns the client instance
      */
-    function getClient(string calldata chainName)
-        external
-        view
-        returns (IClient);
+    function client() external view returns (IClient);
 
     /**
      * @notice get the client type
-     * @param chainName the name of the chain
      * @return returns the client type
      */
-    function getClientType(string calldata chainName)
-        external
-        view
-        returns (IClient.Type);
+    function getClientType() external view returns (IClient.Type);
 
     /**
-     * @notice get the name of this chain
-     * @return returns the name of this chain
+     * @notice get the current latest height of the client
+     * @return return the current latest height of the client
      */
-    function getChainName() external view returns (string memory);
-
-    /**
-     * @notice get the current latest height of the client of the specified chainName
-     * @return return the current latest height of the client of the specified chainName
-     */
-    function getLatestHeight(string calldata chainName)
-        external
-        view
-        returns (Height.Data memory);
+    function getLatestHeight() external view returns (Height.Data memory);
 }

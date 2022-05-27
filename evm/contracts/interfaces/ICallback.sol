@@ -5,7 +5,13 @@ pragma experimental ABIEncoderV2;
 
 interface ICallback {
     /**
-     * @notice todo
+     * @notice callback function. This function is called when the packet is received. This method may be called by others, please ensure a single consumption in implemention.
+     * @param srcChain source chain
+     * @param destChain destination chain
+     * @param sequence packet sequence
+     * @param code error code
+     * @param result packet result
+     * @param message error message
      */
     function callback(
         string calldata srcChain,

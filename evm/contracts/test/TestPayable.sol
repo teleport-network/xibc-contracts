@@ -17,7 +17,7 @@ contract TestPayable {
 
     ITestRecl public recl;
 
-    function send(address cat) external payable returns  (bool) {
+    function send(address cat) external payable returns (bool) {
         return payable(cat).send(msg.value);
     }
 
@@ -26,7 +26,7 @@ contract TestPayable {
         return success;
     }
 
-    function transfer(address cat) external payable{
+    function transfer(address cat) external payable {
         payable(cat).transfer(msg.value);
     }
 

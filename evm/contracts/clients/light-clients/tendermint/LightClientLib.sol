@@ -30,11 +30,7 @@ library LightClientVerify {
 }
 
 library LightClientGenValHash {
-    function genValidatorSetHash(ValidatorSet.Data memory vals)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function genValidatorSetHash(ValidatorSet.Data memory vals) public pure returns (bytes memory) {
         return LightClient.genValidatorSetHash(vals);
     }
 }

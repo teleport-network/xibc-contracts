@@ -26,18 +26,16 @@ library Commitment {
         bytes memory value
     ) internal pure {
         // decompress it before running code (no-op if not compressed)
-        ExistenceProof.Data memory ep = getExistProofForKey(
-            Compress.decompress(proof),
-            key
-        );
+        ExistenceProof.Data memory ep = getExistProofForKey(Compress.decompress(proof), key);
         require(ep.key.length > 0, "key is empty");
         ep.verify(spec, root, key, value);
     }
 
-    function getExistProofForKey(
-        CommitmentProof.Data memory proof,
-        bytes memory key
-    ) private pure returns (ExistenceProof.Data memory) {
+    function getExistProofForKey(CommitmentProof.Data memory proof, bytes memory key)
+        private
+        pure
+        returns (ExistenceProof.Data memory)
+    {
         if (proof.exist.key.length > 0) {
             return proof.exist;
         }
@@ -53,11 +51,7 @@ library Commitment {
 }
 
 library CommitmentProofLib {
-    function calculate(CommitmentProof.Data memory p)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function calculate(CommitmentProof.Data memory p) internal pure returns (bytes memory) {
         if (p.exist.key.length > 0) {
             return ExistProof.calculate(p.exist);
         }

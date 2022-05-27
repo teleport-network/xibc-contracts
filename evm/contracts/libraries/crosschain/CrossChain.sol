@@ -26,7 +26,6 @@ library CrossChainDataTypes {
     struct CrossChainData {
         // path data
         string destChain;
-        string relayChain;
         // transfer token data
         address tokenAddress; // zero address if base token
         string receiver;

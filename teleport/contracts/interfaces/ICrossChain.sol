@@ -10,10 +10,9 @@ interface ICrossChain {
     /**
      * @notice todo
      */
-    function crossChainCall(
-        CrossChainDataTypes.CrossChainData calldata crossChainData,
-        PacketTypes.Fee calldata fee
-    ) external payable;
+    function crossChainCall(CrossChainDataTypes.CrossChainData calldata crossChainData, PacketTypes.Fee calldata fee)
+        external
+        payable;
 
     /**
      * @notice todo
@@ -39,40 +38,25 @@ interface ICrossChain {
     /**
      * @notice todo
      */
-    function boundTokens(uint256 index)
-        external
-        pure
-        returns (address tokenAddress);
+    function boundTokens(uint256 index) external pure returns (address tokenAddress);
 
     /**
      * @notice todo
      */
-    function boundTokenSources(address tokenAddress, uint256 index)
-        external
-        pure
-        returns (string memory tokenSource);
+    function boundTokenSources(address tokenAddress, uint256 index) external pure returns (string memory tokenSource);
 
     /**
      * @notice todo
      */
-    function bindingTraces(string calldata trace)
-        external
-        pure
-        returns (address tokenAddress);
+    function bindingTraces(string calldata trace) external pure returns (address tokenAddress);
 
     /**
      * @notice todo
      */
-    function outTokens(address tokenAddress, string calldata destChain)
-        external
-        pure
-        returns (uint256 amount);
+    function outTokens(address tokenAddress, string calldata destChain) external pure returns (uint256 amount);
 
     /**
      * @notice todo
      */
-    function getBindings(string calldata path)
-        external
-        view
-        returns (TransferDataTypes.InToken memory binding);
+    function getBindings(string calldata path) external view returns (TransferDataTypes.InToken memory binding);
 }

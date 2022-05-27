@@ -4,11 +4,7 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 library MerkleTree {
-    function hashFromByteSlices(bytes[] memory data)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function hashFromByteSlices(bytes[] memory data) internal pure returns (bytes32) {
         uint256 n = data.length;
         if (n == 0) return sha256(new bytes(0));
         if (n == 1) return leafHash(data[0]);
@@ -27,11 +23,7 @@ library MerkleTree {
         return sha256(rs);
     }
 
-    function innerHash(bytes32 left, bytes32 right)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function innerHash(bytes32 left, bytes32 right) internal pure returns (bytes32) {
         bytes memory rs = new bytes(left.length + right.length + 1);
         rs[0] = 0x01;
 

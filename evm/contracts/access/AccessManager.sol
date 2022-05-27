@@ -7,12 +7,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 contract AccessManager is AccessControlUpgradeable {
     // clientManager
-    bytes32 public constant CREATE_CLIENT_ROLE =
-        keccak256("CREATE_CLIENT_ROLE");
-    bytes32 public constant UPGRADE_CLIENT_ROLE =
-        keccak256("UPGRADE_CLIENT_ROLE");
-    bytes32 public constant REGISTER_RELAYER_ROLE =
-        keccak256("REGISTER_RELAYER_ROLE");
+    bytes32 public constant CREATE_CLIENT_ROLE = keccak256("CREATE_CLIENT_ROLE");
+    bytes32 public constant UPGRADE_CLIENT_ROLE = keccak256("UPGRADE_CLIENT_ROLE");
 
     // packet
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -31,7 +27,6 @@ contract AccessManager is AccessControlUpgradeable {
         // clientManager
         _setupRole(CREATE_CLIENT_ROLE, _multiSignWallet);
         _setupRole(UPGRADE_CLIENT_ROLE, _multiSignWallet);
-        _setupRole(REGISTER_RELAYER_ROLE, _multiSignWallet);
 
         // packet
         _setupRole(PAUSER_ROLE, _multiSignWallet);
@@ -63,14 +58,8 @@ contract AccessManager is AccessControlUpgradeable {
      *  @param roles      collection of roles
      *  @param accounts   collection of accounts
      */
-    function batchGrantRole(
-        bytes32[] calldata roles,
-        address[] calldata accounts
-    ) external {
-        require(
-            roles.length == accounts.length,
-            "batchGrant: roles and accounts length mismatch"
-        );
+    function batchGrantRole(bytes32[] calldata roles, address[] calldata accounts) external {
+        require(roles.length == accounts.length, "batchGrant: roles and accounts length mismatch");
 
         for (uint256 i = 0; i < roles.length; ++i) {
             super.grantRole(roles[i], accounts[i]);
@@ -82,14 +71,8 @@ contract AccessManager is AccessControlUpgradeable {
      *  @param roles      collection of roles
      *  @param accounts   collection of accounts
      */
-    function batchRevokeRole(
-        bytes32[] calldata roles,
-        address[] calldata accounts
-    ) external {
-        require(
-            roles.length == accounts.length,
-            "batchRevoke: roles and accounts length mismatch"
-        );
+    function batchRevokeRole(bytes32[] calldata roles, address[] calldata accounts) external {
+        require(roles.length == accounts.length, "batchRevoke: roles and accounts length mismatch");
 
         for (uint256 i = 0; i < roles.length; ++i) {
             super.revokeRole(roles[i], accounts[i]);

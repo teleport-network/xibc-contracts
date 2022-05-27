@@ -27,10 +27,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
 
     // check if caller is clientManager
     modifier onlyClientManager() {
-        require(
-            msg.sender == clientManager,
-            "caller not client manager contract"
-        );
+        require(msg.sender == clientManager, "caller not client manager contract");
         _;
     }
 
@@ -52,12 +49,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice returns the latest height of the current TSS client
      */
-    function getLatestHeight()
-        external
-        view
-        override
-        returns (Height.Data memory)
-    {
+    function getLatestHeight() external view override returns (Height.Data memory) {
         return Height.Data(0, 0);
     }
 
@@ -73,14 +65,13 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
      * @param clientStateBz TSS client status
      * @param consensusStateBz TSS client consensus status
      */
-    function initializeState(
-        bytes calldata clientStateBz,
-        bytes calldata consensusStateBz
-    ) external override onlyClientManager {
+    function initializeState(bytes calldata clientStateBz, bytes calldata consensusStateBz)
+        external
+        override
+        onlyClientManager
+    {
         clientState = abi.decode(clientStateBz, (ClientState));
-        clientState.tss_address = address(
-            uint160(uint256(keccak256(clientState.pubkey)))
-        );
+        clientState.tss_address = address(uint160(uint256(keccak256(clientState.pubkey))));
     }
 
     /**
@@ -99,20 +90,14 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         //     "caller must be the tss address"
         // );
         clientState = abi.decode(clientStateBz, (ClientState));
-        clientState.tss_address = address(
-            uint160(uint256(keccak256(clientState.pubkey)))
-        );
+        clientState.tss_address = address(uint160(uint256(keccak256(clientState.pubkey))));
     }
 
     /**
      * @notice this function is called by the relayer, the purpose is to update and verify the state of the TSS client
      * @param headerBz block header of the counterparty chain
      */
-    function checkHeaderAndUpdateState(address caller, bytes calldata headerBz)
-        external
-        override
-        onlyClientManager
-    {
+    function checkHeaderAndUpdateState(address caller, bytes calldata headerBz) external override onlyClientManager {
         // Authorize to tss address in the future
         // require(
         //     caller == clientState.tss_address,
@@ -120,9 +105,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         // );
         Header memory header = abi.decode(headerBz, (Header));
         clientState.pubkey = header.pubkey;
-        clientState.tss_address = address(
-            uint160(uint256(keccak256(header.pubkey)))
-        );
+        clientState.tss_address = address(uint160(uint256(keccak256(header.pubkey))));
         clientState.part_pubkeys = header.part_pubkeys;
     }
 
@@ -145,10 +128,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         uint64 sequence,
         bytes calldata commitmentBytes
     ) external view override {
-        require(
-            caller == clientState.tss_address,
-            "caller must be the tss address"
-        );
+        require(caller == clientState.tss_address, "caller must be the tss address");
     }
 
     /**
@@ -170,9 +150,6 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         uint64 sequence,
         bytes calldata acknowledgement
     ) external view override {
-        require(
-            caller == clientState.tss_address,
-            "caller must be the tss address"
-        );
+        require(caller == clientState.tss_address, "caller must be the tss address");
     }
 }

@@ -16,12 +16,8 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 
-    string private constant nativeChainName = "teleport";
-
-    address public constant aggregateModuleAddress =
-        address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
-    address public constant packetContractAddress =
-        address(0x0000000000000000000000000000000020000001);
+    address public constant aggregateModuleAddress = address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
+    address public constant packetContractAddress = address(0x0000000000000000000000000000000020000001);
 
     // token come in
     address[] public override boundTokens;
@@ -36,18 +32,12 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     mapping(address => TransferDataTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
 
     modifier onlyXIBCModuleAggregate() {
-        require(
-            msg.sender == address(aggregateModuleAddress),
-            "caller must be xibc aggregate module"
-        );
+        require(msg.sender == address(aggregateModuleAddress), "caller must be xibc aggregate module");
         _;
     }
 
     modifier onlyPacket() {
-        require(
-            msg.sender == packetContractAddress,
-            "caller must be packet contract"
-        );
+        require(msg.sender == packetContractAddress, "caller must be packet contract");
         _;
     }
 
@@ -65,13 +55,10 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     ) external onlyXIBCModuleAggregate {
         require(tokenAddress != address(0), "invalid ERC20 address");
         require(
-            !nativeChainName.equals(oriChain),
+            !oriChain.equals(IPacket(packetContractAddress).chainName()),
             "oriChain can't equal to nativeChainName"
         );
-        string memory bindingKey = Strings.strConcat(
-            Strings.strConcat(tokenAddress.addressToString(), "/"),
-            oriChain
-        );
+        string memory bindingKey = Strings.strConcat(Strings.strConcat(tokenAddress.addressToString(), "/"), oriChain);
         if (bindings[bindingKey].bound) {
             // rebind
             string memory rebindKey = Strings.strConcat(
@@ -84,17 +71,9 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             boundTokenSources[tokenAddress].push(oriChain);
         }
 
-        string memory traceKey = Strings.strConcat(
-            Strings.strConcat(oriChain, "/"),
-            oriToken
-        );
+        string memory traceKey = Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken);
 
-        bindings[bindingKey] = TransferDataTypes.InToken({
-            oriToken: oriToken,
-            amount: 0,
-            scale: scale,
-            bound: true
-        });
+        bindings[bindingKey] = TransferDataTypes.InToken({oriToken: oriToken, amount: 0, scale: scale, bound: true});
         bindingTraces[traceKey] = tokenAddress;
     }
 
@@ -115,10 +94,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     ) external onlyXIBCModuleAggregate {
         require(!limits[tokenAddress].enable, "already enable");
         require(
-            timePeriod > 0 &&
-                minAmount > 0 &&
-                maxAmount > minAmount &&
-                timeBasedLimit > maxAmount,
+            timePeriod > 0 && minAmount > 0 && maxAmount > minAmount && timeBasedLimit > maxAmount,
             "invalid limit"
         );
 
@@ -137,10 +113,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
      * @notice disable time based supply limit
      * @param tokenAddress token address
      */
-    function disableTimeBasedSupplyLimit(address tokenAddress)
-        external
-        onlyXIBCModuleAggregate
-    {
+    function disableTimeBasedSupplyLimit(address tokenAddress) external onlyXIBCModuleAggregate {
         require(limits[tokenAddress].enable, "not enable");
         delete limits[tokenAddress];
     }
@@ -150,22 +123,14 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
      * @param tokenAddress token address
      * @param amount token amount
      */
-    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount)
-        private
-        returns (bool)
-    {
-        TransferDataTypes.TimeBasedSupplyLimit memory limit = limits[
-            tokenAddress
-        ];
+    function _updateTimeBasedLimtSupply(address tokenAddress, uint256 amount) private returns (bool) {
+        TransferDataTypes.TimeBasedSupplyLimit memory limit = limits[tokenAddress];
         if (limit.enable) {
             if (amount < limit.minAmount || amount > limit.maxAmount) {
                 return true;
             }
             if (block.timestamp - limit.previousTime < limit.timePeriod) {
-                require(
-                    limit.currentSupply + amount < limit.timeBasedLimit,
-                    "exceeded time based limit"
-                );
+                require(limit.currentSupply + amount < limit.timeBasedLimit, "exceeded time based limit");
 
                 limits[tokenAddress].currentSupply += amount;
             } else {
@@ -179,36 +144,25 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     /**
      * @notice todo
      */
-    function crossChainCall(
-        CrossChainDataTypes.CrossChainData memory crossChainData,
-        PacketTypes.Fee memory fee
-    ) public payable override nonReentrant {
-        require(
-            !nativeChainName.equals(crossChainData.destChain) ||
-                !nativeChainName.equals(crossChainData.relayChain) ||
-                !crossChainData.destChain.equals(crossChainData.relayChain),
-            "invalid chains"
-        );
-        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(
-            nativeChainName,
-            crossChainData.destChain
-        );
+    function crossChainCall(CrossChainDataTypes.CrossChainData memory crossChainData, PacketTypes.Fee memory fee)
+        public
+        payable
+        override
+        nonReentrant
+    {
+        string memory sourceChain = IPacket(packetContractAddress).chainName();
+        require(!crossChainData.destChain.equals(sourceChain), "invalid destChain");
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(sourceChain, crossChainData.destChain);
 
         // tansfer data and contractcall data can't be both empty
-        require(
-            crossChainData.amount != 0 || crossChainData.callData.length != 0,
-            "invalid data"
-        );
+        require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");
 
         bytes memory transferData;
         bytes memory callData;
 
         // validate transfer data contract call data
         if (crossChainData.callData.length != 0) {
-            require(
-                bytes(crossChainData.contractAddress).length > 0,
-                "invalid contract address"
-            );
+            require(bytes(crossChainData.contractAddress).length > 0, "invalid contract address");
 
             callData = abi.encode(
                 PacketTypes.CallData({
@@ -225,61 +179,35 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         } else if (fee.amount > 0) {
             // send fee to packet
             require(
-                IERC20(fee.tokenAddress).transferFrom(
-                    msg.sender,
-                    packetContractAddress,
-                    fee.amount
-                ),
+                IERC20(fee.tokenAddress).transferFrom(msg.sender, packetContractAddress, fee.amount),
                 "send fee failed, insufficient allowance"
             );
         }
         if (crossChainData.amount != 0) {
             // validate transfer data
-            require(
-                bytes(crossChainData.receiver).length > 0,
-                "invalid receiver"
-            );
+            require(bytes(crossChainData.receiver).length > 0, "invalid receiver");
             string memory oriToken = "";
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
-                require(
-                    msg.value == crossChainData.amount + msgValue,
-                    "invalid value"
-                );
+                require(msg.value == crossChainData.amount + msgValue, "invalid value");
                 msgValue += crossChainData.amount;
-                outTokens[address(0)][
-                    crossChainData.destChain
-                ] += crossChainData.amount;
+                outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
 
                 string memory bindingKey = Strings.strConcat(
-                    Strings.strConcat(
-                        crossChainData.tokenAddress.addressToString(),
-                        "/"
-                    ),
+                    Strings.strConcat(crossChainData.tokenAddress.addressToString(), "/"),
                     crossChainData.destChain
                 );
 
                 // if transfer crossed chain token
                 if (bindings[bindingKey].bound) {
                     // back to origin
-                    uint256 realAmount = crossChainData.amount *
-                        10**uint256(bindings[bindingKey].scale);
+                    uint256 realAmount = crossChainData.amount * 10**uint256(bindings[bindingKey].scale);
 
-                    require(
-                        bindings[bindingKey].amount >= realAmount,
-                        "insufficient liquidity"
-                    );
+                    require(bindings[bindingKey].amount >= realAmount, "insufficient liquidity");
 
-                    require(
-                        _burn(
-                            crossChainData.tokenAddress,
-                            msg.sender,
-                            realAmount
-                        ),
-                        "burn token failed"
-                    );
+                    require(_burn(crossChainData.tokenAddress, msg.sender, realAmount), "burn token failed");
 
                     bindings[bindingKey].amount -= realAmount;
                     oriToken = bindings[bindingKey].oriToken;
@@ -293,9 +221,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                         ),
                         "lock failed, insufficient allowance"
                     );
-                    outTokens[crossChainData.tokenAddress][
-                        crossChainData.destChain
-                    ] += crossChainData.amount;
+                    outTokens[crossChainData.tokenAddress][crossChainData.destChain] += crossChainData.amount;
                 }
             }
 
@@ -310,9 +236,8 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         }
 
         PacketTypes.Packet memory packet = PacketTypes.Packet({
-            srcChain: nativeChainName,
+            srcChain: sourceChain,
             destChain: crossChainData.destChain,
-            relayChain: crossChainData.relayChain,
             sequence: sequence,
             sender: msg.sender.addressToString(),
             transferData: transferData,
@@ -321,10 +246,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             feeOption: crossChainData.feeOption
         });
 
-        IPacket(packetContractAddress).sendPacket{value: fee.amount}(
-            packet,
-            fee
-        );
+        IPacket(packetContractAddress).sendPacket{value: msgValue}(packet, fee);
     }
 
     /**
@@ -346,10 +268,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         }
 
         if (packet.transferData.length > 0) {
-            PacketTypes.TransferData memory transferData = abi.decode(
-                packet.transferData,
-                (PacketTypes.TransferData)
-            );
+            PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
             address tokenAddress;
             address receiver = transferData.receiver.parseAddr();
@@ -357,17 +276,13 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             if (bytes(transferData.oriToken).length == 0) {
                 // token come in
                 tokenAddress = bindingTraces[
-                    Strings.strConcat(
-                        Strings.strConcat(packet.srcChain, "/"),
-                        transferData.token
-                    )
+                    Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
                 ];
                 string memory bindingKey = Strings.strConcat(
                     Strings.strConcat(tokenAddress.addressToString(), "/"),
                     packet.srcChain
                 );
-                uint256 realAmount = amount *
-                    10**uint256(bindings[bindingKey].scale);
+                uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
 
                 // check bindings
                 if (!bindings[bindingKey].bound) {
@@ -413,14 +328,8 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         }
 
         if (packet.transferData.length > 0) {
-            PacketTypes.CallData memory callData = abi.decode(
-                packet.callData,
-                (PacketTypes.CallData)
-            );
-            (bool success, bytes memory res) = callData
-                .contractAddress
-                .parseAddr()
-                .call(callData.callData);
+            PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
+            (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
             if (!success) {
                 return (3, "", "execute call data failed");
             }
@@ -438,10 +347,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     ) public override nonReentrant onlyPacket {
         if (code != 0) {
             // refund tokens
-            PacketTypes.TransferData memory transferData = abi.decode(
-                packet.transferData,
-                (PacketTypes.TransferData)
-            );
+            PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
             address sender = packet.sender.parseAddr();
             address tokenAddress = transferData.token.parseAddr();
@@ -453,19 +359,12 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                     Strings.strConcat(transferData.token, "/"),
                     packet.destChain
                 );
-                uint256 realAmount = amount *
-                    10**uint256(bindings[bindingKey].scale);
-                require(
-                    _mint(tokenAddress, sender, realAmount),
-                    "mint back to sender failed"
-                );
+                uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
+                require(_mint(tokenAddress, sender, realAmount), "mint back to sender failed");
                 bindings[bindingKey].amount += realAmount;
             } else if (tokenAddress != address(0)) {
                 // refund native ERC20 token out
-                require(
-                    IERC20(tokenAddress).transfer(sender, amount),
-                    "unlock to sender failed"
-                );
+                require(IERC20(tokenAddress).transfer(sender, amount), "unlock to sender failed");
                 outTokens[tokenAddress][packet.destChain] -= amount;
             } else {
                 // refund base token out
@@ -486,6 +385,9 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
 
     // ===========================================================================
 
+    /**
+     * @notice todo
+     */
     function _burn(
         address destContract,
         address account,
@@ -498,6 +400,9 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         }
     }
 
+    /**
+     * @notice todo
+     */
     function _mint(
         address destContract,
         address to,
@@ -515,12 +420,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     /**
      * @notice todo
      */
-    function getBindings(string calldata key)
-        external
-        view
-        override
-        returns (TransferDataTypes.InToken memory)
-    {
+    function getBindings(string calldata key) external view override returns (TransferDataTypes.InToken memory) {
         return bindings[key];
     }
 }

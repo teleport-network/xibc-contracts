@@ -7,24 +7,12 @@ import "../../proto/Proofs.sol";
 import "../utils/Bytes.sol";
 
 library LeafOpLib {
-    function checkAgainstSpec(LeafOp.Data memory op, ProofSpec.Data memory spec)
-        internal
-        pure
-    {
+    function checkAgainstSpec(LeafOp.Data memory op, ProofSpec.Data memory spec) internal pure {
         require(op.hash == spec.leaf_spec.hash, "Unexpected HashOp");
-        require(
-            op.prehash_key == spec.leaf_spec.prehash_key,
-            "Unexpected PrehashKey"
-        );
-        require(
-            op.prehash_value == spec.leaf_spec.prehash_value,
-            "Unexpected PrehashKey"
-        );
+        require(op.prehash_key == spec.leaf_spec.prehash_key, "Unexpected PrehashKey");
+        require(op.prehash_value == spec.leaf_spec.prehash_value, "Unexpected PrehashKey");
         require(op.length == spec.leaf_spec.length, "Unexpected LengthOp");
-        require(
-            Bytes.hasPrefix(op.prefix, spec.leaf_spec.prefix),
-            "LeafOpLib: wrong prefix"
-        );
+        require(Bytes.hasPrefix(op.prefix, spec.leaf_spec.prefix), "LeafOpLib: wrong prefix");
     }
 
     function applyValue(
@@ -35,10 +23,7 @@ library LeafOpLib {
         require(key.length > 0, "Leaf op needs key");
         require(value.length > 0, "Leaf op needs value");
         bytes memory data = Bytes.concat(
-            Bytes.concat(
-                op.prefix,
-                prepareLeafData(op.prehash_key, op.length, key)
-            ),
+            Bytes.concat(op.prefix, prepareLeafData(op.prehash_key, op.length, key)),
             prepareLeafData(op.prehash_value, op.length, value)
         );
         return Operation.doHash(op.hash, data);
@@ -52,10 +37,11 @@ library LeafOpLib {
         return Operation.doLength(lengthOp, doHashOrNoop(hashOp, data));
     }
 
-    function doHashOrNoop(
-        PROOFS_PROTO_GLOBAL_ENUMS.HashOp hashOp,
-        bytes memory data
-    ) private pure returns (bytes memory) {
+    function doHashOrNoop(PROOFS_PROTO_GLOBAL_ENUMS.HashOp hashOp, bytes memory data)
+        private
+        pure
+        returns (bytes memory)
+    {
         if (hashOp == PROOFS_PROTO_GLOBAL_ENUMS.HashOp.NO_HASH) {
             return data;
         }
@@ -64,49 +50,26 @@ library LeafOpLib {
 }
 
 library InnerOpLib {
-    function checkAgainstSpec(
-        InnerOp.Data memory op,
-        ProofSpec.Data memory spec
-    ) internal pure {
+    function checkAgainstSpec(InnerOp.Data memory op, ProofSpec.Data memory spec) internal pure {
         require(op.hash == spec.leaf_spec.hash, "Unexpected HashOp");
-        require(
-            !Bytes.hasPrefix(op.prefix, spec.leaf_spec.prefix),
-            "InnerOpLib: wrong prefix"
-        );
-        require(
-            op.prefix.length >= uint256(spec.inner_spec.min_prefix_length),
-            "InnerOp prefix too short"
-        );
+        require(!Bytes.hasPrefix(op.prefix, spec.leaf_spec.prefix), "InnerOpLib: wrong prefix");
+        require(op.prefix.length >= uint256(spec.inner_spec.min_prefix_length), "InnerOp prefix too short");
 
-        uint256 maxLeftChildLen = (spec.inner_spec.child_order.length - 1) *
-            uint256(spec.inner_spec.child_size);
+        uint256 maxLeftChildLen = (spec.inner_spec.child_order.length - 1) * uint256(spec.inner_spec.child_size);
         require(
-            op.prefix.length <=
-                uint256(spec.inner_spec.max_prefix_length) + maxLeftChildLen,
+            op.prefix.length <= uint256(spec.inner_spec.max_prefix_length) + maxLeftChildLen,
             "InnerOp prefix too short"
         );
     }
 
-    function applyValue(InnerOp.Data memory op, bytes memory child)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function applyValue(InnerOp.Data memory op, bytes memory child) internal pure returns (bytes memory) {
         require(child.length > 0, "Inner op needs child value");
-        return
-            Operation.doHash(
-                op.hash,
-                Bytes.concat(Bytes.concat(op.prefix, child), op.suffix)
-            );
+        return Operation.doHash(op.hash, Bytes.concat(Bytes.concat(op.prefix, child), op.suffix));
     }
 }
 
 library Operation {
-    function doHash(PROOFS_PROTO_GLOBAL_ENUMS.HashOp hashOp, bytes memory data)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function doHash(PROOFS_PROTO_GLOBAL_ENUMS.HashOp hashOp, bytes memory data) internal pure returns (bytes memory) {
         if (hashOp == PROOFS_PROTO_GLOBAL_ENUMS.HashOp.SHA256) {
             return Bytes.fromBytes32(sha256(data));
         }
@@ -127,10 +90,11 @@ library Operation {
         revert("Unsupported hashop");
     }
 
-    function doLength(
-        PROOFS_PROTO_GLOBAL_ENUMS.LengthOp lengthOp,
-        bytes memory data
-    ) internal pure returns (bytes memory) {
+    function doLength(PROOFS_PROTO_GLOBAL_ENUMS.LengthOp lengthOp, bytes memory data)
+        internal
+        pure
+        returns (bytes memory)
+    {
         if (lengthOp == PROOFS_PROTO_GLOBAL_ENUMS.LengthOp.NO_PREFIX) {
             return data;
         }
