@@ -23,12 +23,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
  * roles, as well as the default admin role, which will let it grant both minter
  * and pauser roles to other accounts.
  */
-contract TESTERC20MinterBurnerDecimals is
-    Context,
-    AccessControlEnumerable,
-    ERC20Burnable,
-    ERC20Pausable
-{
+contract TESTERC20MinterBurnerDecimals is Context, AccessControlEnumerable, ERC20Burnable, ERC20Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -99,10 +94,7 @@ contract TESTERC20MinterBurnerDecimals is
      * - the caller must have the `BURNER_ROLE`.
      */
     function burnCoins(address from, uint256 amount) public virtual {
-        require(
-            hasRole(BURNER_ROLE, _msgSender()),
-            "TESTERC20MinterBurnerDecimals: must have burner role to burn"
-        );
+        require(hasRole(BURNER_ROLE, _msgSender()), "TESTERC20MinterBurnerDecimals: must have burner role to burn");
         _burn(from, amount);
     }
 
@@ -116,10 +108,7 @@ contract TESTERC20MinterBurnerDecimals is
      * - the caller must have the `PAUSER_ROLE`.
      */
     function pause() public virtual {
-        require(
-            hasRole(PAUSER_ROLE, _msgSender()),
-            "TESTERC20MinterBurnerDecimals: must have pauser role to pause"
-        );
+        require(hasRole(PAUSER_ROLE, _msgSender()), "TESTERC20MinterBurnerDecimals: must have pauser role to pause");
         _pause();
     }
 
@@ -133,10 +122,7 @@ contract TESTERC20MinterBurnerDecimals is
      * - the caller must have the `PAUSER_ROLE`.
      */
     function unpause() public virtual {
-        require(
-            hasRole(PAUSER_ROLE, _msgSender()),
-            "TESTERC20MinterBurnerDecimals: must have pauser role to unpause"
-        );
+        require(hasRole(PAUSER_ROLE, _msgSender()), "TESTERC20MinterBurnerDecimals: must have pauser role to unpause");
         _unpause();
     }
 
