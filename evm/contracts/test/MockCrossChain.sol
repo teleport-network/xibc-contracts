@@ -280,7 +280,6 @@ contract MockCrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reent
         external
         override
         nonReentrant
-        onlyPacket
         returns (
             uint64 code,
             bytes memory result,
