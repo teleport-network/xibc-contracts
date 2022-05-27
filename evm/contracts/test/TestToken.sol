@@ -5,7 +5,7 @@ pragma solidity ^0.6.8;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../interfaces/IERC20XIBC.sol";
 
-contract testToken is ERC20, IERC20XIBC {
+contract TestToken is ERC20, IERC20XIBC {
     constructor(string memory name, string memory symbol) public ERC20(name, symbol) {}
 
     function mint(address to, uint256 amount) external override {

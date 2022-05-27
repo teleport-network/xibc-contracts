@@ -179,14 +179,14 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
         PacketTypes.Acknowledgement memory ack;
 
-        try crossChain.onRecvPacket(packet) returns (uint64 code, bytes memory result, string memory message) {
-            ack.code = code;
-            ack.result = result;
-            ack.message = message;
-        } catch (bytes memory res) {
+        try crossChain.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
+            ack.code = _code;
+            ack.result = _result;
+            ack.message = _message;
+        } catch {
             ack.code = 1;
             ack.result = "";
-            ack.message = string(res);
+            ack.message = "onRecvPacket failed";
         }
 
         ack.relayer = msg.sender.addressToString();

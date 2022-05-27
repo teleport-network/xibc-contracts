@@ -336,7 +336,7 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
             }
         }
 
-        if (packet.transferData.length > 0) {
+        if (packet.callData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
             (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
             if (!success) {

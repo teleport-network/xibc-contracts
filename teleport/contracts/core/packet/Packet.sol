@@ -81,8 +81,8 @@ contract Packet is IPacket {
             string memory _message
         ) {
             return (_code, _result, _message);
-        } catch (bytes memory _res) {
-            return (1, "", string(_res));
+        } catch {
+            return (1, "", "onRecvPacket failed");
         }
     }
 
