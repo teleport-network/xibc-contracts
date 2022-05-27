@@ -3,15 +3,14 @@ import { Signer, utils } from "ethers"
 import chai from "chai"
 import { ClientManager, TssClient, AccessManager } from '../typechain'
 
-let client = require("./proto/compiled.js")
+const keccak256 = require('keccak256')
 const { expect } = chai
 
-describe('Client', () => {
+describe('TSS', () => {
     let accounts: Signer[]
     let tssClient: TssClient
     let clientManager: ClientManager
     let accessManager: AccessManager
-    const chainName = "teleport"
 
     before('deploy Tss', async () => {
         accounts = await ethers.getSigners()
@@ -31,7 +30,7 @@ describe('Client', () => {
             [[pubkey, [pubkey]]]
         )
 
-        let result = await clientManager.updateClient(chainName, headerBz)
+        let result = await clientManager.updateClient(headerBz)
         await result.wait()
 
         let clientState = await tssClient.getClientState()
@@ -45,7 +44,7 @@ describe('Client', () => {
         const upgradedClientManager = await upgrades.upgradeProxy(clientManager.address, mockClientManagerFactory)
         expect(upgradedClientManager.address).to.eq(clientManager.address)
 
-        const result = await upgradedClientManager.getLatestHeight(chainName)
+        const result = await upgradedClientManager.getLatestHeight()
         expect(0).to.eq(result[0].toNumber())
 
         await upgradedClientManager.setVersion(2)
@@ -60,25 +59,18 @@ describe('Client', () => {
 
     const deployClientManager = async () => {
         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-        clientManager = (await upgrades.deployProxy(msrFactory, ["ethereum", accessManager.address])) as ClientManager
+        clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManager
     }
 
     const deployTssClient = async () => {
-        let originChainName = await clientManager.getChainName()
-        expect(originChainName).to.eq("ethereum")
-
         const tssFactory = await ethers.getContractFactory('TssClient')
-        tssClient = await upgrades.deployProxy(
-            tssFactory,
-            [clientManager.address]
-        ) as TssClient
+        tssClient = await upgrades.deployProxy(tssFactory, [clientManager.address]) as TssClient
     }
 
     const initialize = async () => {
         let privateKey = "0x0123456789012345678901234567890123456789012345678901234567890123";
         let pubkey = "0x6655feed4d214c261e0a6b554395596f1f1476a77d999560e5a8df9b8a1a3515217e88dd05e938efdd71b2cce322bf01da96cd42087b236e8f5043157a9c068e"
         let wallet = new ethers.Wallet(privateKey);
-
         let signer = await accounts[0].getAddress();
 
         // create light client
@@ -87,9 +79,9 @@ describe('Client', () => {
             [[wallet.address, pubkey, [pubkey]]],
         )
 
-        await clientManager.createClient(chainName, tssClient.address, clientStateBz, Buffer.from(""))
+        await clientManager.createClient(tssClient.address, clientStateBz, Buffer.from(""))
 
-        let teleportClient = await clientManager.clients(chainName)
+        let teleportClient = await clientManager.client()
         expect(teleportClient).to.eq(tssClient.address)
 
         let expClientState = (await tssClient.getClientState())
@@ -97,7 +89,8 @@ describe('Client', () => {
         expect(expClientState.tss_address).to.eq(wallet.address)
         expect(expClientState.part_pubkeys[0]).to.eq(pubkey)
 
-        let ret = await clientManager.registerRelayer(chainName, signer)
+        let relayerRole = keccak256("RELAYER_ROLE")
+        let ret = await accessManager.grantRole(relayerRole, signer)
         expect(ret.blockNumber).to.greaterThan(0)
     }
 })
