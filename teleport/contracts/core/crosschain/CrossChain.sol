@@ -327,7 +327,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             }
         }
 
-        if (packet.transferData.length > 0) {
+        if (packet.callData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
             (bool success, bytes memory res) = callData.contractAddress.parseAddr().call(callData.callData);
             if (!success) {
@@ -373,14 +373,16 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                 outTokens[tokenAddress][packet.destChain] -= amount;
             }
         }
-        ICallback(packet.callbackAddress.parseAddr()).callback(
-            packet.srcChain,
-            packet.destChain,
-            packet.sequence,
-            code,
-            result,
-            message
-        );
+        if (packet.callbackAddress.parseAddr() != address(0)) {
+            ICallback(packet.callbackAddress.parseAddr()).callback(
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence,
+                code,
+                result,
+                message
+            );
+        }
     }
 
     // ===========================================================================
