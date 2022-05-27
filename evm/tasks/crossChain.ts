@@ -102,7 +102,7 @@ task("deployToken", "Deploy Token")
     .addParam("name", "token name")
     .addParam("symbol", "token symbol")
     .setAction(async (taskArgs, hre) => {
-        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const tokenFactory = await hre.ethers.getContractFactory('TestToken')
         const token = await tokenFactory.deploy(taskArgs.name, taskArgs.symbol)
         await token.deployed();
 
@@ -116,7 +116,7 @@ task("mintToken", "Mint Token")
     .addParam("to", "reciver")
     .addParam("amount", "token mint amount")
     .setAction(async (taskArgs, hre) => {
-        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const tokenFactory = await hre.ethers.getContractFactory('TestToken')
         const token = await tokenFactory.attach(taskArgs.address)
 
         await token.mint(taskArgs.to, taskArgs.amount)
@@ -126,7 +126,7 @@ task("queryErc20balances", "Query ERC20 balances")
     .addParam("address", "token address")
     .addParam("user", "user address ")
     .setAction(async (taskArgs, hre) => {
-        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const tokenFactory = await hre.ethers.getContractFactory('TestToken')
         const token = await tokenFactory.attach(taskArgs.address)
 
         let balances = (await token.balanceOf(taskArgs.user)).toString()
@@ -138,7 +138,7 @@ task("approve", "approve ERC20 token to others")
     .addParam("transfer", "transfer address ")
     .addParam("amount", "approve amount")
     .setAction(async (taskArgs, hre) => {
-        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const tokenFactory = await hre.ethers.getContractFactory('TestToken')
         const token = await tokenFactory.attach(taskArgs.address)
 
         let res = await token.approve(taskArgs.transfer, taskArgs.amount)
@@ -150,7 +150,7 @@ task("queryAllowance", "Query ERC20 allowance")
     .addParam("transfer", "transfer address ")
     .addParam("account", "account address")
     .setAction(async (taskArgs, hre) => {
-        const tokenFactory = await hre.ethers.getContractFactory('testToken')
+        const tokenFactory = await hre.ethers.getContractFactory('TestToken')
         const token = await tokenFactory.attach(taskArgs.address)
 
         let allowances = (await token.allowance(taskArgs.account, taskArgs.transfer))

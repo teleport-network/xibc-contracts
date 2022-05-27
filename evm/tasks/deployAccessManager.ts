@@ -16,7 +16,7 @@ task("deployAcessManager", "Deploy acessManager")
         await accessManager.deployed()
         console.log("AccessManager deployed to:", accessManager.address.toLocaleLowerCase())
         console.log("export ACCESS_MANAGER_ADDRESS=%s", accessManager.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export ACCESS_MANAGER_ADDRESS='+accessManager.address.toLocaleLowerCase()+'\n')
+        fs.appendFileSync('env.txt', 'export ACCESS_MANAGER_ADDRESS=' + accessManager.address.toLocaleLowerCase() + '\n')
     })
 
 task("grantRole", "grant Role")
@@ -28,7 +28,7 @@ task("grantRole", "grant Role")
         let role = Buffer.from(taskArgs.role, "utf-8")
         const result = await accessManager.grantRole(keccak256(role), taskArgs.to)
         console.log(result)
-        fs.appendFileSync('env.txt', '# grantRole tx hash: '+result.hash+'\n')
+        fs.appendFileSync('env.txt', '# grantRole tx hash: ' + result.hash + '\n')
     })
 
 task("revokeRole", "revoke Role")
@@ -43,36 +43,36 @@ task("revokeRole", "revoke Role")
     })
 
 task("batchGrantRole", "batch grant Role")
-  .addParam("roles", "batch grant Roles")
-  .addParam("tos", "batch grant Role to contracts")
-  .setAction(async (taskArgs, hre) => {
-    const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
-    const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
+    .addParam("roles", "batch grant Roles")
+    .addParam("tos", "batch grant Role to contracts")
+    .setAction(async (taskArgs, hre) => {
+        const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
+        const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
 
-    let rs= new Array();
-    let roles = taskArgs.roles.split(",")
-    for(let i=0; i<roles.length; i++){
-      rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
-    }
-    const result = await accessManager.batchGrantRole(rs, taskArgs.tos.split(","))
-    console.log(result)
-})
+        let rs = new Array();
+        let roles = taskArgs.roles.split(",")
+        for (let i = 0; i < roles.length; i++) {
+            rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
+        }
+        const result = await accessManager.batchGrantRole(rs, taskArgs.tos.split(","))
+        console.log(result)
+    })
 
 task("batchRevokeRole", "batch revoke Role")
-  .addParam("roles", "batch revoke Roles")
-  .addParam("tos", "batch revoke Role to contracts")
-  .setAction(async (taskArgs, hre) => {
-    const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
-    const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
+    .addParam("roles", "batch revoke Roles")
+    .addParam("tos", "batch revoke Role to contracts")
+    .setAction(async (taskArgs, hre) => {
+        const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
+        const accessManager = await accessManagerFactory.attach(String(ACCESS_MANAGER_ADDRESS))
 
-    let rs= new Array();
-    let roles = taskArgs.roles.split(",")
-    for(let i=0; i<roles.length; i++){
-      rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
-    }
-    const result = await accessManager.batchRevokeRole(rs, taskArgs.tos.split(","))
-    console.log(result)
-})
+        let rs = new Array();
+        let roles = taskArgs.roles.split(",")
+        for (let i = 0; i < roles.length; i++) {
+            rs.push(keccak256(Buffer.from(roles[i], "utf-8")))
+        }
+        const result = await accessManager.batchRevokeRole(rs, taskArgs.tos.split(","))
+        console.log(result)
+    })
 
 task("roleBytes", "get role bytes")
     .addParam("role", "grant Role")
@@ -90,7 +90,7 @@ task("hasRole", "check address has Role")
         let role = Buffer.from(taskArgs.role, "utf-8")
         const result = await accessManager.hasRole(keccak256(role), taskArgs.to)
         console.log(result)
-        fs.appendFileSync('env.txt', '#hasRole result: '+result+'\n')
+        fs.appendFileSync('env.txt', '#hasRole result: ' + result + '\n')
     })
 
 module.exports = {}

@@ -4,7 +4,7 @@ import "@typechain/hardhat"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 import "hardhat-abi-exporter"
-import "./tasks/transfer"
+import "./tasks/crossChain"
 
 module.exports = {
     defaultNetwork: 'hardhat',

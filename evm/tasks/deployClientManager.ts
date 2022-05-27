@@ -316,4 +316,5 @@ task("getClientType", "Deploy Client Manager")
         const result = await clientManager.getClientType(taskArgs.chain)
         console.log(await result.wait())
     })
+
 module.exports = {}

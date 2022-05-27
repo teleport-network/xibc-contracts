@@ -38,7 +38,7 @@ task("deployTendermint", "Deploy Tendermint Client")
         await tendermint.deployed()
         console.log("Tendermint deployed to:", tendermint.address.toLocaleLowerCase())
         console.log("export TENDERMINT_CLIENT=%s", tendermint.address.toLocaleLowerCase())
-        fs.appendFileSync('env.txt', 'export TENDERMINT_CLIENT='+tendermint.address.toLocaleLowerCase()+'\n')
+        fs.appendFileSync('env.txt', 'export TENDERMINT_CLIENT=' + tendermint.address.toLocaleLowerCase() + '\n')
     })
 
 
@@ -68,4 +68,5 @@ task("upgradeTendermint", "upgrade Tendermint Client")
         console.log("Tendermint deployed to:", tendermint.address.toLocaleLowerCase())
         console.log("export TENDERMINT_CLIENT=%s", tendermint.address.toLocaleLowerCase())
     })
+
 module.exports = {}

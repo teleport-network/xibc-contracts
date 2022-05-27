@@ -45,12 +45,12 @@ task("deployLibraries", "Deploy All Libraries")
         console.log("export LIGHT_CLIENT_VERIFY_ADDRESS=%s", lightClientVerify.address.toLocaleLowerCase())
         console.log("export LIGHT_CLIENT_GEN_VALHASH_ADDRESS=%s", lightClientGenValHash.address.toLocaleLowerCase())
 
-        fs.writeFileSync('env.txt', 'export CLIENT_STATE_CODEC_ADDRESS='+clientStateCodec.address.toLocaleLowerCase()+'\n')
-        fs.appendFileSync('env.txt', 'export CONSENSUS_STATE_CODEC_ADDRESS='+consensusStateCodec.address.toLocaleLowerCase()+'\n')
-        fs.appendFileSync('env.txt', 'export PROOF_CODEC_ADDRESS='+proofCodec.address.toLocaleLowerCase()+'\n')
-        fs.appendFileSync('env.txt', 'export VERIFIER_ADDRESS='+verifierLib.address.toLocaleLowerCase()+'\n')
-        fs.appendFileSync('env.txt', 'export LIGHT_CLIENT_VERIFY_ADDRESS='+lightClientVerify.address.toLocaleLowerCase()+'\n')
-        fs.appendFileSync('env.txt', 'export LIGHT_CLIENT_GEN_VALHASH_ADDRESS='+lightClientGenValHash.address.toLocaleLowerCase()+'\n')
+        fs.writeFileSync('env.txt', 'export CLIENT_STATE_CODEC_ADDRESS=' + clientStateCodec.address.toLocaleLowerCase() + '\n')
+        fs.appendFileSync('env.txt', 'export CONSENSUS_STATE_CODEC_ADDRESS=' + consensusStateCodec.address.toLocaleLowerCase() + '\n')
+        fs.appendFileSync('env.txt', 'export PROOF_CODEC_ADDRESS=' + proofCodec.address.toLocaleLowerCase() + '\n')
+        fs.appendFileSync('env.txt', 'export VERIFIER_ADDRESS=' + verifierLib.address.toLocaleLowerCase() + '\n')
+        fs.appendFileSync('env.txt', 'export LIGHT_CLIENT_VERIFY_ADDRESS=' + lightClientVerify.address.toLocaleLowerCase() + '\n')
+        fs.appendFileSync('env.txt', 'export LIGHT_CLIENT_GEN_VALHASH_ADDRESS=' + lightClientGenValHash.address.toLocaleLowerCase() + '\n')
     })
 
 module.exports = {}

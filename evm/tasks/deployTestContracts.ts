@@ -18,4 +18,5 @@ task("deployPayable", "Deploy payable")
         console.log("PAYABLE deployed to:", payable.address.toLocaleLowerCase())
         console.log("export PAYABLE_ADDRESS=%s", payable.address.toLocaleLowerCase())
     })
+
 module.exports = {}

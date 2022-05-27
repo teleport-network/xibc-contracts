@@ -15,7 +15,7 @@ import "./tasks/deployCrossChain"
 import "./tasks/deployProxy"
 import "./tasks/deployAccessManager"
 import "./tasks/deployTestPayable"
-import "./tasks/transfer"
+import "./tasks/crossChain"
 import "./tasks/deployAll"
 import "./tasks/deployTestContracts"
 

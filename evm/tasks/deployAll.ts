@@ -142,4 +142,5 @@ task("upgradeByDefender", "Deploy all base contract")
         const proposal = await hre.defender.proposeUpgrade(taskArgs.proxyAddress, upgradeFac);
         console.log("Upgrade proposal created at:", proposal.url);
     })
+
 module.exports = {}

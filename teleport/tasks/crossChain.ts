@@ -1,5 +1,5 @@
 import "@nomiclabs/hardhat-web3"
-import { task, types } from "hardhat/config"
+import { task } from "hardhat/config"
 
 const crossChainContractAddress = "0x0000000000000000000000000000000020000002"
 
