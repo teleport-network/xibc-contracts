@@ -9,7 +9,7 @@ import "../../interfaces/ICrossChain.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Packet is IPacket {
-    string public override chainName;
+    string public override chainName = "teleport";
 
     address public constant packetModuleAddress = address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
     address public constant crossChainContractAddress = address(0x0000000000000000000000000000000020000002);
@@ -38,10 +38,10 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice init chain name
+     * @notice set chain name
      * @param _chainName chain name
      */
-    function initChainName(string memory _chainName) public onlyXIBCModulePacket {
+    function setChainName(string memory _chainName) public onlyXIBCModulePacket {
         chainName = _chainName;
     }
 
