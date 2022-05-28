@@ -154,7 +154,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
     {
         string memory sourceChain = IPacket(packetContractAddress).chainName();
         require(!crossChainData.destChain.equals(sourceChain), "invalid destChain");
-        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(sourceChain, crossChainData.destChain);
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(crossChainData.destChain);
 
         // tansfer data and contractcall data can't be both empty
         require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");

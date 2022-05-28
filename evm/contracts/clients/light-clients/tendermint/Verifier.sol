@@ -4,7 +4,7 @@ pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import "../../../libraries/commitment/Merkle.sol";
-import "../../../libraries/host/Host.sol";
+import "../../../libraries/utils/Strings.sol";
 import "../../../proto/Tendermint.sol";
 import "../../../proto/Proofs.sol";
 import "./Codec.sol";
@@ -37,7 +37,19 @@ library Verifier {
         );
         string[] memory path = new string[](2);
         path[0] = string(state.merkle_prefix.key_prefix);
-        path[1] = Host.packetCommitmentPath(sourceChain, destChain, sequence);
+        path[1] = Strings.strConcat(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        "commitments/",
+                        Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)
+                    ),
+                    "/sequences"
+                ),
+                "/"
+            ),
+            Strings.uint642str(sequence)
+        );
 
         Merkle.verifyMembership(
             ProofCodec.decode(proof),
@@ -75,7 +87,16 @@ library Verifier {
         );
         string[] memory path = new string[](2);
         path[0] = string(state.merkle_prefix.key_prefix);
-        path[1] = Host.packetAcknowledgementPath(sourceChain, destChain, sequence);
+        path[1] = Strings.strConcat(
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)),
+                    "/sequences"
+                ),
+                "/"
+            ),
+            Strings.uint642str(sequence)
+        );
         Merkle.verifyMembership(
             ProofCodec.decode(proof),
             getDefaultProofSpecs(state.proof_specs),

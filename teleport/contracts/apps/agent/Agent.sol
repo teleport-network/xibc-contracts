@@ -81,7 +81,7 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             PacketTypes.Fee({tokenAddress: tokenAddress, amount: realFeeAmount})
         );
 
-        uint64 sequence = packetContract.getNextSequenceSend(packetContract.chainName(), destChain);
+        uint64 sequence = packetContract.getNextSequenceSend(destChain);
         string memory sequencesKey = Strings.strConcat(Strings.strConcat(destChain, "/"), Strings.uint642str(sequence));
 
         agentData[sequencesKey] = AgentData({
@@ -167,7 +167,7 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
         string calldata
     ) external override onlyCrossChain {
         if (code != 0) {
-            require(packetContract.getAckStatus(packetContract.chainName(), destChain, sequence) == 2, "not err ack");
+            require(packetContract.getAckStatus(destChain, sequence) == 2, "not err ack");
             string memory sequencesKey = Strings.strConcat(
                 Strings.strConcat(destChain, "/"),
                 Strings.uint642str(sequence)

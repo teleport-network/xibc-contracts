@@ -3,7 +3,8 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../libraries/host/Host.sol";
+import "../../libraries/utils/Bytes.sol";
+import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IClientManager.sol";
 import "../../interfaces/IClient.sol";
 import "../../interfaces/IPacket.sol";
@@ -11,7 +12,6 @@ import "../../interfaces/ICrossChain.sol";
 import "../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
@@ -123,7 +123,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         require(!packet.destChain.equals(chainName), "invalid destChain");
 
         // Notice: must sent token to this contract before set packet fee
-        packetFees[Host.commonUniqueKey(packet.srcChain, packet.destChain, packet.sequence)] = fee;
+        packetFees[bytes(commonUniquePath(packet.destChain, packet.sequence))] = fee;
 
         bytes memory nextSequenceSendKey = bytes(packet.destChain);
 
@@ -135,7 +135,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         sequences[nextSequenceSendKey]++;
 
         bytes memory bz = abi.encode(packet);
-        commitments[Host.packetCommitmentKey(packet.srcChain, packet.destChain, packet.sequence)] = sha256(bz);
+        commitments[bytes(packetCommitmentPath(packet.srcChain, packet.destChain, packet.sequence))] = sha256(bz);
         emit PacketSent(bz);
     }
 
@@ -156,7 +156,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         latestPacket = packet;
 
         require(packet.destChain.equals(chainName), "invalid destChain");
-        bytes memory packetReceiptKey = Host.packetReceiptKey(packet.srcChain, packet.sequence);
+        bytes memory packetReceiptKey = bytes(commonUniquePath(packet.srcChain, packet.sequence));
         require(!receipts[packetReceiptKey], "packet has been received");
 
         bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
@@ -229,7 +229,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         string memory destChain,
         bytes memory acknowledgement
     ) private {
-        bytes memory packetAcknowledgementKey = Host.packetAcknowledgementKey(sourceChain, destChain, sequence);
+        bytes memory packetAcknowledgementKey = bytes(packetAcknowledgementPath(sourceChain, destChain, sequence));
         require(commitments[packetAcknowledgementKey] == bytes32(0), "acknowledgement for packet already exists");
         require(acknowledgement.length != 0, "acknowledgement cannot be empty");
         commitments[packetAcknowledgementKey] = sha256(acknowledgement);
@@ -253,7 +253,9 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         PacketTypes.Packet memory packet = abi.decode(packetBytes, (PacketTypes.Packet));
         require(packet.srcChain.equals(chainName), "invalid packet");
 
-        bytes memory packetCommitmentKey = Host.packetCommitmentKey(packet.srcChain, packet.destChain, packet.sequence);
+        bytes memory packetCommitmentKey = bytes(
+            packetCommitmentPath(packet.srcChain, packet.destChain, packet.sequence)
+        );
         require(commitments[packetCommitmentKey] == sha256(packetBytes), "commitment bytes are not equal");
 
         _verifyPacketAcknowledgement(
@@ -270,32 +272,30 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         emit AckPacket(packet, acknowledgement);
 
         PacketTypes.Acknowledgement memory ack = abi.decode(acknowledgement, (PacketTypes.Acknowledgement));
-        bytes memory key = Host.commonUniqueKey(packet.srcChain, packet.destChain, packet.sequence);
+        bytes memory key = bytes(commonUniquePath(packet.destChain, packet.sequence));
         if (ack.code == 0) {
             ackStatus[key] = 1;
         } else {
             ackStatus[key] = 2;
         }
+        acks[key] = ack;
 
-        acks[Host.commonUniqueKey(packet.srcChain, packet.destChain, packet.sequence)] = ack;
         crossChain.onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
-        _sendPacketFeeToRelayer(packet.srcChain, packet.destChain, packet.sequence, ack.relayer.parseAddr());
+        _sendPacketFeeToRelayer(packet.destChain, packet.sequence, ack.relayer.parseAddr());
     }
 
     /**
      * @notice send packet fee to relayer
-     * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
      * @param relayer relayer address
      */
     function _sendPacketFeeToRelayer(
-        string memory sourceChain,
         string memory destChain,
         uint64 sequence,
         address relayer
     ) private {
-        PacketTypes.Fee memory fee = packetFees[Host.commonUniqueKey(sourceChain, destChain, sequence)];
+        PacketTypes.Fee memory fee = packetFees[bytes(commonUniquePath(destChain, sequence))];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
         } else {
@@ -339,33 +339,26 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     }
 
     /**
-     * @notice get the next sequence of sourceChain/destChain
-     * @param sourceChain source chain name
+     * @notice get the next sequence of destChain
      * @param destChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatus(
-        string calldata sourceChain,
-        string calldata destChain,
-        uint64 sequence
-    ) external view override returns (uint8) {
-        return ackStatus[Host.commonUniqueKey(sourceChain, destChain, sequence)];
+    function getAckStatus(string calldata destChain, uint64 sequence) external view override returns (uint8) {
+        return ackStatus[bytes(commonUniquePath(destChain, sequence))];
     }
 
     /**
      * @notice set packet fee
-     * @param sourceChain source chain name
      * @param destChain destination chain name
      * @param sequence sequence
      * @param amount add fee amount
      */
     function addPacketFee(
-        string memory sourceChain,
         string memory destChain,
         uint64 sequence,
         uint256 amount
     ) public payable whenNotPaused {
-        bytes memory key = Host.commonUniqueKey(sourceChain, destChain, sequence);
+        bytes memory key = bytes(commonUniquePath(destChain, sequence));
         require(ackStatus[key] == uint8(0), "invalid packet status");
         PacketTypes.Fee memory fee = packetFees[key];
         if (fee.tokenAddress == address(0)) {
@@ -404,5 +397,65 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      */
     function unpause() public virtual onlyAuthorizee(PAUSER_ROLE) {
         _unpause();
+    }
+
+    /**
+     * @notice ackStatusPath defines ack status store path
+     *  @param chain chain name
+     *  @param sequence sequence
+     */
+    function commonUniquePath(string memory chain, uint64 sequence) internal pure returns (string memory) {
+        return Strings.strConcat(Strings.strConcat(chain, "/"), Strings.uint642str(sequence));
+    }
+
+    /**
+     * @notice packetCommitmentPath defines the next send sequence counter store path
+     *  @param sourceChain source chain name
+     *  @param destChain destination chain name
+     *  @param sequence sequence
+     */
+    function packetCommitmentPath(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence
+    ) internal pure returns (string memory) {
+        return
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat(
+                            "commitments/",
+                            Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)
+                        ),
+                        "/sequences"
+                    ),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            );
+    }
+
+    /**
+     * @notice packetAcknowledgementPath defines the packet acknowledgement store path
+     * @param sourceChain source chain name
+     * @param destChain destination chain name
+     * @param sequence sequence
+     */
+    function packetAcknowledgementPath(
+        string memory sourceChain,
+        string memory destChain,
+        uint64 sequence
+    ) internal pure returns (string memory) {
+        return
+            Strings.strConcat(
+                Strings.strConcat(
+                    Strings.strConcat(
+                        Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)),
+                        "/sequences"
+                    ),
+                    "/"
+                ),
+                Strings.uint642str(sequence)
+            );
     }
 }
