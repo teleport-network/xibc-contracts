@@ -1,785 +1,397 @@
-// import { Signer, utils } from "ethers"
-// import chai from "chai"
-// import { RCC, Proxy, Routing, ClientManager, MockTendermint, Transfer, AccessManager, MockPacket, ERC20, MultiCall } from '../typechain'
-// import { web3 } from "hardhat"
-// import { keccak256, sha256 } from "ethers/lib/utils"
-// const { ethers, upgrades } = require("hardhat")
-// const { expect } = chai
+import { Signer, utils } from "ethers"
+import chai from "chai"
+import { Proxy, CrossChain, Execute, ClientManager, MockTendermint, AccessManager, MockPacket, ERC20 } from '../typechain'
+import { web3 } from "hardhat"
+import { sha256 } from "ethers/lib/utils"
 
-// let client = require("./proto/compiled.js")
+const { ethers, upgrades } = require("hardhat")
+const { expect } = chai
+const keccak256 = require('keccak256')
 
-// describe('Proxy', () => {
-//     let rcc: RCC
-//     let accounts: Signer[]
-//     let mockPacket: MockPacket
-//     let clientManager: ClientManager
-//     let routing: Routing
-//     let tendermint: MockTendermint
-//     let accessManager: AccessManager
-//     let transfer: Transfer
-//     let multiCall: MultiCall
-//     let proxy: Proxy
-//     let erc20: ERC20
-//     const srcChainName = "srcChain"
-//     const destChainName = "destChain"
+let client = require("./proto/compiled.js")
 
-//     before('deploy Proxy', async () => {
-//         accounts = await ethers.getSigners()
-//         await deployAccessManager()
-//         await deployClientManager()
-//         await deployTendermint()
-//         await deployHost()
-//         await deployRouting()
-//         await deployMockPacket()
-//         await deployTransfer()
-//         await deployToken()
-//         await deployRCC()
-//         await deployMultiCall()
-//         await deployProxy()
-//     })
+describe('Proxy', () => {
+    let accounts: Signer[]
+    let crossChain: CrossChain
+    let execute: Execute
+    let packetContract: MockPacket
+    let clientManager: ClientManager
+    let tendermint: MockTendermint
+    let accessManager: AccessManager
+    let proxy: Proxy
+    let erc20Contract: ERC20
 
-//     it("send ERC20", async () => {
-//         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
-//         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-//         let refundAddressOnTeleport = await accounts[2].getAddress()
-//         let feeAmount = 500
+    const chainName = "chainName"
+    const relayChainName = "relayChainName"
+    const testChainName = "testChainName"
 
-//         await erc20.approve(multiCall.address, 2000)
-//         let allowance = await erc20.allowance(sender, multiCall.address.toLocaleLowerCase())
-//         expect(allowance.toNumber()).to.eq(2000)
+    before('deploy Proxy', async () => {
+        accounts = await ethers.getSigners()
+        await deployAccessManager()
+        await deployClientManager()
+        await deployTendermint()
+        await deployMockPacket()
+        await deployCrossChain()
+        await deployExecute()
+        await deployToken()
+        await deployProxy()
+    })
 
-//         let ERC20TransferData = {
-//             tokenAddress: erc20.address.toLocaleLowerCase(),
-//             receiver: "0x0000000000000000000000000000000010000007", // agent address
-//             amount: 1000,
-//         }
+    it("send ERC20 token", async () => {
+        let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
+        let tokenAddress = erc20Contract.address.toLocaleLowerCase()
+        let callbackAddress = "0x0000000000000000000000000000000000000000"
 
-//         let rccTransfer = {
-//             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
-//             receiver: reciver,
-//             amount: 500,
-//             destChain: "eth-test",// double jump destChain
-//             relayChain: "",
-//         }
+        await erc20Contract.approve(crossChain.address, 2000)
+        let allowance = await erc20Contract.allowance(sender, crossChain.address.toLocaleLowerCase())
+        expect(allowance.toNumber()).to.eq(2000)
 
-//         let multiCallData = await proxy.send(
-//             refundAddressOnTeleport,
-//             destChainName, // teleport
-//             ERC20TransferData,
-//             rccTransfer,
-//             feeAmount,
-//         )
+        let agentData = {
+            refundAddressOnTeleport: refundAddressOnTeleport,
+            destChain: testChainName,
+            tokenAddress: tokenAddress,
+            amount: 1000,
+            feeAmount: 500,
+            receiver: receiver,
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let crossChainData = await proxy.generateCrossChainData(agentData)
+        let fee = {
+            tokenAddress: erc20Contract.address,
+            amount: 1000,
+        }
+        await crossChain.crossChainCall(crossChainData, fee)
 
-//         let Fee = {
-//             tokenAddress: erc20.address,
-//             amount: 1000,
-//         }
+        let transferData = {
+            token: tokenAddress,
+            oriToken: "",
+            amount: web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8"),
+            receiver: crossChainData.receiver,
+        }
+        let transferDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,bytes,string)"],
+            [[
+                transferData.token,
+                transferData.oriToken,
+                transferData.amount,
+                transferData.receiver,
+            ]]
+        )
+        const agentCallDataBz = web3.eth.abi.encodeFunctionCall(
+            {
+                name: 'send',
+                type: 'function',
+                inputs: [{
+                    "internalType": "address",
+                    "name": "refundAddressOnTeleport",
+                    "type": "address"
+                }, {
+                    "internalType": "string",
+                    "name": "receiver",
+                    "type": "string"
+                }, {
+                    "internalType": "string",
+                    "name": "destChain",
+                    "type": "string"
+                }, {
+                    "internalType": "uint256",
+                    "name": "feeAmount",
+                    "type": "uint256"
+                }],
+            },
+            [
+                agentData.refundAddressOnTeleport,
+                agentData.receiver,
+                agentData.destChain,
+                agentData.feeAmount.toString(),
+            ]
+        )
+        expect(crossChainData.callData).to.equal(agentCallDataBz)
+        let callData = {
+            contractAddress: "0x0000000000000000000000000000000040000001", // agent contract address
+            callData: agentCallDataBz,
+        }
+        let callDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,bytes)"],
+            [[
+                callData.contractAddress,
+                callData.callData,
+            ]]
+        )
+        let packet = {
+            srcChain: chainName,
+            destChain: relayChainName,
+            sequence: 1,
+            sender: sender,
+            transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
+            callData: Buffer.from(web3.utils.hexToBytes(callDataBz)),
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let packetBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
+            [[
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence,
+                packet.sender,
+                packet.transferData,
+                packet.callData,
+                packet.callbackAddress,
+                packet.feeOption,
+            ]]
+        )
+        let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
 
+        let path = "commitments/" + chainName + "/" + relayChainName + "/sequences/" + 1
+        let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
+        expect(commit).to.equal(sha256(packetBytes))
+        let outToken = await crossChain.outTokens(erc20Contract.address, relayChainName)
+        expect(outToken).to.eq(transferData.amount)
+    })
 
-//         await multiCall.multiCall(multiCallData, Fee)
+    it("send Base token", async () => {
+        let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
+        let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
+        let refundAddressOnTeleport = await accounts[2].getAddress()
+        let baseTokenAddress = "0x0000000000000000000000000000000000000000"
+        let callbackAddress = "0x0000000000000000000000000000000000000000"
 
-//         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-//         let seqU64 = 1
-//         let ERC20TransferPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             receiver: "0x0000000000000000000000000000000010000007",
-//             amount: amount,
-//             token: ERC20TransferData.tokenAddress,
-//             oriToken: ""
-//         }
-//         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes,string,string)"],
-//             [
-//                 [
-//                     ERC20TransferPacketData.srcChain,
-//                     ERC20TransferPacketData.destChain,
-//                     ERC20TransferPacketData.sequence,
-//                     ERC20TransferPacketData.sender,
-//                     ERC20TransferPacketData.receiver,
-//                     ERC20TransferPacketData.amount,
-//                     ERC20TransferPacketData.token,
-//                     ERC20TransferPacketData.oriToken
-//                 ]
-//             ]
-//         );
-//         let portBytes = Buffer.from("FT", "utf-8")
-//         let packetDataBytes = Buffer.from(web3.utils.hexToBytes(ERC20TransferPacketDataBz))
-//         let lengthSum = portBytes.length + packetDataBytes.length
-//         let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
-//         let ERC20TransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
-//         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1))
-//         const agentAbi = web3.eth.abi.encodeFunctionCall(
-//             {
-//                 name: 'send',
-//                 type: 'function',
-//                 inputs: [
-//                     {
-//                         "internalType": "bytes",
-//                         "name": "id",
-//                         "type": "bytes"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "tokenAddress",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "refundAddressOnTeleport",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "receiver",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "destChain",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "uint256",
-//                         "name": "feeAmount",
-//                         "type": "uint256"
-//                     }
-//                 ],
-//             },
-//             [
-//                 id,
-//                 rccTransfer.tokenAddress,
-//                 refundAddressOnTeleport,
-//                 rccTransfer.receiver,
-//                 rccTransfer.destChain,
-//                 feeAmount.toString(),
-//             ]
-//         )
-//         let RccPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             contractAddress: "0x0000000000000000000000000000000010000007",
-//             data: web3.utils.hexToBytes(agentAbi),
-//         }
-//         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes)"],
-//             [
-//                 [
-//                     RccPacketData.srcChain,
-//                     RccPacketData.destChain,
-//                     RccPacketData.sequence,
-//                     RccPacketData.sender,
-//                     RccPacketData.contractAddress,
-//                     RccPacketData.data,
-//                 ]
-//             ]
-//         );
-//         portBytes = Buffer.from("CONTRACT", "utf-8")
-//         packetDataBytes = Buffer.from(web3.utils.hexToBytes(RccPacketDataBz))
-//         lengthSum = portBytes.length + packetDataBytes.length
-//         sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
-//         let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
+        let agentData = {
+            refundAddressOnTeleport: refundAddressOnTeleport,
+            destChain: testChainName,
+            tokenAddress: baseTokenAddress,
+            amount: 1000,
+            feeAmount: 500,
+            receiver: receiver,
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let crossChainData = await proxy.generateCrossChainData(agentData)
+        let fee = {
+            tokenAddress: baseTokenAddress,
+            amount: 100,
+        }
+        await crossChain.crossChainCall(crossChainData, fee, { value: agentData.amount + fee.amount })
 
-//         lengthSum = ERC20TransferPacketDataBzHash.length + RccPacketDataBzHash.length
-//         sum = Buffer.concat([ERC20TransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
-//         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 1
-//         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
-//         expect(commitment.toString()).to.eq(sha256(sum))
+        let transferData = {
+            token: baseTokenAddress,
+            oriToken: "",
+            amount: web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8"),
+            receiver: crossChainData.receiver,
+        }
+        let transferDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,bytes,string)"],
+            [[
+                transferData.token,
+                transferData.oriToken,
+                transferData.amount,
+                transferData.receiver,
+            ]]
+        )
+        const agentCallDataBz = web3.eth.abi.encodeFunctionCall(
+            {
+                name: 'send',
+                type: 'function',
+                inputs: [{
+                    "internalType": "address",
+                    "name": "refundAddressOnTeleport",
+                    "type": "address"
+                }, {
+                    "internalType": "string",
+                    "name": "receiver",
+                    "type": "string"
+                }, {
+                    "internalType": "string",
+                    "name": "destChain",
+                    "type": "string"
+                }, {
+                    "internalType": "uint256",
+                    "name": "feeAmount",
+                    "type": "uint256"
+                }],
+            },
+            [
+                agentData.refundAddressOnTeleport,
+                agentData.receiver,
+                agentData.destChain,
+                agentData.feeAmount.toString(),
+            ]
+        )
+        expect(crossChainData.callData).to.equal(agentCallDataBz)
+        let callData = {
+            contractAddress: "0x0000000000000000000000000000000040000001", // agent contract address
+            callData: agentCallDataBz,
+        }
+        let callDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,bytes)"],
+            [[
+                callData.contractAddress,
+                callData.callData,
+            ]]
+        )
+        let packet = {
+            srcChain: chainName,
+            destChain: relayChainName,
+            sequence: 2,
+            sender: sender,
+            transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
+            callData: Buffer.from(web3.utils.hexToBytes(callDataBz)),
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let packetBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
+            [[
+                packet.srcChain,
+                packet.destChain,
+                packet.sequence,
+                packet.sender,
+                packet.transferData,
+                packet.callData,
+                packet.callbackAddress,
+                packet.feeOption,
+            ]]
+        )
+        let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
 
-//         let outToken = (await transfer.outTokens(erc20.address, destChainName))
-//         expect(outToken).to.eq(ERC20TransferData.amount)
-//     })
+        let path = "commitments/" + chainName + "/" + relayChainName + "/sequences/" + 2
+        let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
+        expect(commit).to.equal(sha256(packetBytes))
+        let outToken = await crossChain.outTokens(baseTokenAddress, relayChainName)
+        expect(outToken).to.eq(transferData.amount)
+    })
 
-//     it("send Base", async () => {
-//         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
-//         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-//         let refundAddressOnTeleport = await accounts[2].getAddress()
-//         let zeroAddress = "0x0000000000000000000000000000000000000000"
-//         let feeAmount = 500
+    const deployAccessManager = async () => {
+        const accessFactory = await ethers.getContractFactory('AccessManager')
+        accessManager = (await upgrades.deployProxy(accessFactory, [await accounts[0].getAddress()])) as AccessManager
 
-//         let transferData = {
-//             tokenAddress: zeroAddress,
-//             receiver: "0x0000000000000000000000000000000010000007", // agent address
-//             amount: 1000,
-//         }
-//         let rccTransferData = {
-//             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
-//             receiver: reciver,
-//             amount: 500,
-//             destChain: "eth-test",// double jump destChain
-//             relayChain: "",
-//         }
-//         let Fee = {
-//             tokenAddress: zeroAddress,
-//             amount: 1000,
-//         }
-//         let multiCallData = await proxy.send(
-//             refundAddressOnTeleport,
-//             destChainName, // teleport 
-//             transferData,
-//             rccTransferData,
-//             feeAmount,
-//         )
+        let relayerRole = keccak256("RELAYER_ROLE")
+        let signer = await accounts[0].getAddress()
+        let ret = await accessManager.grantRole(relayerRole, signer)
+        expect(ret.blockNumber).to.greaterThan(0)
+    }
 
-//         let value = transferData.amount + Fee.amount
+    const deployClientManager = async () => {
+        const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
+        clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManager
+    }
 
-//         await multiCall.multiCall(multiCallData, Fee, { value: value })
+    const deployMockPacket = async () => {
+        const mockPacketFactory = await ethers.getContractFactory(
+            'MockPacket',
+            { signer: accounts[0], }
+        )
 
-//         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-//         let seqU64 = 2
-//         let BaseTransferPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             receiver: "0x0000000000000000000000000000000010000007",
-//             amount: amount,
-//             token: zeroAddress,
-//             oriToken: ""
-//         }
-//         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes,string,string)"],
-//             [
-//                 [
-//                     BaseTransferPacketData.srcChain,
-//                     BaseTransferPacketData.destChain,
-//                     BaseTransferPacketData.sequence,
-//                     BaseTransferPacketData.sender,
-//                     BaseTransferPacketData.receiver,
-//                     BaseTransferPacketData.amount,
-//                     BaseTransferPacketData.token,
-//                     BaseTransferPacketData.oriToken
-//                 ]
-//             ]
-//         );
-//         let portBytes = Buffer.from("FT", "utf-8")
-//         let packetDataBytes = Buffer.from(web3.utils.hexToBytes(BaseTransferPacketDataBz))
-//         let lengthSum = portBytes.length + packetDataBytes.length
-//         let sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
-//         let BaseTransferPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
-//         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 2))
-//         const agentAbi = web3.eth.abi.encodeFunctionCall(
-//             {
-//                 name: 'send',
-//                 type: 'function',
-//                 inputs: [
-//                     {
-//                         "internalType": "bytes",
-//                         "name": "id",
-//                         "type": "bytes"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "tokenAddress",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "refundAddressOnTeleport",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "receiver",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "destChain",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "uint256",
-//                         "name": "feeAmount",
-//                         "type": "uint256"
-//                     }
-//                 ],
-//             },
-//             [
-//                 id,
-//                 rccTransferData.tokenAddress,
-//                 refundAddressOnTeleport,
-//                 rccTransferData.receiver,
-//                 rccTransferData.destChain,
-//                 feeAmount.toString(),
-//             ]
-//         )
+        packetContract = await upgrades.deployProxy(
+            mockPacketFactory,
+            [
+                chainName,
+                clientManager.address,
+                accessManager.address,
+            ]
+        ) as MockPacket
+    }
 
-//         let RccPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             contractAddress: "0x0000000000000000000000000000000010000007",
-//             data: web3.utils.hexToBytes(agentAbi),
-//         }
-//         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes)"],
-//             [
-//                 [
-//                     RccPacketData.srcChain,
-//                     RccPacketData.destChain,
-//                     RccPacketData.sequence,
-//                     RccPacketData.sender,
-//                     RccPacketData.contractAddress,
-//                     RccPacketData.data,
-//                 ]
-//             ]
-//         );
-//         portBytes = Buffer.from("CONTRACT", "utf-8")
-//         packetDataBytes = Buffer.from(web3.utils.hexToBytes(RccPacketDataBz))
-//         lengthSum = portBytes.length + packetDataBytes.length
-//         sum = Buffer.concat([portBytes, packetDataBytes], lengthSum)
-//         let RccPacketDataBzHash = Buffer.from(web3.utils.hexToBytes(sha256(sum)))
+    const deployCrossChain = async () => {
+        const crossChainFactory = await ethers.getContractFactory('CrossChain', accounts[0])
+        crossChain = await upgrades.deployProxy(
+            crossChainFactory,
+            [
+                packetContract.address,
+                clientManager.address,
+                accessManager.address
+            ]
+        ) as CrossChain
 
-//         lengthSum = BaseTransferPacketDataBzHash.length + RccPacketDataBzHash.length
-//         sum = Buffer.concat([BaseTransferPacketDataBzHash, RccPacketDataBzHash], lengthSum)
-//         let path = "commitments/" + srcChainName + "/" + destChainName + "/sequences/" + 2
-//         let commitment = await mockPacket.commitments(Buffer.from(path, "utf-8"))
-//         expect(commitment.toString()).to.eq(sha256(sum))
-//         let outToken = (await transfer.outTokens(zeroAddress, destChainName))
-//         expect(outToken).to.eq(transferData.amount)
-//     })
+        // init crossChain address after crossChain contract deployed
+        await packetContract.initCrossChain(crossChain.address,)
+    }
 
-//     it("refund erc20 token", async () => {
-//         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
-//         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-//         let refundAddressOnTeleport = await accounts[2].getAddress()
+    const deployExecute = async () => {
+        const executeFactory = await ethers.getContractFactory('Execute', accounts[0])
+        execute = await upgrades.deployProxy(
+            executeFactory,
+            [crossChain.address]
+        ) as Execute
 
-//         let transferData = {
-//             tokenAddress: erc20.address.toLocaleLowerCase(),
-//             receiver: "0x0000000000000000000000000000000010000007", // agent address
-//             amount: 1000,
-//         }
-//         let balances = await erc20.balanceOf(sender)
-//         expect(1046576).to.eq(balances)
-//         let rccTransferData = {
-//             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
-//             receiver: reciver,
-//             amount: 1000,
-//             destChain: "eth-test",// double jump destChain
-//             relayChain: "",
-//         }
-//         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-//         let seqU64 = 1
-//         let ERC20TransferPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             receiver: "0x0000000000000000000000000000000010000007",
-//             amount: amount,
-//             token: transferData.tokenAddress,
-//             oriToken: ""
-//         }
-//         let ERC20TransferPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes,string,string)"],
-//             [
-//                 [
-//                     ERC20TransferPacketData.srcChain,
-//                     ERC20TransferPacketData.destChain,
-//                     ERC20TransferPacketData.sequence,
-//                     ERC20TransferPacketData.sender,
-//                     ERC20TransferPacketData.receiver,
-//                     ERC20TransferPacketData.amount,
-//                     ERC20TransferPacketData.token,
-//                     ERC20TransferPacketData.oriToken
-//                 ]
-//             ]
-//         );
-//         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 1))
-//         const agentAbi = web3.eth.abi.encodeFunctionCall(
-//             {
-//                 name: 'send',
-//                 type: 'function',
-//                 inputs: [
-//                     {
-//                         "internalType": "bytes",
-//                         "name": "id",
-//                         "type": "bytes"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "tokenAddress",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "refundAddressOnTeleport",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "receiver",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "destChain",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "uint256",
-//                         "name": "feeAmount",
-//                         "type": "uint256"
-//                     }
-//                 ],
-//             },
-//             [
-//                 id,
-//                 rccTransferData.tokenAddress,
-//                 refundAddressOnTeleport,
-//                 rccTransferData.receiver,
-//                 rccTransferData.destChain,
-//                 "500",
-//             ]
-//         )
+        // init execute address after execute contract deployed
+        await crossChain.initExecute(execute.address,)
+    }
 
-//         let RccPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             contractAddress: "0x0000000000000000000000000000000010000007",
-//             data: web3.utils.hexToBytes(agentAbi),
-//         }
-//         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes)"],
-//             [
-//                 [
-//                     RccPacketData.srcChain,
-//                     RccPacketData.destChain,
-//                     RccPacketData.sequence,
-//                     RccPacketData.sender,
-//                     RccPacketData.contractAddress,
-//                     RccPacketData.data,
-//                 ]
-//             ]
-//         );
-//         let pkt = {
-//             sequence: 1,
-//             sourceChain: srcChainName,
-//             destChain: destChainName,
-//             relayChain: "",
-//             ports: ["FT", "CONTRACT"],
-//             dataList: [ERC20TransferPacketDataBz, RccPacketDataBz],
-//         }
-//         let Erc20Ack = utils.defaultAbiCoder.encode(
-//             ["tuple(bytes[],string,string)"],
-//             [
-//                 [
-//                     [],
-//                     "1: onRecvPackt: binding is not exist",
-//                     sender,
-//                 ]
-//             ]
-//         );
-//         let proof = Buffer.from("proof", "utf-8")
-//         let height = {
-//             revision_number: 1,
-//             revision_height: 1,
-//         }
-//         await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
-//         balances = await erc20.balanceOf(ERC20TransferPacketData.sender)
-//         expect(balances).to.eq(1048576)
-//         let outToken = (await transfer.outTokens(erc20.address, destChainName))
-//         expect(outToken).to.eq(0)
-//     })
+    const deployProxy = async () => {
+        const ProxyFactory = await ethers.getContractFactory('Proxy')
+        proxy = await upgrades.deployProxy(
+            ProxyFactory,
+            [relayChainName]
+        ) as Proxy
 
-//     it("refund native token", async () => {
-//         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
-//         let reciver = (await accounts[1].getAddress()).toLocaleLowerCase()
-//         let refundAddressOnTeleport = await accounts[2].getAddress()
+        await proxy.deployed()
+    }
 
-//         let zeroAddress = "0x0000000000000000000000000000000000000000"
-//         let rccTransfer = {
-//             tokenAddress: "0x9999999999999999999999999999999999999999", // erc20 in teleport
-//             receiver: reciver,
-//             amount: 1000,
-//             destChain: "eth-test",// double jump destChain
-//             relayChain: "",
-//         }
-//         let amount = web3.utils.hexToBytes("0x00000000000000000000000000000000000000000000000000000000000003e8")
-//         let seqU64 = 2
-//         let BaseTransferPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             receiver: "0x0000000000000000000000000000000010000007",
-//             amount: amount,
-//             token: zeroAddress,
-//             oriToken: ""
-//         }
-//         let BaseTransferPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes,string,string)"],
-//             [
-//                 [
-//                     BaseTransferPacketData.srcChain,
-//                     BaseTransferPacketData.destChain,
-//                     BaseTransferPacketData.sequence,
-//                     BaseTransferPacketData.sender,
-//                     BaseTransferPacketData.receiver,
-//                     BaseTransferPacketData.amount,
-//                     BaseTransferPacketData.token,
-//                     BaseTransferPacketData.oriToken
-//                 ]
-//             ]
-//         );
-//         let id = sha256(Buffer.from(srcChainName + "/" + destChainName + "/" + 2))
-//         const agentAbi = web3.eth.abi.encodeFunctionCall(
-//             {
-//                 name: 'send',
-//                 type: 'function',
-//                 inputs: [
-//                     {
-//                         "internalType": "bytes",
-//                         "name": "id",
-//                         "type": "bytes"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "tokenAddress",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "address",
-//                         "name": "refundAddressOnTeleport",
-//                         "type": "address"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "receiver",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "string",
-//                         "name": "destChain",
-//                         "type": "string"
-//                     },
-//                     {
-//                         "internalType": "uint256",
-//                         "name": "feeAmount",
-//                         "type": "uint256"
-//                     }
-//                 ],
-//             },
-//             [
-//                 id,
-//                 rccTransfer.tokenAddress,
-//                 refundAddressOnTeleport,
-//                 rccTransfer.receiver,
-//                 rccTransfer.destChain,
-//                 "500",
-//             ]
-//         )
+    const deployToken = async () => {
+        const tokenFactory = await ethers.getContractFactory("TestToken")
+        erc20Contract = await tokenFactory.deploy("test", "test")
+        await erc20Contract.deployed()
 
-//         let RccPacketData = {
-//             srcChain: srcChainName,
-//             destChain: destChainName,
-//             sequence: seqU64,
-//             sender: sender,
-//             contractAddress: "0x0000000000000000000000000000000010000007",
-//             data: web3.utils.hexToBytes(agentAbi),
-//         }
-//         let RccPacketDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,string,bytes)"],
-//             [
-//                 [
-//                     RccPacketData.srcChain,
-//                     RccPacketData.destChain,
-//                     RccPacketData.sequence,
-//                     RccPacketData.sender,
-//                     RccPacketData.contractAddress,
-//                     RccPacketData.data,
-//                 ]
-//             ]
-//         )
-//         let pkt = {
-//             sequence: 2,
-//             sourceChain: srcChainName,
-//             destChain: destChainName,
-//             relayChain: "",
-//             ports: ["FT", "CONTRACT"],
-//             dataList: [BaseTransferPacketDataBz, RccPacketDataBz],
-//         }
-//         let Erc20Ack = utils.defaultAbiCoder.encode(
-//             ["tuple(bytes[],string,string)"],
-//             [
-//                 [
-//                     [],
-//                     "1: onRecvPackt: binding is not exist",
-//                     sender
-//                 ]
-//             ]
-//         )
-//         let proof = Buffer.from("proof", "utf-8")
-//         let height = {
-//             revision_number: 1,
-//             revision_height: 1,
-//         }
-//         await mockPacket.acknowledgePacket(pkt, Erc20Ack, proof, height)
+        erc20Contract.mint(await accounts[0].getAddress(), 1048576)
+        expect((await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1048576")
+    }
 
-//         let outToken = (await transfer.outTokens(zeroAddress, destChainName))
-//         expect(outToken).to.eq(0)
-//     })
+    const deployTendermint = async () => {
+        const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
+        const clientStateCodec = await ClientStateCodec.deploy()
+        await clientStateCodec.deployed()
 
-//     const deployTransfer = async () => {
-//         const transferFactory = await ethers.getContractFactory('Transfer', accounts[0])
-//         transfer = await upgrades.deployProxy(
-//             transferFactory,
-//             [
-//                 mockPacket.address,
-//                 clientManager.address,
-//                 accessManager.address
-//             ]
-//         ) as Transfer
-//         await routing.addRouting("FT", transfer.address)
-//     }
+        const ConsensusStateCodec = await ethers.getContractFactory('ConsensusStateCodec')
+        const consensusStateCodec = await ConsensusStateCodec.deploy()
+        await consensusStateCodec.deployed()
 
-//     const deployMockPacket = async () => {
-//         const mockPacketFactory = await ethers.getContractFactory(
-//             'MockPacket',
-//             { signer: accounts[0], }
-//         )
-//         mockPacket = await upgrades.deployProxy(
-//             mockPacketFactory,
-//             [
-//                 clientManager.address,
-//                 routing.address,
-//                 accessManager.address,
-//             ]
-//         ) as MockPacket
-//     }
+        const tmFactory = await ethers.getContractFactory(
+            'MockTendermint',
+            {
+                signer: accounts[0],
+                libraries: {
+                    ClientStateCodec: clientStateCodec.address,
+                    ConsensusStateCodec: consensusStateCodec.address
+                },
+            }
+        )
+        tendermint = await upgrades.deployProxy(
+            tmFactory,
+            [clientManager.address],
+            { "unsafeAllowLinkedLibraries": true }
+        ) as MockTendermint
 
-//     const deployRCC = async () => {
-//         const RCCFactory = await ethers.getContractFactory('RCC')
-//         rcc = await upgrades.deployProxy(
-//             RCCFactory,
-//             [
-//                 mockPacket.address,
-//                 clientManager.address,
-//                 accessManager.address
-//             ]
-//         ) as RCC
-//         await routing.addRouting("CONTRACT", rcc.address)
-//     }
+        // create light client
+        let clientState = {
+            chainId: testChainName,
+            trustLevel: { numerator: 1, denominator: 3 },
+            trustingPeriod: 10 * 24 * 60 * 60,
+            unbondingPeriod: 1814400,
+            maxClockDrift: 10,
+            latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
+            merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
+            timeDelay: 10,
+        }
 
-//     const deployProxy = async () => {
-//         const ProxyFactory = await ethers.getContractFactory('Proxy')
-//         proxy = await upgrades.deployProxy(
-//             ProxyFactory,
-//             [
-//                 clientManager.address,
-//                 mockPacket.address
-//             ]
-//         ) as Proxy
-//     }
+        let consensusState = {
+            timestamp: { secs: 1631155726, nanos: 5829, },
+            root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
+            nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
+        }
 
-//     const deployAccessManager = async () => {
-//         const accessFactory = await ethers.getContractFactory('AccessManager')
-//         accessManager = (await upgrades.deployProxy(accessFactory, [await accounts[0].getAddress()])) as AccessManager
-//     }
+        accounts = await ethers.getSigners()
 
-//     const deployClientManager = async () => {
-//         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-//         clientManager = (await upgrades.deployProxy(msrFactory, [srcChainName, accessManager.address])) as ClientManager
-//     }
+        const ProofCodec = await ethers.getContractFactory('ProofCodec')
+        const proofCodec = await ProofCodec.deploy()
+        await proofCodec.deployed()
 
-//     const deployMultiCall = async () => {
-//         const multiCallFactory = await ethers.getContractFactory('MultiCall')
-//         multiCall = await upgrades.deployProxy(
-//             multiCallFactory,
-//             [
-//                 mockPacket.address,
-//                 clientManager.address,
-//                 transfer.address,
-//                 rcc.address,
-//             ]
-//         ) as MultiCall
-//         let role = Buffer.from("MULTISEND_ROLE", "utf-8")
-//         await accessManager.grantRole(keccak256(role), multiCall.address)
-//     }
-
-//     const deployToken = async () => {
-//         const tokenFac = await ethers.getContractFactory("TestToken")
-//         erc20 = await tokenFac.deploy("test", "test")
-//         await erc20.deployed()
-
-//         erc20.mint(await accounts[0].getAddress(), 1048576)
-//         expect((await erc20.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1048576")
-//     }
-
-//     const deployHost = async () => {
-//         const hostFac = await ethers.getContractFactory("Host")
-//         const host = await hostFac.deploy()
-//         await host.deployed()
-//     }
-
-//     const deployRouting = async () => {
-//         const routingFac = await ethers.getContractFactory("Routing")
-//         routing = await upgrades.deployProxy(routingFac, [accessManager.address]) as Routing
-//     }
-
-//     const deployTendermint = async () => {
-//         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
-//         const clientStateCodec = await ClientStateCodec.deploy()
-//         await clientStateCodec.deployed()
-
-//         const ConsensusStateCodec = await ethers.getContractFactory('ConsensusStateCodec')
-//         const consensusStateCodec = await ConsensusStateCodec.deploy()
-//         await consensusStateCodec.deployed()
-
-//         const tmFactory = await ethers.getContractFactory(
-//             'MockTendermint',
-//             {
-//                 signer: accounts[0],
-//                 libraries: {
-//                     ClientStateCodec: clientStateCodec.address,
-//                     ConsensusStateCodec: consensusStateCodec.address
-//                 },
-//             }
-//         )
-//         tendermint = await upgrades.deployProxy(
-//             tmFactory,
-//             [clientManager.address],
-//             { "unsafeAllowLinkedLibraries": true }
-//         ) as MockTendermint
-
-//         // create light client
-//         let clientState = {
-//             chainId: destChainName,
-//             trustLevel: { numerator: 1, denominator: 3 },
-//             trustingPeriod: 10 * 24 * 60 * 60,
-//             unbondingPeriod: 1814400,
-//             maxClockDrift: 10,
-//             latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
-//             merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
-//             timeDelay: 10,
-//         }
-
-//         let consensusState = {
-//             timestamp: { secs: 1631155726, nanos: 5829, },
-//             root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
-//             nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
-//         }
-
-//         accounts = await ethers.getSigners()
-
-//         const ProofCodec = await ethers.getContractFactory('ProofCodec')
-//         const proofCodec = await ProofCodec.deploy()
-//         await proofCodec.deployed()
-
-//         let clientStateBuf = client.ClientState.encode(clientState).finish()
-//         let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
-//         await clientManager.createClient(destChainName, tendermint.address, clientStateBuf, consensusStateBuf)
-
-//         let signer = await accounts[0].getAddress()
-//         let ret1 = await clientManager.registerRelayer(destChainName, signer)
-//         expect(ret1.blockNumber).to.greaterThan(0)
-//     }
-// })
+        let clientStateBuf = client.ClientState.encode(clientState).finish()
+        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
+        await clientManager.createClient(tendermint.address, clientStateBuf, consensusStateBuf)
+    }
+})
