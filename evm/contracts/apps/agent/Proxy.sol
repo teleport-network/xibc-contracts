@@ -20,10 +20,10 @@ contract Proxy is Initializable {
         address refundAddress; // refund address on relay chain
         string destChain; // dest chain, not relay chain
         address tokenAddress; // token on src chain
-        uint256 amount;
-        uint256 feeAmount;
-        string receiver; // token on dest chain
-        address callbackAddress;
+        uint256 amount; // amount to send, decimal precision should be same as srcChain
+        uint256 feeAmount; // second hop fee amount, take from amount, decimal precision should be same as srcChain
+        string receiver; // token receiver on dest chain, not relay chain
+        address callbackAddress; // first hop ack callback address
         uint64 feeOption;
     }
 
