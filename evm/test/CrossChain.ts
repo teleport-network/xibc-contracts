@@ -27,7 +27,6 @@ describe('CrossChain', () => {
         await deployAccessManager()
         await deployClientManager()
         await deployTendermint()
-        await deployHost()
         await deployPacket()
         await deployCrossChain()
         await deployExecute()
@@ -422,12 +421,6 @@ describe('CrossChain', () => {
         let signer = await accounts[0].getAddress()
         let ret = await accessManager.grantRole(relayerRole, signer)
         expect(ret.blockNumber).to.greaterThan(0)
-    }
-
-    const deployHost = async () => {
-        const hostFac = await ethers.getContractFactory("Host")
-        const host = await hostFac.deploy()
-        await host.deployed()
     }
 
     const deployToken = async () => {
