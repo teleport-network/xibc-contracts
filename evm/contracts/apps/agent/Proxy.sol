@@ -17,7 +17,7 @@ contract Proxy is Initializable {
     string public relayChainName;
 
     struct AgentData {
-        address refundAddressOnTeleport;
+        address refundAddress; // refund address on relay chain
         string destChain; // dest chain, not relay chain
         address tokenAddress; // token on src chain
         uint256 amount;
@@ -63,7 +63,7 @@ contract Proxy is Initializable {
         return
             abi.encodeWithSignature(
                 "send(address,string,string,uint256)",
-                agentData.refundAddressOnTeleport,
+                agentData.refundAddress,
                 agentData.receiver,
                 agentData.destChain,
                 agentData.feeAmount

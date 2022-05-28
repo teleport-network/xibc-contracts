@@ -40,7 +40,7 @@ describe('Proxy', () => {
     it("send ERC20 token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refundAddressOnTeleport = await accounts[2].getAddress()
+        let refundAddress = await accounts[2].getAddress()
         let tokenAddress = erc20Contract.address.toLocaleLowerCase()
         let callbackAddress = "0x0000000000000000000000000000000000000000"
 
@@ -49,7 +49,7 @@ describe('Proxy', () => {
         expect(allowance.toNumber()).to.eq(2000)
 
         let agentData = {
-            refundAddressOnTeleport: refundAddressOnTeleport,
+            refundAddress: refundAddress,
             destChain: testChainName,
             tokenAddress: tokenAddress,
             amount: 1000,
@@ -86,7 +86,7 @@ describe('Proxy', () => {
                 type: 'function',
                 inputs: [{
                     "internalType": "address",
-                    "name": "refundAddressOnTeleport",
+                    "name": "refundAddress",
                     "type": "address"
                 }, {
                     "internalType": "string",
@@ -103,7 +103,7 @@ describe('Proxy', () => {
                 }],
             },
             [
-                agentData.refundAddressOnTeleport,
+                agentData.refundAddress,
                 agentData.receiver,
                 agentData.destChain,
                 agentData.feeAmount.toString(),
@@ -156,12 +156,12 @@ describe('Proxy', () => {
     it("send Base token", async () => {
         let sender = (await accounts[0].getAddress()).toLocaleLowerCase()
         let receiver = (await accounts[1].getAddress()).toLocaleLowerCase()
-        let refundAddressOnTeleport = await accounts[2].getAddress()
+        let refundAddress = await accounts[2].getAddress()
         let baseTokenAddress = "0x0000000000000000000000000000000000000000"
         let callbackAddress = "0x0000000000000000000000000000000000000000"
 
         let agentData = {
-            refundAddressOnTeleport: refundAddressOnTeleport,
+            refundAddress: refundAddress,
             destChain: testChainName,
             tokenAddress: baseTokenAddress,
             amount: 1000,
@@ -198,7 +198,7 @@ describe('Proxy', () => {
                 type: 'function',
                 inputs: [{
                     "internalType": "address",
-                    "name": "refundAddressOnTeleport",
+                    "name": "refundAddress",
                     "type": "address"
                 }, {
                     "internalType": "string",
@@ -215,7 +215,7 @@ describe('Proxy', () => {
                 }],
             },
             [
-                agentData.refundAddressOnTeleport,
+                agentData.refundAddress,
                 agentData.receiver,
                 agentData.destChain,
                 agentData.feeAmount.toString(),
