@@ -19,7 +19,7 @@ describe('Packet', () => {
     let packetContract: Packet
     let erc20Contract: ERC20
 
-    const chainName = "teleport"
+    const chainName = "chainName"
     const testChainName = "testChainName"
 
     before('deploy Packet', async () => {
@@ -35,11 +35,12 @@ describe('Packet', () => {
 
     it("send packet and receive ack", async () => {
         let account = (await accounts[0].getAddress()).toString()
+        let receiver = (await accounts[3].getAddress()).toString().toLocaleLowerCase()
         let callbackAddress = "0x0000000000000000000000000000000000000000"
         let crossChainData = {
             destChain: testChainName,
             tokenAddress: erc20Contract.address.toLocaleLowerCase(),
-            receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
+            receiver: receiver,
             amount: 1,
             contractAddress: "",
             callData: [],
@@ -55,7 +56,7 @@ describe('Packet', () => {
             token: erc20Contract.address.toLocaleLowerCase(),
             oriToken: "",
             amount: web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001"),
-            receiver: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
+            receiver: receiver,
         }
         let transferDataBz = utils.defaultAbiCoder.encode(
             ["tuple(string,string,bytes,string)"],
@@ -88,7 +89,7 @@ describe('Packet', () => {
                 packet.callbackAddress,
                 packet.feeOption,
             ]]
-        );
+        )
         let path = "commitments/" + chainName + "/" + testChainName + "/sequences/" + 1
         await crossChain.crossChainCall(crossChainData, Fee)
         let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
@@ -101,7 +102,7 @@ describe('Packet', () => {
         let ackBytes = utils.defaultAbiCoder.encode(
             ["tuple(uint64,bytes,string,string,uint64)"],
             [[0, [], "", account.toLowerCase(), 0]]
-        );
+        )
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,
@@ -153,12 +154,12 @@ describe('Packet', () => {
                 packet.callbackAddress,
                 packet.feeOption,
             ]]
-        );
+        )
         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
         let ackBz = utils.defaultAbiCoder.encode(
             ["tuple(uint64,bytes,string,string,uint64)"],
             [[0, [], "", account.toLowerCase(), 0]]
-        );
+        )
         let proof = Buffer.from("proof", "utf-8")
         let height = {
             revision_number: 1,

@@ -19,7 +19,7 @@ describe('CrossChain', () => {
     let accessManager: AccessManager
     let erc20Contract: ERC20
 
-    const chainName = "teleport"
+    const chainName = "chainName"
     const testChainName = "testChainName"
 
     before('deploy CrossChain', async () => {
@@ -185,7 +185,7 @@ describe('CrossChain', () => {
                 packet.callbackAddress,
                 packet.feeOption,
             ]]
-        );
+        )
         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
 
         await packetContract.recvPacket(packetBytes, proof, height)
@@ -241,7 +241,7 @@ describe('CrossChain', () => {
                 packet.callbackAddress,
                 packet.feeOption,
             ]]
-        );
+        )
         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
 
         let balances = await web3.eth.getBalance(transferData.receiver)
@@ -259,9 +259,9 @@ describe('CrossChain', () => {
 
     it("upgrade crosschain", async () => {
         // upgrade CrossChain contract and check the contract address    
-        const mockCrossChainFactory = await ethers.getContractFactory("MockCrossChain");
-        const upgradedCrossChain = await upgrades.upgradeProxy(crossChain.address, mockCrossChainFactory);
-        expect(upgradedCrossChain.address).to.eq(crossChain.address);
+        const mockCrossChainFactory = await ethers.getContractFactory("MockCrossChain")
+        const upgradedCrossChain = await upgrades.upgradeProxy(crossChain.address, mockCrossChainFactory)
+        expect(upgradedCrossChain.address).to.eq(crossChain.address)
 
         // verify that old data can be accessed
         let outToken = (await upgradedCrossChain.outTokens("0x0000000000000000000000000000000000000000", testChainName))
@@ -269,7 +269,7 @@ describe('CrossChain', () => {
 
         // verify new func in upgradeTransfer 
         await upgradedCrossChain.setVersion(1)
-        const version = await upgradedCrossChain.version();
+        const version = await upgradedCrossChain.version()
         expect(1).to.eq(version.toNumber())
 
         // the old method of verifying that has been changed
@@ -315,7 +315,7 @@ describe('CrossChain', () => {
                 packet.callbackAddress,
                 packet.feeOption,
             ]]
-        );
+        )
 
         await crossChain.bindToken(erc20Contract.address, transferData.token, packet.srcChain)
         let trace = await crossChain.bindingTraces(packet.srcChain + "/" + transferData.token)
