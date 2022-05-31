@@ -1,6 +1,6 @@
 import { Signer, BigNumber, utils } from "ethers"
 import chai from "chai"
-import { CrossChain, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { Endpoint, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { web3 } from "hardhat"
 
 const { expect } = chai
@@ -9,9 +9,9 @@ const keccak256 = require('keccak256')
 
 let client = require("./proto/compiled.js")
 
-describe('CrossChain', () => {
+describe('Endpoint', () => {
     let accounts: Signer[]
-    let crossChain: CrossChain
+    let endpoint: Endpoint
     let execute: Execute
     let packetContract: Packet
     let clientManager: ClientManager
@@ -22,13 +22,13 @@ describe('CrossChain', () => {
     const chainName = "chainName"
     const testChainName = "testChainName"
 
-    before('deploy CrossChain', async () => {
+    before('deploy Endpoint', async () => {
         accounts = await ethers.getSigners()
         await deployAccessManager()
         await deployClientManager()
         await deployTendermint()
         await deployPacket()
-        await deployCrossChain()
+        await deployEndpoint()
         await deployExecute()
         await deployToken()
     })
@@ -42,35 +42,35 @@ describe('CrossChain', () => {
         let bindOriToken = "testbind"
         let reBindOriToken = "testrebind"
 
-        await crossChain.bindToken(tokenAddress, bindOriToken, bindDstChain)
-        let bind = await crossChain.getBindings(tokenAddress)
+        await endpoint.bindToken(tokenAddress, bindOriToken, bindDstChain)
+        let bind = await endpoint.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(bindOriToken)
 
-        await crossChain.bindToken(tokenAddress, reBindOriToken, bindDstChain)
-        bind = await crossChain.getBindings(tokenAddress)
+        await endpoint.bindToken(tokenAddress, reBindOriToken, bindDstChain)
+        bind = await endpoint.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
         let reBindKey = bindDstChain + "/" + bindOriToken
-        expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
+        expect(await endpoint.bindingTraces(reBindKey)).to.eq(address0)
 
-        await crossChain.bindToken(tokenAddress, reBindOriToken, reBindDstChain)
-        bind = await crossChain.getBindings(tokenAddress)
+        await endpoint.bindToken(tokenAddress, reBindOriToken, reBindDstChain)
+        bind = await endpoint.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(reBindDstChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
         reBindKey = bindDstChain + "/" + reBindOriToken
-        expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
+        expect(await endpoint.bindingTraces(reBindKey)).to.eq(address0)
 
-        await crossChain.bindToken(tokenAddress, bindOriToken, bindDstChain)
-        bind = await crossChain.getBindings(tokenAddress)
+        await endpoint.bindToken(tokenAddress, bindOriToken, bindDstChain)
+        bind = await endpoint.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
         expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(bindOriToken)
         reBindKey = reBindDstChain + "/" + reBindOriToken
-        expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
+        expect(await endpoint.bindingTraces(reBindKey)).to.eq(address0)
 
     })
 
@@ -83,7 +83,7 @@ describe('CrossChain', () => {
             tokenAddress: erc20Contract.address.toLocaleLowerCase(),
             receiver: (await accounts[1].getAddress()),
             amount: 1,
-            contractAddress: crossChain.address.toLocaleLowerCase(),
+            contractAddress: endpoint.address.toLocaleLowerCase(),
             callData: Buffer.from("testdata", "utf-8"),
             callbackAddress: "0x0000000000000000000000000000000000000000",
             feeOption: 0,
@@ -93,8 +93,8 @@ describe('CrossChain', () => {
             amount: 0,
         }
 
-        await crossChain.crossChainCall(crossChainData, Fee)
-        let outToken = (await crossChain.outTokens(erc20Contract.address, testChainName))
+        await endpoint.crossChainCall(crossChainData, Fee)
+        let outToken = (await endpoint.outTokens(erc20Contract.address, testChainName))
         balances = (await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()
         expect(outToken).to.eq(1)
         expect(balances.toString()).to.eq("9999999999999")
@@ -115,13 +115,13 @@ describe('CrossChain', () => {
             tokenAddress: "0x0000000000000000000000000000000000000000",
             amount: 0,
         }
-        await crossChain.crossChainCall(
+        await endpoint.crossChainCall(
             crossChainData,
             Fee,
             { value: 10000 }
         )
 
-        let outToken = (await crossChain.outTokens("0x0000000000000000000000000000000000000000", testChainName))
+        let outToken = (await endpoint.outTokens("0x0000000000000000000000000000000000000000", testChainName))
         expect(outToken.toString()).to.eq("10000")
     })
 
@@ -189,7 +189,7 @@ describe('CrossChain', () => {
         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
 
         await packetContract.recvPacket(packetBytes, proof, height)
-        let outToken = (await crossChain.outTokens(erc20Contract.address, testChainName))
+        let outToken = (await endpoint.outTokens(erc20Contract.address, testChainName))
         let balances = (await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()
         expect(outToken).to.eq(0)
         expect(balances.toString()).to.eq("10000000000000")
@@ -257,19 +257,19 @@ describe('CrossChain', () => {
         expect(balances).to.eq("10000000000000000000001")
     })
 
-    it("upgrade crosschain", async () => {
-        // upgrade CrossChain contract and check the contract address    
-        const mockCrossChainFactory = await ethers.getContractFactory("MockCrossChain")
-        const upgradedCrossChain = await upgrades.upgradeProxy(crossChain.address, mockCrossChainFactory)
-        expect(upgradedCrossChain.address).to.eq(crossChain.address)
+    it("upgrade endpoint", async () => {
+        // upgrade Endpoint contract and check the contract address    
+        const mockEndpointFactory = await ethers.getContractFactory("MockEndpoint")
+        const upgradedEndpoint = await upgrades.upgradeProxy(endpoint.address, mockEndpointFactory)
+        expect(upgradedEndpoint.address).to.eq(endpoint.address)
 
         // verify that old data can be accessed
-        let outToken = (await upgradedCrossChain.outTokens("0x0000000000000000000000000000000000000000", testChainName))
+        let outToken = (await upgradedEndpoint.outTokens("0x0000000000000000000000000000000000000000", testChainName))
         expect(outToken.toString()).to.eq("9999")
 
         // verify new func in upgradeTransfer 
-        await upgradedCrossChain.setVersion(1)
-        const version = await upgradedCrossChain.version()
+        await upgradedEndpoint.setVersion(1)
+        const version = await upgradedEndpoint.version()
         expect(1).to.eq(version.toNumber())
 
         // the old method of verifying that has been changed
@@ -317,13 +317,13 @@ describe('CrossChain', () => {
             ]]
         )
 
-        await crossChain.bindToken(erc20Contract.address, transferData.token, packet.srcChain)
-        let trace = await crossChain.bindingTraces(packet.srcChain + "/" + transferData.token)
+        await endpoint.bindToken(erc20Contract.address, transferData.token, packet.srcChain)
+        let trace = await endpoint.bindingTraces(packet.srcChain + "/" + transferData.token)
         expect(trace.toString()).to.eq(erc20Contract.address)
 
-        await upgradedCrossChain.onRecvPacket(packet)
+        await upgradedEndpoint.onRecvPacket(packet)
         let balances = (await erc20Contract.balanceOf(receiver)).toString()
-        let binds = await upgradedCrossChain.bindings(erc20Contract.address)
+        let binds = await upgradedEndpoint.bindings(erc20Contract.address)
         let totalSupply = (await erc20Contract.totalSupply()).toString()
 
         expect(binds.amount.toString()).to.eq("1")
@@ -428,7 +428,7 @@ describe('CrossChain', () => {
         erc20Contract = await tokenFac.deploy("Testcoin", "abiton")
         await erc20Contract.deployed()
         erc20Contract.mint(await accounts[0].getAddress(), 10000000000000)
-        erc20Contract.approve(crossChain.address, 1000000000)
+        erc20Contract.approve(endpoint.address, 1000000000)
         expect((await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()).to.eq("10000000000000")
     }
 
@@ -448,16 +448,16 @@ describe('CrossChain', () => {
         ) as Packet
     }
 
-    const deployCrossChain = async () => {
-        const crossChainFactory = await ethers.getContractFactory('CrossChain', accounts[0])
-        crossChain = await upgrades.deployProxy(
-            crossChainFactory,
+    const deployEndpoint = async () => {
+        const endpointFactory = await ethers.getContractFactory('Endpoint', accounts[0])
+        endpoint = await upgrades.deployProxy(
+            endpointFactory,
             [
                 packetContract.address,
                 clientManager.address,
                 accessManager.address
             ]
-        ) as CrossChain
+        ) as Endpoint
     }
 
     const deployExecute = async () => {
@@ -467,6 +467,6 @@ describe('CrossChain', () => {
             [packetContract.address]
         ) as Execute
 
-        await packetContract.initCrossChain(crossChain.address, execute.address)
+        await packetContract.initEndpoint(endpoint.address, execute.address)
     }
 })

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/IPacket.sol";
-import "../../interfaces/ICrossChain.sol";
+import "../../interfaces/IEndpoint.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IExecute {
@@ -20,7 +20,7 @@ contract Packet is IPacket {
     string public override chainName = "teleport";
 
     address public constant packetModuleAddress = address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
-    address public constant crossChainContractAddress = address(0x0000000000000000000000000000000020000002);
+    address public constant endpointContractAddress = address(0x0000000000000000000000000000000020000002);
     address public constant executeContractAddress = address(0x0000000000000000000000000000000020000003);
 
     mapping(bytes => uint64) public sequences;
@@ -42,7 +42,7 @@ contract Packet is IPacket {
     }
 
     modifier onlyCrossChainContract() {
-        require(msg.sender == crossChainContractAddress, "caller must be xibc app");
+        require(msg.sender == endpointContractAddress, "caller must be xibc app");
         _;
     }
 
@@ -90,7 +90,7 @@ contract Packet is IPacket {
         }
 
         if (packet.transferData.length > 0) {
-            try ICrossChain(crossChainContractAddress).onRecvPacket(packet) returns (
+            try IEndpoint(endpointContractAddress).onRecvPacket(packet) returns (
                 uint64 _code,
                 bytes memory _result,
                 string memory _message
@@ -123,7 +123,7 @@ contract Packet is IPacket {
         onlyXIBCModulePacket
     {
         acks[getCommonUniqueKey(packet.dstChain, packet.sequence)] = ack;
-        ICrossChain(crossChainContractAddress).onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
+        IEndpoint(endpointContractAddress).onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
     }
 
     /**

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
-import "../../libraries/crosschain/CrossChain.sol";
+import "../../libraries/endpoint/Endpoint.sol";
 import "../../libraries/packet/Packet.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
@@ -38,7 +38,7 @@ contract Proxy is Initializable {
     /**
      * @notice todo
      */
-    function generateCrossChainData(AgentData memory agentData)
+    function genCrossChainData(AgentData memory agentData)
         public
         view
         returns (CrossChainDataTypes.CrossChainData memory)

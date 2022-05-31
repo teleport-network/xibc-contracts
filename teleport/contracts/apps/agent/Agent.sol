@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
-import "../../interfaces/ICrossChain.sol";
+import "../../interfaces/IEndpoint.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/ICallback.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -27,14 +27,14 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
     mapping(string => AgentData) public agentData; // map[dstChain/sequence]AgentData
 
     IPacket public constant packetContract = IPacket(0x0000000000000000000000000000000020000001);
-    ICrossChain public constant crossChainContract = ICrossChain(0x0000000000000000000000000000000020000002);
+    IEndpoint public constant endpointContract = IEndpoint(0x0000000000000000000000000000000020000002);
     address public constant executeContract = address(0x0000000000000000000000000000000020000003);
 
     /**
      * @notice todo
      */
     modifier onlyCrossChain() {
-        require(msg.sender == address(crossChainContract), "caller must be CrossChain contract");
+        require(msg.sender == address(endpointContract), "caller must be Endpoint contract");
         _;
     }
 
@@ -78,7 +78,7 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             uint256 realAmountSend
         ) = checkPacketSyncAndGetAmountSrcChain(dstChain, feeAmount);
 
-        crossChainContract.crossChainCall{value: msgValue}(
+        endpointContract.crossChainCall{value: msgValue}(
             CrossChainDataTypes.CrossChainData({
                 dstChain: dstChain,
                 tokenAddress: tokenAddress,
@@ -131,17 +131,17 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
             if (tokenAddress == address(0)) {
                 return (address(0), amount, feeAmount, amount - feeAmount, amount - feeAmount);
             }
-            IERC20(tokenAddress).approve(address(crossChainContract), amount);
+            IERC20(tokenAddress).approve(address(endpointContract), amount);
             return (tokenAddress, 0, feeAmount, amount - feeAmount, amount - feeAmount);
         }
-        tokenAddress = crossChainContract.bindingTraces(
+        tokenAddress = endpointContract.bindingTraces(
             Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
         );
 
-        uint256 scaleSrc = crossChainContract
+        uint256 scaleSrc = endpointContract
             .getBindings(Strings.strConcat(Strings.strConcat(tokenAddress.addressToString(), "/"), packet.srcChain))
             .scale;
-        uint256 scaleDst = crossChainContract
+        uint256 scaleDst = endpointContract
             .getBindings(Strings.strConcat(Strings.strConcat(tokenAddress.addressToString(), "/"), dstChain))
             .scale; // will be 0 if not bound
 
@@ -150,7 +150,7 @@ contract Agent is ICallback, ReentrancyGuardUpgradeable {
         uint256 realAmountAvailable = realAmountRecv - realFeeAmount;
         uint256 realAmountSend = realAmountAvailable / 10**uint256(scaleDst);
 
-        IERC20(tokenAddress).approve(address(crossChainContract), realAmountRecv);
+        IERC20(tokenAddress).approve(address(endpointContract), realAmountRecv);
 
         return (tokenAddress, 0, realFeeAmount, realAmountAvailable, realAmountSend);
     }

@@ -58,10 +58,10 @@ yarn hardhat deployTendermint --network $NETWORK_NAME
 # Deploy Packet
 yarn hardhat deployPacket --network $NETWORK_NAME
 
-# Deploy CrossChain
-yarn hardhat deployCrossChain --network $NETWORK_NAME
+# Deploy Endpoint
+yarn hardhat deployEndpoint --network $NETWORK_NAME
 
-# Init CrossChain address in Packet
+# Init Endpoint address in Packet
 # 
 
 # Deploy Proxy

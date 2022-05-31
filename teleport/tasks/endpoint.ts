@@ -1,7 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
 
-const crossChainContractAddress = "0x0000000000000000000000000000000020000002"
+const endpointContractAddress = "0x0000000000000000000000000000000020000002"
 
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
@@ -30,8 +30,8 @@ task("crossChain", "Cross chain call")
     .addParam("feetoken", "relay fee token address")
     .addParam("feeamout", "relay fee amout")
     .setAction(async (taskArgs, hre) => {
-        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
-        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
+        const crossChainFactory = await hre.ethers.getContractFactory('Endpoint')
+        const crossChain = await crossChainFactory.attach(endpointContractAddress)
 
         let crossChainData = {
             dstChain: taskArgs.dstchain,
@@ -57,8 +57,8 @@ task("crossChain", "Cross chain call")
 task("queryBindings", "query ERC20 token trace")
     .addParam("address", "ERC20 contract address")
     .setAction(async (taskArgs, hre) => {
-        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
-        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
+        const crossChainFactory = await hre.ethers.getContractFactory('Endpoint')
+        const crossChain = await crossChainFactory.attach(endpointContractAddress)
 
         let res = await crossChain.bindings(taskArgs.address)
         console.log(await res)
@@ -69,8 +69,8 @@ task("queryTrace", "Token")
     .addParam("srcchain", "srcchain name")
     .addParam("token", "token address")
     .setAction(async (taskArgs, hre) => {
-        const crossChainFactory = await hre.ethers.getContractFactory('CrossChain')
-        const crossChain = await crossChainFactory.attach(crossChainContractAddress)
+        const crossChainFactory = await hre.ethers.getContractFactory('Endpoint')
+        const crossChain = await crossChainFactory.attach(endpointContractAddress)
 
         let trace = await crossChain.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
         console.log(trace)

@@ -1,5 +1,5 @@
 import { Signer, BigNumber, utils } from "ethers"
-import { MockCrossChain, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { MockEndpoint, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
 import { sha256 } from "ethers/lib/utils"
 import chai from "chai"
 
@@ -12,7 +12,7 @@ let client = require("./proto/compiled.js")
 describe('Packet', () => {
     let clientManager: ClientManager
     let tendermint: MockTendermint
-    let crossChain: MockCrossChain
+    let endpoint: MockEndpoint
     let execute: Execute
     let accessManager: AccessManager
     let accounts: Signer[]
@@ -28,7 +28,7 @@ describe('Packet', () => {
         await deployClientManager()
         await deployTendermint()
         await deployPacket()
-        await deployCrossChain()
+        await deployEndpoint()
         await deployExecute()
         await deployToken()
     })
@@ -91,7 +91,7 @@ describe('Packet', () => {
             ]]
         )
         let path = "commitments/" + chainName + "/" + testChainName + "/sequences/" + 1
-        await crossChain.crossChainCall(crossChainData, Fee)
+        await endpoint.crossChainCall(crossChainData, Fee)
         let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
         let seq = await packetContract.getNextSequenceSend(testChainName)
         expect(seq).to.equal(2)
@@ -258,7 +258,7 @@ describe('Packet', () => {
         await erc20Contract.deployed()
 
         erc20Contract.mint(await accounts[0].getAddress(), 1000)
-        erc20Contract.approve(crossChain.address, 100000)
+        erc20Contract.approve(endpoint.address, 100000)
         expect((await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
     }
 
@@ -278,16 +278,16 @@ describe('Packet', () => {
         ) as Packet
     }
 
-    const deployCrossChain = async () => {
-        const crossChainFactory = await ethers.getContractFactory('MockCrossChain', accounts[0])
-        crossChain = await upgrades.deployProxy(
-            crossChainFactory,
+    const deployEndpoint = async () => {
+        const endpointFactory = await ethers.getContractFactory('MockEndpoint', accounts[0])
+        endpoint = await upgrades.deployProxy(
+            endpointFactory,
             [
                 packetContract.address,
                 clientManager.address,
                 accessManager.address
             ]
-        ) as MockCrossChain
+        ) as MockEndpoint
     }
 
     const deployExecute = async () => {
@@ -297,6 +297,6 @@ describe('Packet', () => {
             [packetContract.address]
         ) as Execute
 
-        await packetContract.initCrossChain(crossChain.address, execute.address)
+        await packetContract.initEndpoint(endpoint.address, execute.address)
     }
 })

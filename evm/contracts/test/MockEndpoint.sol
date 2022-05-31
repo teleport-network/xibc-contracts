@@ -3,19 +3,19 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../libraries/utils/Bytes.sol";
-import "../../libraries/utils/Strings.sol";
-import "../../interfaces/IClientManager.sol";
-import "../../interfaces/IPacket.sol";
-import "../../interfaces/ICallback.sol";
-import "../../interfaces/ICrossChain.sol";
-import "../../interfaces/IERC20XIBC.sol";
-import "../../interfaces/IAccessManager.sol";
+import "../libraries/utils/Bytes.sol";
+import "../libraries/utils/Strings.sol";
+import "../interfaces/IClientManager.sol";
+import "../interfaces/IPacket.sol";
+import "../interfaces/ICallback.sol";
+import "../interfaces/IEndpoint.sol";
+import "../interfaces/IERC20XIBC.sol";
+import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract MockEndpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 
@@ -36,6 +36,15 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
 
     // time based supply limit
     mapping(address => TokenBindingTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
+
+    uint256 public version; // used for upgrade
+
+    /**
+     * @notice used for upgrade
+     */
+    function setVersion(uint256 _version) public {
+        version = _version;
+    }
 
     modifier onlyPacket() {
         require(msg.sender == address(packetContract), "caller must be packet contract");
@@ -277,7 +286,6 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
         external
         override
         nonReentrant
-        onlyPacket
         returns (
             uint64 code,
             bytes memory result,

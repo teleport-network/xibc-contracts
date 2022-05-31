@@ -3,10 +3,10 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../libraries/crosschain/CrossChain.sol";
+import "../libraries/endpoint/Endpoint.sol";
 import "../libraries/packet/Packet.sol";
 
-interface ICrossChain {
+interface IEndpoint {
     /**
      * @notice todo
      */

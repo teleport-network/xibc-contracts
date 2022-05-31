@@ -8,7 +8,7 @@ import "../libraries/utils/Strings.sol";
 import "../interfaces/IClientManager.sol";
 import "../interfaces/IClient.sol";
 import "../interfaces/IPacket.sol";
-import "../interfaces/ICrossChain.sol";
+import "../interfaces/IEndpoint.sol";
 import "../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -35,7 +35,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
 
     IClientManager public clientManager;
     IAccessManager public accessManager;
-    ICrossChain public crossChain;
+    IEndpoint public endpoint;
     IExecute public execute;
 
     mapping(bytes => uint64) public sequences;
@@ -77,18 +77,18 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     }
 
     /**
-     * @notice initialize cross chain contract
-     * @param _crossChainContract crossChainContract address
+     * @notice initialize endpoint contract
+     * @param _endpointContract endpointContract address
      */
-    function initCrossChain(address _crossChainContract, address _executeContract)
+    function initEndpoint(address _endpointContract, address _executeContract)
         public
         onlyAuthorizee(DEFAULT_ADMIN_ROLE)
     {
         require(
-            _crossChainContract != address(0) && _executeContract != address(0),
-            "invalid crossChainContract or executeContract address"
+            _endpointContract != address(0) && _executeContract != address(0),
+            "invalid endpointContract or executeContract address"
         );
-        crossChain = ICrossChain(_crossChainContract);
+        endpoint = IEndpoint(_endpointContract);
         execute = IExecute(_executeContract);
     }
 
@@ -118,9 +118,9 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
      */
     event AckWritten(PacketTypes.Packet packet, bytes ack);
 
-    // only onlyCrossChainContract can perform related transactions
-    modifier onlyCrossChainContract() {
-        require(address(crossChain) == _msgSender(), "only cross chain contract authorized");
+    // only onlyEndpointContract can perform related transactions
+    modifier onlyEndpointContract() {
+        require(address(endpoint) == _msgSender(), "only endpoint contract authorized");
         _;
     }
 
@@ -140,7 +140,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         payable
         override
         whenNotPaused
-        onlyCrossChainContract
+        onlyEndpointContract
     {
         require(address(clientManager.client()) != address(0), "invalid client");
         require(packet.sequence > 0, "packet sequence cannot be 0");
@@ -210,7 +210,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         }
 
         if (packet.transferData.length > 0) {
-            try crossChain.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
+            try endpoint.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
                 ack.code = _code;
                 ack.result = _result;
                 ack.message = _message;
@@ -327,7 +327,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         }
         acks[key] = ack;
 
-        crossChain.onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
+        endpoint.onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
         _sendPacketFeeToRelayer(packet.dstChain, packet.sequence, ack.relayer.parseAddr());
     }
 
