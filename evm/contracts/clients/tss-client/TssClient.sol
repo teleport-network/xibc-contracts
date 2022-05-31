@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -63,13 +65,8 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice this function is called by the ClientManager contract, the purpose is to initialize TSS client state
      * @param clientStateBz TSS client status
-     * @param consensusStateBz TSS client consensus status
      */
-    function initializeState(bytes calldata clientStateBz, bytes calldata consensusStateBz)
-        external
-        override
-        onlyClientManager
-    {
+    function initializeState(bytes calldata clientStateBz, bytes calldata) external override onlyClientManager {
         clientState = abi.decode(clientStateBz, (ClientState));
         clientState.tss_address = address(uint160(uint256(keccak256(clientState.pubkey))));
     }
@@ -77,12 +74,11 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice this function is called by the ClientManager contract, the purpose is to update the state of the TSS client
      * @param clientStateBz TSS client status
-     * @param consensusStateBz TSS client consensus status
      */
     function upgrade(
-        address caller,
+        address,
         bytes calldata clientStateBz,
-        bytes calldata consensusStateBz
+        bytes calldata
     ) external override onlyClientManager {
         // Authorize to tss address in the future
         // require(
@@ -97,7 +93,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
      * @notice this function is called by the relayer, the purpose is to update and verify the state of the TSS client
      * @param headerBz block header of the counterparty chain
      */
-    function checkHeaderAndUpdateState(address caller, bytes calldata headerBz) external override onlyClientManager {
+    function checkHeaderAndUpdateState(address, bytes calldata headerBz) external override onlyClientManager {
         // Authorize to tss address in the future
         // require(
         //     caller == clientState.tss_address,
@@ -112,21 +108,15 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice this function is called by the relayer, the purpose is to use the current state of the TSS client to verify cross-chain data packets
      * @param caller the msg.sender of manager contract
-     * @param height the height of cross-chain data packet proof
-     * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the chain name of the source chain
-     * @param destChain the chain name of the destination chain
-     * @param sequence the sequence of the cross-chain data packet
-     * @param commitmentBytes the hash of the cross-chain data packet
      */
     function verifyPacketCommitment(
         address caller,
-        Height.Data calldata height,
-        bytes calldata proof,
-        string calldata sourceChain,
-        string calldata destChain,
-        uint64 sequence,
-        bytes calldata commitmentBytes
+        Height.Data calldata,
+        bytes calldata,
+        string calldata,
+        string calldata,
+        uint64,
+        bytes calldata
     ) external view override {
         require(caller == clientState.tss_address, "caller must be the tss address");
     }
@@ -134,21 +124,15 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
     /**
      * @notice this function is called by the relayer, the purpose is to use the current state of the TSS client to verify the acknowledgement of cross-chain data packets
      * @param caller the msg.sender of manager contract
-     * @param height the height of cross-chain data packet proof
-     * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the chain name of the source chain
-     * @param destChain the chain name of the destination chain
-     * @param sequence the sequence of the cross-chain data packet
-     * @param acknowledgement the hash of the acknowledgement of the cross-chain data packet
      */
     function verifyPacketAcknowledgement(
         address caller,
-        Height.Data calldata height,
-        bytes calldata proof,
-        string calldata sourceChain,
-        string calldata destChain,
-        uint64 sequence,
-        bytes calldata acknowledgement
+        Height.Data calldata,
+        bytes calldata,
+        string calldata,
+        string calldata,
+        uint64,
+        bytes calldata
     ) external view override {
         require(caller == clientState.tss_address, "caller must be the tss address");
     }

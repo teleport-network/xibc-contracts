@@ -36,40 +36,40 @@ describe('CrossChain', () => {
     it("bind token", async () => {
         let address0 = "0x0000000000000000000000000000000000000000"
         let tokenAddress = "0x1000000000000000000000000000000010000000"
-        let bindDestChain = "test"
-        let reBindDestChain = "retest"
+        let bindDstChain = "test"
+        let reBindDstChain = "retest"
 
         let bindOriToken = "testbind"
         let reBindOriToken = "testrebind"
 
-        await crossChain.bindToken(tokenAddress, bindOriToken, bindDestChain)
+        await crossChain.bindToken(tokenAddress, bindOriToken, bindDstChain)
         let bind = await crossChain.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
-        expect(bind.oriChain).to.eq(bindDestChain)
+        expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(bindOriToken)
 
-        await crossChain.bindToken(tokenAddress, reBindOriToken, bindDestChain)
+        await crossChain.bindToken(tokenAddress, reBindOriToken, bindDstChain)
         bind = await crossChain.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
-        expect(bind.oriChain).to.eq(bindDestChain)
+        expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
-        let reBindKey = bindDestChain + "/" + bindOriToken
+        let reBindKey = bindDstChain + "/" + bindOriToken
         expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
 
-        await crossChain.bindToken(tokenAddress, reBindOriToken, reBindDestChain)
+        await crossChain.bindToken(tokenAddress, reBindOriToken, reBindDstChain)
         bind = await crossChain.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
-        expect(bind.oriChain).to.eq(reBindDestChain)
+        expect(bind.oriChain).to.eq(reBindDstChain)
         expect(bind.oriToken).to.eq(reBindOriToken)
-        reBindKey = bindDestChain + "/" + reBindOriToken
+        reBindKey = bindDstChain + "/" + reBindOriToken
         expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
 
-        await crossChain.bindToken(tokenAddress, bindOriToken, bindDestChain)
+        await crossChain.bindToken(tokenAddress, bindOriToken, bindDstChain)
         bind = await crossChain.getBindings(tokenAddress)
         expect(bind.bound).to.eq(true)
-        expect(bind.oriChain).to.eq(bindDestChain)
+        expect(bind.oriChain).to.eq(bindDstChain)
         expect(bind.oriToken).to.eq(bindOriToken)
-        reBindKey = reBindDestChain + "/" + reBindOriToken
+        reBindKey = reBindDstChain + "/" + reBindOriToken
         expect(await crossChain.bindingTraces(reBindKey)).to.eq(address0)
 
     })
@@ -79,7 +79,7 @@ describe('CrossChain', () => {
         expect(balances.toString()).to.eq("10000000000000")
 
         let crossChainData = {
-            destChain: testChainName,
+            dstChain: testChainName,
             tokenAddress: erc20Contract.address.toLocaleLowerCase(),
             receiver: (await accounts[1].getAddress()),
             amount: 1,
@@ -102,7 +102,7 @@ describe('CrossChain', () => {
 
     it("test transfer Base token", async () => {
         let crossChainData = {
-            destChain: testChainName,
+            dstChain: testChainName,
             tokenAddress: "0x0000000000000000000000000000000000000000",
             receiver: (await accounts[1].getAddress()),
             amount: 10000,
@@ -165,7 +165,7 @@ describe('CrossChain', () => {
         )
         let packet = {
             srcChain: testChainName,
-            destChain: chainName,
+            dstChain: chainName,
             sequence: sequ64,
             sender: account,
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -177,7 +177,7 @@ describe('CrossChain', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,
@@ -221,7 +221,7 @@ describe('CrossChain', () => {
         )
         let packet = {
             srcChain: testChainName,
-            destChain: chainName,
+            dstChain: chainName,
             sequence: sequ64,
             sender: account,
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -233,7 +233,7 @@ describe('CrossChain', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,
@@ -295,7 +295,7 @@ describe('CrossChain', () => {
         )
         let packet = {
             srcChain: testChainName,
-            destChain: chainName,
+            dstChain: chainName,
             sequence: seqU64,
             sender: account,
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -307,7 +307,7 @@ describe('CrossChain', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,

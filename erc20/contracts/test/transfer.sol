@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 interface IERC20XIBC {
@@ -8,11 +10,11 @@ interface IERC20XIBC {
 
 contract TestTransfer {
     function burn(
-        address destContract,
+        address dstContract,
         address account,
         uint256 amount
     ) public returns (bool) {
-        try IERC20XIBC(destContract).burnFrom(account, amount) {
+        try IERC20XIBC(dstContract).burnFrom(account, amount) {
             return true;
         } catch (bytes memory) {
             return false;
@@ -20,11 +22,11 @@ contract TestTransfer {
     }
 
     function mint(
-        address destContract,
+        address dstContract,
         address to,
         uint256 amount
     ) public returns (bool) {
-        try IERC20XIBC(destContract).mint(to, amount) {
+        try IERC20XIBC(dstContract).mint(to, amount) {
             return true;
         } catch (bytes memory) {
             return false;

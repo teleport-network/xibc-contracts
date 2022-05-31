@@ -25,7 +25,7 @@ library TokenBindingTypes {
 library CrossChainDataTypes {
     struct CrossChainData {
         // path data
-        string destChain;
+        string dstChain;
         // transfer token data
         address tokenAddress; // zero address if base token
         uint256 amount;

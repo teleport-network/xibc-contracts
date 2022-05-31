@@ -38,7 +38,7 @@ describe('Packet', () => {
         let receiver = (await accounts[3].getAddress()).toString().toLocaleLowerCase()
         let callbackAddress = "0x0000000000000000000000000000000000000000"
         let crossChainData = {
-            destChain: testChainName,
+            dstChain: testChainName,
             tokenAddress: erc20Contract.address.toLocaleLowerCase(),
             receiver: receiver,
             amount: 1,
@@ -69,7 +69,7 @@ describe('Packet', () => {
         )
         let packet = {
             srcChain: chainName,
-            destChain: testChainName,
+            dstChain: testChainName,
             sequence: 1,
             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -81,7 +81,7 @@ describe('Packet', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,
@@ -134,7 +134,7 @@ describe('Packet', () => {
         )
         let packet = {
             srcChain: testChainName,
-            destChain: chainName,
+            dstChain: chainName,
             sequence: 1,
             sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -146,7 +146,7 @@ describe('Packet', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,

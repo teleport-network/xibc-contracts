@@ -33,7 +33,7 @@ interface IPacket {
     ) external;
 
     /**
-     * @notice receive cross-chain packets ack from the dest chain
+     * @notice receive cross-chain packets ack from the dst chain
      * @param packet cross-chain data packet bytes
      * @param acknowledgement confirmation message of packet on the receiving chain
      * @param proofAcked existence proof of acknowledgement on the receiving chain
@@ -47,17 +47,17 @@ interface IPacket {
     ) external;
 
     /**
-     * @notice get the next sequence of sourceChain/destChain
-     * @param destChain destination chain name
+     * @notice get the next sequence of srcChain/dstChain
+     * @param dstChain destination chain name
      */
-    function getNextSequenceSend(string calldata destChain) external view returns (uint64);
+    function getNextSequenceSend(string calldata dstChain) external view returns (uint64);
 
     /**
-     * @notice get the next sequence of destChain
-     * @param destChain destination chain name
+     * @notice get the next sequence of dstChain
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatus(string calldata destChain, uint64 sequence) external view returns (uint8);
+    function getAckStatus(string calldata dstChain, uint64 sequence) external view returns (uint8);
 
     /**
      * @notice todo

@@ -67,7 +67,7 @@ contract Packet is IPacket {
     {
         // should validata packet data in teleport
         // Notice: must sent token to this contract before set packet fee
-        packetFees[getCommonUniqueKey(packet.destChain, packet.sequence)] = fee;
+        packetFees[getCommonUniqueKey(packet.dstChain, packet.sequence)] = fee;
         emit PacketSent(abi.encode(packet));
     }
 
@@ -122,22 +122,22 @@ contract Packet is IPacket {
         public
         onlyXIBCModulePacket
     {
-        acks[getCommonUniqueKey(packet.destChain, packet.sequence)] = ack;
+        acks[getCommonUniqueKey(packet.dstChain, packet.sequence)] = ack;
         ICrossChain(crossChainContractAddress).onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
     }
 
     /**
      * @notice set packet fee
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      * @param amount add fee amount
      */
     function addPacketFee(
-        string memory destChain,
+        string memory dstChain,
         uint64 sequence,
         uint256 amount
     ) public payable {
-        bytes memory key = getCommonUniqueKey(destChain, sequence);
+        bytes memory key = getCommonUniqueKey(dstChain, sequence);
 
         require(ackStatus[key] == uint8(0), "invalid packet status");
 
@@ -155,16 +155,16 @@ contract Packet is IPacket {
 
     /**
      * @notice send packet fee to relayer
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      * @param relayer relayer address
      */
     function sendPacketFeeToRelayer(
-        string calldata destChain,
+        string calldata dstChain,
         uint64 sequence,
         address relayer
     ) external onlyXIBCModulePacket {
-        PacketTypes.Fee memory fee = packetFees[getCommonUniqueKey(destChain, sequence)];
+        PacketTypes.Fee memory fee = packetFees[getCommonUniqueKey(dstChain, sequence)];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
         } else {
@@ -173,12 +173,12 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice set current sequence of sourceChain/destChain
-     * @param destChain destination chain name
+     * @notice set current sequence of srcChain/dstChain
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
-    function setSequence(string calldata destChain, uint64 sequence) external onlyXIBCModulePacket {
-        bytes memory key = bytes(destChain);
+    function setSequence(string calldata dstChain, uint64 sequence) external onlyXIBCModulePacket {
+        bytes memory key = bytes(dstChain);
         if (sequence == 2) {
             require(sequences[key] == 0, "invalid sequence");
         } else {
@@ -189,24 +189,24 @@ contract Packet is IPacket {
 
     /**
      * @notice set ack status
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      * @param state is ack state(1 => success, 2 => err, 0 => not found)
      */
     function setAckStatus(
-        string calldata destChain,
+        string calldata dstChain,
         uint64 sequence,
         uint8 state
     ) external onlyXIBCModulePacket {
-        ackStatus[getCommonUniqueKey(destChain, sequence)] = state;
+        ackStatus[getCommonUniqueKey(dstChain, sequence)] = state;
     }
 
     /**
      * @notice get packet next sequence to send
-     * @param destChain name of destination chain
+     * @param dstChain name of destination chain
      */
-    function getNextSequenceSend(string memory destChain) public view override returns (uint64) {
-        uint64 seq = sequences[bytes(destChain)];
+    function getNextSequenceSend(string memory dstChain) public view override returns (uint64) {
+        uint64 seq = sequences[bytes(dstChain)];
         if (seq == 0) {
             seq = 1;
         }
@@ -215,11 +215,11 @@ contract Packet is IPacket {
 
     /**
      * @notice get ack status
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatus(string calldata destChain, uint64 sequence) external view override returns (uint8) {
-        return ackStatus[getCommonUniqueKey(destChain, sequence)];
+    function getAckStatus(string calldata dstChain, uint64 sequence) external view override returns (uint8) {
+        return ackStatus[getCommonUniqueKey(dstChain, sequence)];
     }
 
     /**

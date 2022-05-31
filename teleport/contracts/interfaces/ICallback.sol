@@ -7,7 +7,7 @@ interface ICallback {
     /**
      * @notice callback function. This function is called when the packet is received. This method may be called by others, please ensure a single consumption in implemention.
      * @param srcChain source chain
-     * @param destChain destination chain
+     * @param dstChain destination chain
      * @param sequence packet sequence
      * @param code error code
      * @param result packet result
@@ -15,7 +15,7 @@ interface ICallback {
      */
     function callback(
         string calldata srcChain,
-        string calldata destChain,
+        string calldata dstChain,
         uint64 sequence,
         uint64 code,
         bytes calldata result,

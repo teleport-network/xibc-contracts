@@ -79,7 +79,7 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
         string calldata oriChain
     ) external onlyAuthorizee(BIND_TOKEN_ROLE) {
         require(tokenAddress != address(0), "invalid ERC20 address");
-        require(!oriChain.equals(packetContract.chainName()), "sourceChain can't equal to oriChain");
+        require(!oriChain.equals(packetContract.chainName()), "srcChain can't equal to oriChain");
 
         if (bindings[tokenAddress].bound) {
             // rebind
@@ -176,9 +176,9 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
         override
         nonReentrant
     {
-        string memory sourceChain = packetContract.chainName();
-        require(!sourceChain.equals(crossChainData.destChain), "invalid destChain");
-        uint64 sequence = packetContract.getNextSequenceSend(crossChainData.destChain);
+        string memory srcChain = packetContract.chainName();
+        require(!srcChain.equals(crossChainData.dstChain), "invalid dstChain");
+        uint64 sequence = packetContract.getNextSequenceSend(crossChainData.dstChain);
 
         // tansfer data and contractcall data can't be both empty
         require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");
@@ -216,14 +216,14 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
                 require(msg.value == crossChainData.amount + msgValue, "invalid value");
-                outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
+                outTokens[address(0)][crossChainData.dstChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
                 if (bindings[crossChainData.tokenAddress].bound) {
                     // back to origin
                     require(
-                        crossChainData.destChain.equals(bindings[crossChainData.tokenAddress].oriChain),
-                        "destChain does not match the bound one"
+                        crossChainData.dstChain.equals(bindings[crossChainData.tokenAddress].oriChain),
+                        "dstChain does not match the bound one"
                     );
                     require(
                         bindings[crossChainData.tokenAddress].amount >= crossChainData.amount,
@@ -242,7 +242,7 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
                         ),
                         "lock failed, insufficient allowance"
                     );
-                    outTokens[crossChainData.tokenAddress][crossChainData.destChain] += crossChainData.amount;
+                    outTokens[crossChainData.tokenAddress][crossChainData.dstChain] += crossChainData.amount;
                 }
             }
 
@@ -257,8 +257,8 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
         }
 
         PacketTypes.Packet memory packet = PacketTypes.Packet({
-            srcChain: sourceChain,
-            destChain: crossChainData.destChain,
+            srcChain: srcChain,
+            dstChain: crossChainData.dstChain,
             sequence: sequence,
             sender: msg.sender.addressToString(),
             transferData: transferData,
@@ -363,18 +363,18 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
             } else if (tokenAddress != address(0)) {
                 // refund native ERC20 token
                 require(IERC20(tokenAddress).transfer(sender, amount), "unlock ERC20 token to sender failed");
-                outTokens[tokenAddress][packet.destChain] -= amount;
+                outTokens[tokenAddress][packet.dstChain] -= amount;
             } else {
                 // refund base token
                 (bool success, ) = sender.call{value: amount}("");
                 require(success, "unlock base token to sender failed");
-                outTokens[tokenAddress][packet.destChain] -= amount;
+                outTokens[tokenAddress][packet.dstChain] -= amount;
             }
         }
         if (packet.callbackAddress.parseAddr() != address(0)) {
             ICallback(packet.callbackAddress.parseAddr()).callback(
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 code,
                 result,
@@ -386,11 +386,11 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
     // ===========================================================================
 
     function _burn(
-        address destContract,
+        address dstContract,
         address account,
         uint256 amount
     ) private returns (bool) {
-        try IERC20XIBC(destContract).burnFrom(account, amount) {
+        try IERC20XIBC(dstContract).burnFrom(account, amount) {
             return true;
         } catch (bytes memory) {
             return false;
@@ -398,11 +398,11 @@ contract CrossChain is Initializable, ICrossChain, OwnableUpgradeable, Reentranc
     }
 
     function _mint(
-        address destContract,
+        address dstContract,
         address to,
         uint256 amount
     ) private returns (bool) {
-        try IERC20XIBC(destContract).mint(to, amount) {
+        try IERC20XIBC(dstContract).mint(to, amount) {
             return true;
         } catch (bytes memory) {
             return false;

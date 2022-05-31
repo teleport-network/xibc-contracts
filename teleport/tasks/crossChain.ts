@@ -20,7 +20,7 @@ task("queryBalance", "Query Balance")
     })
 
 task("crossChain", "Cross chain call")
-    .addParam("destchain", "dest chain name")
+    .addParam("dstchain", "dst chain name")
     .addParam("token", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
@@ -34,7 +34,7 @@ task("crossChain", "Cross chain call")
         const crossChain = await crossChainFactory.attach(crossChainContractAddress)
 
         let crossChainData = {
-            destChain: taskArgs.destchain,
+            dstChain: taskArgs.dstchain,
             relayChain: "",
             tokenAddress: taskArgs.tokenaddress,
             receiver: taskArgs.receiver,

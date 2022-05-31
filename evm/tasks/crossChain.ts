@@ -24,7 +24,7 @@ task("transferToken", "Transfer token")
     .addParam("address", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
-    .addParam("destchain", "dest chain name")
+    .addParam("dstchain", "dst chain name")
     .addParam("relaychain", "relay chain name", "", types.string, true)
     .addParam("relayfeeaddress", "relay fee token address")
     .addParam("relayfeeamout", "relay fee amout")
@@ -36,7 +36,7 @@ task("transferToken", "Transfer token")
             tokenAddress: taskArgs.address,
             receiver: taskArgs.receiver,
             amount: taskArgs.amount,
-            destChain: taskArgs.destchain,
+            dstChain: taskArgs.dstchain,
             relayChain: taskArgs.relaychain,
         }
 

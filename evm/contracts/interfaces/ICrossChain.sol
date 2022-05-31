@@ -48,7 +48,7 @@ interface ICrossChain {
     /**
      * @notice todo
      */
-    function outTokens(address tokenAddress, string calldata destChain) external pure returns (uint256 amount);
+    function outTokens(address tokenAddress, string calldata dstChain) external pure returns (uint256 amount);
 
     /**
      * @notice todo

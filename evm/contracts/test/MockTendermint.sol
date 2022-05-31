@@ -137,8 +137,8 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
      * @notice this function is called by the relayer, the purpose is to use the current state of the light client to verify cross-chain data packets
      * @param height the height of cross-chain data packet proof
      * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the chain name of the source chain
-     * @param destChain the chain name of the destination chain
+     * @param srcChain the chain name of the source chain
+     * @param dstChain the chain name of the destination chain
      * @param sequence the sequence of the cross-chain data packet
      * @param commitmentBytes the hash of the cross-chain data packet
      */
@@ -146,8 +146,8 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
         address caller,
         Height.Data calldata height,
         bytes calldata proof,
-        string calldata sourceChain,
-        string calldata destChain,
+        string calldata srcChain,
+        string calldata dstChain,
         uint64 sequence,
         bytes calldata commitmentBytes
     ) external view override {}
@@ -156,8 +156,8 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
      * @notice this function is called by the relayer, the purpose is to use the current state of the light client to verify the acknowledgement of cross-chain data packets
      * @param height the height of cross-chain data packet proof
      * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the chain name of the source chain
-     * @param destChain the chain name of the destination chain
+     * @param srcChain the chain name of the source chain
+     * @param dstChain the chain name of the destination chain
      * @param sequence the sequence of the cross-chain data packet
      * @param acknowledgement the hash of the acknowledgement of the cross-chain data packet
      */
@@ -165,8 +165,8 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
         address caller,
         Height.Data calldata height,
         bytes calldata proof,
-        string calldata sourceChain,
-        string calldata destChain,
+        string calldata srcChain,
+        string calldata dstChain,
         uint64 sequence,
         bytes calldata acknowledgement
     ) external view override {}

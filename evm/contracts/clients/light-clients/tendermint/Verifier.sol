@@ -16,8 +16,8 @@ library Verifier {
      * @param cs the consensus state
      * @param lastProcessedTime the last time the client processed the cross-chain packets
      * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the source chain of the cross-chain data package
-     * @param destChain the destination chain of the cross-chain data packet
+     * @param srcChain the source chain of the cross-chain data package
+     * @param dstChain the destination chain of the cross-chain data packet
      * @param sequence the sequence of cross-chain data packets
      * @param commitmentBytes the hash of the cross-chain data packet
      */
@@ -26,8 +26,8 @@ library Verifier {
         ConsensusState.Data storage cs,
         uint256 lastProcessedTime,
         bytes memory proof,
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         uint64 sequence,
         bytes memory commitmentBytes
     ) public view {
@@ -40,10 +40,7 @@ library Verifier {
         path[1] = Strings.strConcat(
             Strings.strConcat(
                 Strings.strConcat(
-                    Strings.strConcat(
-                        "commitments/",
-                        Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)
-                    ),
+                    Strings.strConcat("commitments/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
                     "/sequences"
                 ),
                 "/"
@@ -66,8 +63,8 @@ library Verifier {
      * @param cs the consensus state
      * @param lastProcessedTime the last time the client processed the cross-chain packets
      * @param proof proof of the existence of cross-chain data packets
-     * @param sourceChain the source chain of the cross-chain data package
-     * @param destChain the destination chain of the cross-chain data packet
+     * @param srcChain the source chain of the cross-chain data package
+     * @param dstChain the destination chain of the cross-chain data packet
      * @param sequence the sequence of cross-chain data packets
      * @param acknowledgement the hash of the cross-chain confirmation packet
      */
@@ -76,8 +73,8 @@ library Verifier {
         ConsensusState.Data storage cs,
         uint256 lastProcessedTime,
         bytes memory proof,
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         uint64 sequence,
         bytes memory acknowledgement
     ) public view {
@@ -90,7 +87,7 @@ library Verifier {
         path[1] = Strings.strConcat(
             Strings.strConcat(
                 Strings.strConcat(
-                    Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)),
+                    Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
                     "/sequences"
                 ),
                 "/"

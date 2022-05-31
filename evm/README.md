@@ -90,7 +90,7 @@ yarn hardhat transferToken \
     --address $TOKEN_ADDRESS \
     --receiver $RECEIVER_ADDRESS \
     --amount $AMOUNT \
-    --destchain $DEST_CHAIN \
+    --dstchain $DST_CHAIN \
     --relaychain $RELAY_CHAIN_NAME \
     --relayfeeaddress $FEE_TOKEN \
     --relayfeeamout $FEE_AMOUNT \

@@ -7,7 +7,7 @@ library PacketTypes {
     struct Packet {
         // packet base data
         string srcChain;
-        string destChain;
+        string dstChain;
         uint64 sequence;
         string sender;
         // transfer data. keep empty if not used.

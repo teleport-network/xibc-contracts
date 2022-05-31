@@ -20,17 +20,17 @@ interface IPacket {
     function sendPacket(PacketTypes.Packet calldata packet, PacketTypes.Fee calldata fee) external payable;
 
     /**
-     * @notice get the next sequence of destChain
-     * @param destChain destination chain name
+     * @notice get the next sequence of dstChain
+     * @param dstChain destination chain name
      */
-    function getNextSequenceSend(string calldata destChain) external view returns (uint64);
+    function getNextSequenceSend(string calldata dstChain) external view returns (uint64);
 
     /**
-     * @notice get the next sequence of destChain
-     * @param destChain destination chain name
+     * @notice get the next sequence of dstChain
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatus(string calldata destChain, uint64 sequence) external view returns (uint8);
+    function getAckStatus(string calldata dstChain, uint64 sequence) external view returns (uint8);
 
     /**
      * @notice todo

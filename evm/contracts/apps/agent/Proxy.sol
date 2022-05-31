@@ -18,11 +18,11 @@ contract Proxy is Initializable {
 
     struct AgentData {
         address refundAddress; // refund address on relay chain
-        string destChain; // dest chain, not relay chain
+        string dstChain; // dst chain, not relay chain
         address tokenAddress; // token on src chain
         uint256 amount; // amount to send, decimal precision should be same as srcChain
         uint256 feeAmount; // second hop fee amount, take from amount, decimal precision should be same as srcChain
-        string receiver; // token receiver on dest chain, not relay chain
+        string receiver; // token receiver on dst chain, not relay chain
         address callbackAddress; // first hop ack callback address
         uint64 feeOption;
     }
@@ -45,7 +45,7 @@ contract Proxy is Initializable {
     {
         return
             CrossChainDataTypes.CrossChainData({
-                destChain: relayChainName,
+                dstChain: relayChainName,
                 tokenAddress: agentData.tokenAddress,
                 receiver: agentData.receiver,
                 amount: agentData.amount,
@@ -65,7 +65,7 @@ contract Proxy is Initializable {
                 "send(address,string,string,uint256)",
                 agentData.refundAddress,
                 agentData.receiver,
-                agentData.destChain,
+                agentData.dstChain,
                 agentData.feeAmount
             );
     }

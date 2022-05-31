@@ -28,13 +28,13 @@ task("deployProxy", "Deploy Proxy")
 task("send", "Send Proxy")
     .addParam("proxy", "proxy address")
     .addParam("refunder", "refunder address")
-    .addParam("destchain", "destChain name")
+    .addParam("dstchain", "dstChain name")
     .addParam("erctokenaddress", "tokenAddress for erc20 transfer")
     .addParam("transferamount", "amount for erc20 transfer and rcc transfer")
     .addParam("rccamount", "amount for erc20 transfer and rcc transfer")
     .addParam("rcctokenaddress", "tokenAddress for rcc transfer")
     .addParam("rccreceiver", "receiver for rcc transfer")
-    .addParam("rccdestchain", "destchain for rcc transfer")
+    .addParam("rccdstchain", "dstchain for rcc transfer")
     .addParam("rccrelaychain", "relay chain name", "", types.string, true)
     .addParam("feeamount", "relay fee")
     .setAction(async (taskArgs, hre) => {
@@ -50,11 +50,11 @@ task("send", "Send Proxy")
             tokenAddress: taskArgs.rcctokenaddress.toLocaleLowerCase(),
             receiver: taskArgs.rccreceiver.toLocaleLowerCase(),
             amount: taskArgs.rccamount,
-            destChain: taskArgs.rccdestchain,
+            dstChain: taskArgs.rccdstchain,
             relayChain: taskArgs.rccrelaychain,
         }
 
-        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.destchain, ERC20TransferData, rccTransfer, taskArgs.feeamount)
+        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.dstchain, ERC20TransferData, rccTransfer, taskArgs.feeamount)
         console.log("multicallData:", multicallData)
 
         let fee = {

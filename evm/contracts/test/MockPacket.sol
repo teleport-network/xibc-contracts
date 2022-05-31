@@ -145,12 +145,12 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         require(address(clientManager.client()) != address(0), "invalid client");
         require(packet.sequence > 0, "packet sequence cannot be 0");
         require(packet.srcChain.equals(chainName), "srcChain mismatch");
-        require(!packet.destChain.equals(chainName), "invalid destChain");
+        require(!packet.dstChain.equals(chainName), "invalid dstChain");
 
         // Notice: must sent token to this contract before set packet fee
-        packetFees[bytes(commonUniquePath(packet.destChain, packet.sequence))] = fee;
+        packetFees[bytes(commonUniquePath(packet.dstChain, packet.sequence))] = fee;
 
-        bytes memory nextSequenceSendKey = bytes(packet.destChain);
+        bytes memory nextSequenceSendKey = bytes(packet.dstChain);
         if (sequences[nextSequenceSendKey] == 0) {
             sequences[nextSequenceSendKey] = 1;
         }
@@ -159,7 +159,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         sequences[nextSequenceSendKey]++;
 
         bytes memory bz = abi.encode(packet);
-        commitments[bytes(packetCommitmentPath(packet.srcChain, packet.destChain, packet.sequence))] = sha256(bz);
+        commitments[bytes(packetCommitmentPath(packet.srcChain, packet.dstChain, packet.sequence))] = sha256(bz);
         emit PacketSent(bz);
     }
 
@@ -179,7 +179,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         PacketTypes.Packet memory packet = abi.decode(packetBytes, (PacketTypes.Packet));
         latestPacket = packet;
 
-        require(packet.destChain.equals(chainName), "invalid destChain");
+        require(packet.dstChain.equals(chainName), "invalid dstChain");
         bytes memory packetReceiptKey = bytes(commonUniquePath(packet.srcChain, packet.sequence));
         require(!receipts[packetReceiptKey], "packet has been received");
 
@@ -188,7 +188,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
             _msgSender(),
             packet.sequence,
             packet.srcChain,
-            packet.destChain,
+            packet.dstChain,
             proof,
             height,
             packetCommitment
@@ -259,21 +259,13 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     function _verifyPacketCommitment(
         address sender,
         uint64 sequence,
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         bytes memory proof,
         Height.Data memory height,
         bytes memory commitBytes
     ) private view {
-        clientManager.client().verifyPacketCommitment(
-            sender,
-            height,
-            proof,
-            sourceChain,
-            destChain,
-            sequence,
-            commitBytes
-        );
+        clientManager.client().verifyPacketCommitment(sender, height, proof, srcChain, dstChain, sequence, commitBytes);
     }
 
     /**
@@ -283,7 +275,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     function _writeAcknowledgement(PacketTypes.Packet memory packet, PacketTypes.Acknowledgement memory ack) private {
         bytes memory ackBytes = abi.encode(ack);
         bytes memory packetAcknowledgementKey = bytes(
-            packetAcknowledgementPath(packet.srcChain, packet.destChain, packet.sequence)
+            packetAcknowledgementPath(packet.srcChain, packet.dstChain, packet.sequence)
         );
         require(commitments[packetAcknowledgementKey] == bytes32(0), "acknowledgement for packet already exists");
         require(ackBytes.length != 0, "acknowledgement cannot be empty");
@@ -294,7 +286,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     /**
      * @notice acknowledgePacket is called by relayer in order to receive an XIBC acknowledgement
      * @param packetBytes xibc packet bytes
-     * @param acknowledgement acknowledgement from dest chain
+     * @param acknowledgement acknowledgement from dst chain
      * @param proofAcked ack proof commit
      * @param height ack proof height
      */
@@ -309,7 +301,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         require(packet.srcChain.equals(chainName), "invalid packet");
 
         bytes memory packetCommitmentKey = bytes(
-            packetCommitmentPath(packet.srcChain, packet.destChain, packet.sequence)
+            packetCommitmentPath(packet.srcChain, packet.dstChain, packet.sequence)
         );
         require(commitments[packetCommitmentKey] == sha256(packetBytes), "commitment bytes are not equal");
 
@@ -317,7 +309,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
             _msgSender(),
             packet.sequence,
             packet.srcChain,
-            packet.destChain,
+            packet.dstChain,
             acknowledgement,
             proofAcked,
             height
@@ -327,7 +319,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         emit AckPacket(packet, acknowledgement);
 
         PacketTypes.Acknowledgement memory ack = abi.decode(acknowledgement, (PacketTypes.Acknowledgement));
-        bytes memory key = bytes(commonUniquePath(packet.destChain, packet.sequence));
+        bytes memory key = bytes(commonUniquePath(packet.dstChain, packet.sequence));
         if (ack.code == 0) {
             ackStatus[key] = 1;
         } else {
@@ -336,21 +328,21 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         acks[key] = ack;
 
         crossChain.onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
-        _sendPacketFeeToRelayer(packet.destChain, packet.sequence, ack.relayer.parseAddr());
+        _sendPacketFeeToRelayer(packet.dstChain, packet.sequence, ack.relayer.parseAddr());
     }
 
     /**
      * @notice send packet fee to relayer
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      * @param relayer relayer address
      */
     function _sendPacketFeeToRelayer(
-        string memory destChain,
+        string memory dstChain,
         uint64 sequence,
         address relayer
     ) private {
-        PacketTypes.Fee memory fee = packetFees[bytes(commonUniquePath(destChain, sequence))];
+        PacketTypes.Fee memory fee = packetFees[bytes(commonUniquePath(dstChain, sequence))];
         if (fee.tokenAddress == address(0)) {
             payable(relayer).transfer(fee.amount);
         } else {
@@ -364,8 +356,8 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     function _verifyPacketAcknowledgement(
         address sender,
         uint64 sequence,
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         bytes memory acknowledgement,
         bytes memory proofAcked,
         Height.Data memory height
@@ -374,8 +366,8 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
             sender,
             height,
             proofAcked,
-            sourceChain,
-            destChain,
+            srcChain,
+            dstChain,
             sequence,
             Bytes.fromBytes32(sha256(acknowledgement))
         );
@@ -383,10 +375,10 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
 
     /**
      * @notice Get packet next sequence to send
-     * @param destChain name of destination chain
+     * @param dstChain name of destination chain
      */
-    function getNextSequenceSend(string memory destChain) public view override returns (uint64) {
-        uint64 seq = sequences[bytes(destChain)];
+    function getNextSequenceSend(string memory dstChain) public view override returns (uint64) {
+        uint64 seq = sequences[bytes(dstChain)];
         if (seq == 0) {
             seq = 1;
         }
@@ -394,26 +386,26 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     }
 
     /**
-     * @notice get the next sequence of destChain
-     * @param destChain destination chain name
+     * @notice get the next sequence of dstChain
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
-    function getAckStatus(string calldata destChain, uint64 sequence) external view override returns (uint8) {
-        return ackStatus[bytes(commonUniquePath(destChain, sequence))];
+    function getAckStatus(string calldata dstChain, uint64 sequence) external view override returns (uint8) {
+        return ackStatus[bytes(commonUniquePath(dstChain, sequence))];
     }
 
     /**
      * @notice set packet fee
-     * @param destChain destination chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      * @param amount add fee amount
      */
     function addPacketFee(
-        string memory destChain,
+        string memory dstChain,
         uint64 sequence,
         uint256 amount
     ) public payable whenNotPaused {
-        bytes memory key = bytes(commonUniquePath(destChain, sequence));
+        bytes memory key = bytes(commonUniquePath(dstChain, sequence));
         require(ackStatus[key] == uint8(0), "invalid packet status");
         PacketTypes.Fee memory fee = packetFees[key];
         if (fee.tokenAddress == address(0)) {
@@ -465,13 +457,13 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
 
     /**
      * @notice packetCommitmentPath defines the next send sequence counter store path
-     *  @param sourceChain source chain name
-     *  @param destChain destination chain name
+     *  @param srcChain source chain name
+     *  @param dstChain destination chain name
      *  @param sequence sequence
      */
     function packetCommitmentPath(
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         uint64 sequence
     ) internal pure returns (string memory) {
         return
@@ -480,7 +472,7 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
                     Strings.strConcat(
                         Strings.strConcat(
                             "commitments/",
-                            Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)
+                            Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)
                         ),
                         "/sequences"
                     ),
@@ -492,20 +484,20 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
 
     /**
      * @notice packetAcknowledgementPath defines the packet acknowledgement store path
-     * @param sourceChain source chain name
-     * @param destChain destination chain name
+     * @param srcChain source chain name
+     * @param dstChain destination chain name
      * @param sequence sequence
      */
     function packetAcknowledgementPath(
-        string memory sourceChain,
-        string memory destChain,
+        string memory srcChain,
+        string memory dstChain,
         uint64 sequence
     ) internal pure returns (string memory) {
         return
             Strings.strConcat(
                 Strings.strConcat(
                     Strings.strConcat(
-                        Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(sourceChain, "/"), destChain)),
+                        Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
                         "/sequences"
                     ),
                     "/"

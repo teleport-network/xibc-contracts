@@ -50,7 +50,7 @@ describe('Proxy', () => {
 
         let agentData = {
             refundAddress: refundAddress,
-            destChain: testChainName,
+            dstChain: testChainName,
             tokenAddress: tokenAddress,
             amount: 1000,
             feeAmount: 500,
@@ -94,7 +94,7 @@ describe('Proxy', () => {
                     "type": "string"
                 }, {
                     "internalType": "string",
-                    "name": "destChain",
+                    "name": "dstChain",
                     "type": "string"
                 }, {
                     "internalType": "uint256",
@@ -105,7 +105,7 @@ describe('Proxy', () => {
             [
                 agentData.refundAddress,
                 agentData.receiver,
-                agentData.destChain,
+                agentData.dstChain,
                 agentData.feeAmount.toString(),
             ]
         )
@@ -123,7 +123,7 @@ describe('Proxy', () => {
         )
         let packet = {
             srcChain: chainName,
-            destChain: relayChainName,
+            dstChain: relayChainName,
             sequence: 1,
             sender: sender,
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -135,7 +135,7 @@ describe('Proxy', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,
@@ -162,7 +162,7 @@ describe('Proxy', () => {
 
         let agentData = {
             refundAddress: refundAddress,
-            destChain: testChainName,
+            dstChain: testChainName,
             tokenAddress: baseTokenAddress,
             amount: 1000,
             feeAmount: 500,
@@ -206,7 +206,7 @@ describe('Proxy', () => {
                     "type": "string"
                 }, {
                     "internalType": "string",
-                    "name": "destChain",
+                    "name": "dstChain",
                     "type": "string"
                 }, {
                     "internalType": "uint256",
@@ -217,7 +217,7 @@ describe('Proxy', () => {
             [
                 agentData.refundAddress,
                 agentData.receiver,
-                agentData.destChain,
+                agentData.dstChain,
                 agentData.feeAmount.toString(),
             ]
         )
@@ -235,7 +235,7 @@ describe('Proxy', () => {
         )
         let packet = {
             srcChain: chainName,
-            destChain: relayChainName,
+            dstChain: relayChainName,
             sequence: 2,
             sender: sender,
             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
@@ -247,7 +247,7 @@ describe('Proxy', () => {
             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
             [[
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 packet.sender,
                 packet.transferData,

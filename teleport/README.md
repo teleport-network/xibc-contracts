@@ -15,7 +15,7 @@ Call Transfer
 
 ```bash
 yarn hardhat crossChain \
-    --destchain $DEST_CHAIN \
+    --dstchain $DST_CHAIN \
     --token $TOKEN_ADDRESS \
     --receiver $RECEIVER \
     --amount $AMOUNT \

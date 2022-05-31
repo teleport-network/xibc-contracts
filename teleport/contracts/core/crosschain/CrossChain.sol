@@ -150,9 +150,9 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         override
         nonReentrant
     {
-        string memory sourceChain = IPacket(packetContractAddress).chainName();
-        require(!crossChainData.destChain.equals(sourceChain), "invalid destChain");
-        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(crossChainData.destChain);
+        string memory srcChain = IPacket(packetContractAddress).chainName();
+        require(!crossChainData.dstChain.equals(srcChain), "invalid dstChain");
+        uint64 sequence = IPacket(packetContractAddress).getNextSequenceSend(crossChainData.dstChain);
 
         // tansfer data and contractcall data can't be both empty
         require(crossChainData.amount != 0 || crossChainData.callData.length != 0, "invalid data");
@@ -190,13 +190,13 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             if (crossChainData.tokenAddress == address(0)) {
                 // transfer base token
                 require(msg.value == crossChainData.amount + msgValue, "invalid value");
-                outTokens[address(0)][crossChainData.destChain] += crossChainData.amount;
+                outTokens[address(0)][crossChainData.dstChain] += crossChainData.amount;
             } else {
                 // transfer ERC20
 
                 string memory bindingKey = Strings.strConcat(
                     Strings.strConcat(crossChainData.tokenAddress.addressToString(), "/"),
-                    crossChainData.destChain
+                    crossChainData.dstChain
                 );
 
                 // if transfer crossed chain token
@@ -219,7 +219,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                         ),
                         "lock failed, insufficient allowance"
                     );
-                    outTokens[crossChainData.tokenAddress][crossChainData.destChain] += crossChainData.amount;
+                    outTokens[crossChainData.tokenAddress][crossChainData.dstChain] += crossChainData.amount;
                 }
             }
 
@@ -234,8 +234,8 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
         }
 
         PacketTypes.Packet memory packet = PacketTypes.Packet({
-            srcChain: sourceChain,
-            destChain: crossChainData.destChain,
+            srcChain: srcChain,
+            dstChain: crossChainData.dstChain,
             sequence: sequence,
             sender: msg.sender.addressToString(),
             transferData: transferData,
@@ -340,7 +340,7 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
                 // refund crossed chain token back to origin
                 string memory bindingKey = Strings.strConcat(
                     Strings.strConcat(transferData.token, "/"),
-                    packet.destChain
+                    packet.dstChain
                 );
                 uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
                 require(_mint(tokenAddress, sender, realAmount), "mint back to sender failed");
@@ -348,18 +348,18 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             } else if (tokenAddress != address(0)) {
                 // refund native ERC20 token out
                 require(IERC20(tokenAddress).transfer(sender, amount), "unlock to sender failed");
-                outTokens[tokenAddress][packet.destChain] -= amount;
+                outTokens[tokenAddress][packet.dstChain] -= amount;
             } else {
                 // refund base token out
                 (bool success, ) = sender.call{value: amount}("");
                 require(success, "unlock base token to sender failed");
-                outTokens[tokenAddress][packet.destChain] -= amount;
+                outTokens[tokenAddress][packet.dstChain] -= amount;
             }
         }
         if (packet.callbackAddress.parseAddr() != address(0)) {
             ICallback(packet.callbackAddress.parseAddr()).callback(
                 packet.srcChain,
-                packet.destChain,
+                packet.dstChain,
                 packet.sequence,
                 code,
                 result,
@@ -374,11 +374,11 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
      * @notice todo
      */
     function _burn(
-        address destContract,
+        address dstContract,
         address account,
         uint256 amount
     ) private returns (bool) {
-        try IERC20XIBC(destContract).burnFrom(account, amount) {
+        try IERC20XIBC(dstContract).burnFrom(account, amount) {
             return true;
         } catch (bytes memory) {
             return false;
@@ -389,11 +389,11 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
      * @notice todo
      */
     function _mint(
-        address destContract,
+        address dstContract,
         address to,
         uint256 amount
     ) private returns (bool) {
-        try IERC20XIBC(destContract).mint(to, amount) {
+        try IERC20XIBC(dstContract).mint(to, amount) {
             return true;
         } catch (bytes memory) {
             return false;
