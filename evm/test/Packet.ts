@@ -288,19 +288,15 @@ describe('Packet', () => {
                 accessManager.address
             ]
         ) as MockCrossChain
-
-        // init crossChain address after crossChain contract deployed
-        await packetContract.initCrossChain(crossChain.address,)
     }
 
     const deployExecute = async () => {
         const executeFactory = await ethers.getContractFactory('Execute', accounts[0])
         execute = await upgrades.deployProxy(
             executeFactory,
-            [crossChain.address]
+            [packetContract.address]
         ) as Execute
 
-        // init execute address after execute contract deployed
-        await crossChain.initExecute(execute.address,)
+        await packetContract.initCrossChain(crossChain.address, execute.address)
     }
 })
