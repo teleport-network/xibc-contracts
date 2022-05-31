@@ -3,27 +3,23 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "../../interfaces/IExecute.sol";
+import "../../libraries/packet/Packet.sol";
 import "../../libraries/utils/Bytes.sol";
 
-contract Execute is IExecute {
+contract Execute {
     using Bytes for *;
 
-    address public constant crossChainContractAddress = address(0x0000000000000000000000000000000020000002);
+    address public constant packetContractAddress = address(0x0000000000000000000000000000000020000001);
 
-    modifier onlyCrossChain() {
-        require(msg.sender == crossChainContractAddress, "caller must be CrossChain contract");
+    modifier onlyPacket() {
+        require(msg.sender == packetContractAddress, "caller must be Packet contract");
         _;
     }
 
     /**
      * @notice todo
      */
-    function execute(PacketTypes.CallData calldata callData)
-        external
-        override
-        returns (bool success, bytes memory res)
-    {
+    function execute(PacketTypes.CallData calldata callData) external returns (bool success, bytes memory res) {
         return callData.contractAddress.parseAddr().call(callData.callData);
     }
 }

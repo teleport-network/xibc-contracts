@@ -15,6 +15,14 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
+interface IExecute {
+    /**
+     * @notice execute a caontract call
+     * @param callData contract call data
+     */
+    function execute(PacketTypes.CallData calldata callData) external returns (bool success, bytes memory res);
+}
+
 contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
@@ -28,6 +36,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     IClientManager public clientManager;
     IAccessManager public accessManager;
     ICrossChain public crossChain;
+    IExecute public execute;
 
     mapping(bytes => uint64) public sequences; // map(bytes(destChain) => sequence)
     mapping(bytes => bytes32) public commitments;
@@ -62,9 +71,16 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      * @notice initialize cross chain contract
      * @param _crossChainContract crossChainContract address
      */
-    function initCrossChain(address _crossChainContract) public onlyAuthorizee(DEFAULT_ADMIN_ROLE) {
-        require(_crossChainContract != address(0), "invalid crossChainContract address");
+    function initCrossChain(address _crossChainContract, address _executeContract)
+        public
+        onlyAuthorizee(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            _crossChainContract != address(0) && _executeContract != address(0),
+            "invalid crossChainContract or executeContract address"
+        );
         crossChain = ICrossChain(_crossChainContract);
+        execute = IExecute(_executeContract);
     }
 
     /**
@@ -171,28 +187,61 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         );
 
         receipts[packetReceiptKey] = true;
-
         emit PacketReceived(packet);
 
         PacketTypes.Acknowledgement memory ack;
-
-        try crossChain.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
-            ack.code = _code;
-            ack.result = _result;
-            ack.message = _message;
-        } catch {
-            ack.code = 1;
-            ack.result = "";
-            ack.message = "onRecvPacket failed";
-        }
-
         ack.relayer = msg.sender.addressToString();
         ack.feeOption = packet.feeOption;
 
-        bytes memory ackBytes = abi.encode(ack);
-        _writeAcknowledgement(packet.sequence, packet.srcChain, packet.destChain, ackBytes);
+        if (packet.transferData.length == 0 && packet.callData.length == 0) {
+            ack.code = 1;
+            // ack.result = "";
+            ack.message = "empty pcaket data";
+            _writeAcknowledgement(packet, ack);
+            return;
+        }
 
-        emit AckWritten(packet, ackBytes);
+        if (packet.transferData.length > 0) {
+            try crossChain.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
+                ack.code = _code;
+                ack.result = _result;
+                ack.message = _message;
+                if (_code != 0) {
+                    _writeAcknowledgement(packet, ack);
+                    return;
+                }
+            } catch {
+                ack.code = 2;
+                // ack.result = "";
+                ack.message = "execute transfer data failed";
+                _writeAcknowledgement(packet, ack);
+                return;
+            }
+        }
+
+        if (packet.callData.length > 0) {
+            PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
+            (bool success, bytes memory res) = execute.execute(callData);
+            if (!success) {
+                ack.code = 2;
+                // ack.result = "";
+                ack.message = "execute call data failed";
+                _writeAcknowledgement(packet, ack);
+                return;
+            }
+            // ack.code = 0;
+            ack.result = res;
+            // ack.message = "";
+            _writeAcknowledgement(packet, ack);
+            return;
+        }
+
+        // ack.code = 0;
+        // ack.result = "";
+        // ack.message = "";
+
+        _writeAcknowledgement(packet, ack);
+        return;
     }
 
     /**
@@ -223,16 +272,15 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      * @notice _writeAcknowledgement is called by a module in order to send back a ack message
      * todo
      */
-    function _writeAcknowledgement(
-        uint64 sequence,
-        string memory sourceChain,
-        string memory destChain,
-        bytes memory acknowledgement
-    ) private {
-        bytes memory packetAcknowledgementKey = bytes(packetAcknowledgementPath(sourceChain, destChain, sequence));
+    function _writeAcknowledgement(PacketTypes.Packet memory packet, PacketTypes.Acknowledgement memory ack) private {
+        bytes memory ackBytes = abi.encode(ack);
+        bytes memory packetAcknowledgementKey = bytes(
+            packetAcknowledgementPath(packet.srcChain, packet.destChain, packet.sequence)
+        );
         require(commitments[packetAcknowledgementKey] == bytes32(0), "acknowledgement for packet already exists");
-        require(acknowledgement.length != 0, "acknowledgement cannot be empty");
-        commitments[packetAcknowledgementKey] = sha256(acknowledgement);
+        require(ackBytes.length != 0, "acknowledgement cannot be empty");
+        commitments[packetAcknowledgementKey] = sha256(ackBytes);
+        emit AckWritten(packet, ackBytes);
     }
 
     /**

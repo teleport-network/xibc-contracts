@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import "../../libraries/utils/Bytes.sol";
 import "../../libraries/utils/Strings.sol";
 import "../../interfaces/ICrossChain.sol";
-import "../../interfaces/IExecute.sol";
 import "../../interfaces/IERC20XIBC.sol";
 import "../../interfaces/IPacket.sol";
 import "../../interfaces/ICallback.sol";
@@ -19,7 +18,6 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
 
     address public constant aggregateModuleAddress = address(0xEE3c65B5c7F4DD0ebeD8bF046725e273e3eeeD3c);
     address public constant packetContractAddress = address(0x0000000000000000000000000000000020000001);
-    address public constant executeContractAddress = address(0x0000000000000000000000000000000020000003);
 
     // token come in
     address[] public override boundTokens;
@@ -263,77 +261,62 @@ contract CrossChain is ICrossChain, ReentrancyGuardUpgradeable {
             string memory message
         )
     {
-        if (packet.transferData.length == 0 && packet.callData.length == 0) {
-            return (1, "", "empty pcaket data");
-        }
+        PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
 
-        if (packet.transferData.length > 0) {
-            PacketTypes.TransferData memory transferData = abi.decode(packet.transferData, (PacketTypes.TransferData));
+        address tokenAddress;
+        address receiver = transferData.receiver.parseAddr();
+        uint256 amount = transferData.amount.toUint256();
+        if (bytes(transferData.oriToken).length == 0) {
+            // token come in
+            tokenAddress = bindingTraces[
+                Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
+            ];
+            string memory bindingKey = Strings.strConcat(
+                Strings.strConcat(tokenAddress.addressToString(), "/"),
+                packet.srcChain
+            );
+            uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
 
-            address tokenAddress;
-            address receiver = transferData.receiver.parseAddr();
-            uint256 amount = transferData.amount.toUint256();
-            if (bytes(transferData.oriToken).length == 0) {
-                // token come in
-                tokenAddress = bindingTraces[
-                    Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
-                ];
-                string memory bindingKey = Strings.strConcat(
-                    Strings.strConcat(tokenAddress.addressToString(), "/"),
-                    packet.srcChain
-                );
-                uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
+            // check bindings
+            if (!bindings[bindingKey].bound) {
+                return (2, "", "token not bound");
+            }
+            if (_updateTimeBasedLimtSupply(tokenAddress, realAmount)) {
+                return (2, "", "invalid amount");
+            }
+            if (!_mint(tokenAddress, receiver, realAmount)) {
+                return (2, "", "mint failed");
+            }
+            bindings[bindingKey].amount += realAmount;
+        } else {
+            tokenAddress = transferData.oriToken.parseAddr();
 
-                // check bindings
-                if (!bindings[bindingKey].bound) {
-                    return (2, "", "token not bound");
+            if (tokenAddress != address(0)) {
+                // ERC20 token back to origin
+                if (amount > outTokens[tokenAddress][packet.srcChain]) {
+                    return (2, "", "amount is greater than locked");
                 }
-                if (_updateTimeBasedLimtSupply(tokenAddress, realAmount)) {
-                    return (2, "", "invalid amount");
+                if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    return (2, "", "exceed the limit");
                 }
-                if (!_mint(tokenAddress, receiver, realAmount)) {
-                    return (2, "", "mint failed");
+                if (!IERC20(tokenAddress).transfer(receiver, amount)) {
+                    return (2, "", "unlock to receiver failed");
                 }
-                bindings[bindingKey].amount += realAmount;
+                outTokens[tokenAddress][packet.srcChain] -= amount;
             } else {
-                tokenAddress = transferData.oriToken.parseAddr();
-
-                if (tokenAddress != address(0)) {
-                    // ERC20 token back to origin
-                    if (amount > outTokens[tokenAddress][packet.srcChain]) {
-                        return (2, "", "amount is greater than locked");
-                    }
-                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
-                        return (2, "", "exceed the limit");
-                    }
-                    if (!IERC20(tokenAddress).transfer(receiver, amount)) {
-                        return (2, "", "unlock to receiver failed");
-                    }
-                    outTokens[tokenAddress][packet.srcChain] -= amount;
-                } else {
-                    // Base token back to origin
-                    if (amount > outTokens[address(0)][packet.srcChain]) {
-                        return (2, "", "amount is greater than locked");
-                    }
-                    if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
-                        return (2, "", "exceed the limit");
-                    }
-                    (bool success, ) = receiver.call{value: amount}("");
-                    if (!success) {
-                        return (2, "", "unlock to receiver failed");
-                    }
-                    outTokens[address(0)][packet.srcChain] -= amount;
+                // Base token back to origin
+                if (amount > outTokens[address(0)][packet.srcChain]) {
+                    return (2, "", "amount is greater than locked");
                 }
+                if (_updateTimeBasedLimtSupply(tokenAddress, amount)) {
+                    return (2, "", "exceed the limit");
+                }
+                (bool success, ) = receiver.call{value: amount}("");
+                if (!success) {
+                    return (2, "", "unlock to receiver failed");
+                }
+                outTokens[address(0)][packet.srcChain] -= amount;
             }
-        }
-
-        if (packet.callData.length > 0) {
-            PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
-            (bool success, bytes memory res) = IExecute(executeContractAddress).execute(callData);
-            if (!success) {
-                return (3, "", "execute call data failed");
-            }
-            return (0, res, "");
         }
 
         return (0, "", "");

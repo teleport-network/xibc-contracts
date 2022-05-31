@@ -8,11 +8,20 @@ import "../../interfaces/IPacket.sol";
 import "../../interfaces/ICrossChain.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+interface IExecute {
+    /**
+     * @notice execute a caontract call
+     * @param callData contract call data
+     */
+    function execute(PacketTypes.CallData calldata callData) external returns (bool success, bytes memory res);
+}
+
 contract Packet is IPacket {
     string public override chainName = "teleport";
 
     address public constant packetModuleAddress = address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
     address public constant crossChainContractAddress = address(0x0000000000000000000000000000000020000002);
+    address public constant executeContractAddress = address(0x0000000000000000000000000000000020000003);
 
     mapping(bytes => uint64) public sequences;
     mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
@@ -75,15 +84,35 @@ contract Packet is IPacket {
         )
     {
         latestPacket = packet;
-        try ICrossChain(crossChainContractAddress).onRecvPacket(packet) returns (
-            uint64 _code,
-            bytes memory _result,
-            string memory _message
-        ) {
-            return (_code, _result, _message);
-        } catch {
-            return (1, "", "onRecvPacket failed");
+
+        if (packet.transferData.length == 0 && packet.callData.length == 0) {
+            return (1, "", "empty pcaket data");
         }
+
+        if (packet.transferData.length > 0) {
+            try ICrossChain(crossChainContractAddress).onRecvPacket(packet) returns (
+                uint64 _code,
+                bytes memory _result,
+                string memory _message
+            ) {
+                if (_code != 0) {
+                    return (_code, _result, _message);
+                }
+            } catch {
+                return (2, "", "execute transfer data failed");
+            }
+        }
+
+        if (packet.callData.length > 0) {
+            PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
+            (bool success, bytes memory res) = IExecute(executeContractAddress).execute(callData);
+            if (!success) {
+                return (3, "", "execute call data failed");
+            }
+            return (0, res, "");
+        }
+
+        return (0, "", "");
     }
 
     /**
