@@ -272,6 +272,7 @@ describe('Packet', () => {
             packetFactory,
             [
                 chainName,
+                testChainName,
                 clientManager.address,
                 accessManager.address,
             ]

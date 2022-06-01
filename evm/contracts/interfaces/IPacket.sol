@@ -14,6 +14,12 @@ interface IPacket {
     function chainName() external view returns (string memory);
 
     /**
+     * @notice get the name of realy chain
+     * @return returns the name of realy chain
+     */
+    function relayChainName() external view returns (string memory);
+
+    /**
      * @notice send cross-chain data packets
      * @param packet xibc packet
      * @param fee packet fee
