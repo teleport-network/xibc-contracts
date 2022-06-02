@@ -442,6 +442,7 @@ describe('Endpoint', () => {
             packetFactory,
             [
                 chainName,
+                testChainName,
                 clientManager.address,
                 accessManager.address,
             ]

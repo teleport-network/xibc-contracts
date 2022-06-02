@@ -13,8 +13,9 @@ contract AccessManager is AccessControlUpgradeable {
     // packet
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+    bytes32 public constant FEE_MANAGER = keccak256("FEE_MANAGER");
 
-    // transfer
+    // endpoint
     bytes32 public constant BIND_TOKEN_ROLE = keccak256("BIND_TOKEN_ROLE");
 
     // multi-signature contract address

@@ -30,8 +30,10 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+    bytes32 public constant FEE_MANAGER = keccak256("FEE_MANAGER");
 
     string public override chainName;
+    string public override relayChainName;
 
     IClientManager public clientManager;
     IAccessManager public accessManager;
@@ -47,22 +49,30 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
     PacketTypes.Packet public latestPacket;
 
+    mapping(address => uint256) public fee2HopsRemaining;
+
     /**
      * @notice initialize
      * @param _chainName chain name
+     * @param _relayChainName relay chain name
      * @param _clientManagerContract clientManager address
      * @param _accessManagerContract accessManager address
      */
     function initialize(
         string memory _chainName,
+        string memory _relayChainName,
         address _clientManagerContract,
         address _accessManagerContract
     ) public initializer {
         require(
-            !_chainName.equals("") && _clientManagerContract != address(0) && _accessManagerContract != address(0),
-            "invalid chainName, clientManagerContract or accessManager"
+            bytes(_chainName).length > 0 &&
+                bytes(_relayChainName).length > 0 &&
+                _clientManagerContract != address(0) &&
+                _accessManagerContract != address(0),
+            "invalid chainName, relayChainName, clientManagerContract or accessManager"
         );
         chainName = _chainName;
+        relayChainName = _relayChainName;
         clientManager = IClientManager(_clientManagerContract);
         accessManager = IAccessManager(_accessManagerContract);
     }
@@ -140,6 +150,9 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
         // Notice: must sent token to this contract before set packet fee
         packetFees[bytes(commonUniquePath(packet.dstChain, packet.sequence))] = fee;
+        if (packet.dstChain.equals(relayChainName)) {
+            fee2HopsRemaining[fee.tokenAddress] = fee.amount;
+        }
 
         bytes memory nextSequenceSendKey = bytes(packet.dstChain);
 
@@ -321,7 +334,9 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         acks[key] = ack;
 
         endpoint.onAcknowledgementPacket(packet, ack.code, ack.result, ack.message);
-        _sendPacketFeeToRelayer(packet.dstChain, packet.sequence, ack.relayer.parseAddr());
+        if (!packet.dstChain.equals(relayChainName)) {
+            _sendPacketFeeToRelayer(packet.dstChain, packet.sequence, ack.relayer.parseAddr());
+        }
     }
 
     /**
@@ -340,6 +355,22 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
             payable(relayer).transfer(fee.amount);
         } else {
             require(IERC20(fee.tokenAddress).transfer(relayer, fee.amount), "");
+        }
+    }
+
+    /**
+     * @notice claim 2hops packet relay fee
+     * @param tokens fee tokenAddresses
+     * @param receiver fee receiver
+     */
+    function claim2HopsFee(address[] calldata tokens, address receiver) external onlyAuthorizee(FEE_MANAGER) {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == address(0)) {
+                payable(receiver).transfer(fee2HopsRemaining[tokens[i]]);
+            } else {
+                IERC20(tokens[i]).transfer(receiver, fee2HopsRemaining[tokens[i]]);
+            }
+            fee2HopsRemaining[tokens[i]] = 0;
         }
     }
 
@@ -408,6 +439,9 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
             require(IERC20(fee.tokenAddress).transferFrom(msg.sender, address(this), amount), "transfer ERC20 failed");
         }
         packetFees[key].amount += amount;
+        if (dstChain.equals(relayChainName)) {
+            fee2HopsRemaining[fee.tokenAddress] += amount;
+        }
     }
 
     /**

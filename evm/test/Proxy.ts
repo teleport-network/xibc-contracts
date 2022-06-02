@@ -290,6 +290,7 @@ describe('Proxy', () => {
             mockPacketFactory,
             [
                 chainName,
+                testChainName,
                 clientManager.address,
                 accessManager.address,
             ]
