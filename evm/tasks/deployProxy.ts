@@ -2,19 +2,18 @@ import "@nomiclabs/hardhat-web3"
 import { task, types } from "hardhat/config"
 import fs = require('fs');
 
-const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
-const PACKET_ADDRESS = process.env.PACKET_ADDRESS
-const MULTICALl_ADDRESS = process.env.MULTICALl_ADDRESS
-const NOT_PROXY = process.env.NOT_PROXY
+const PROXY_ADDRESS = process.env.PROXY_ADDRESS
+const ENDPOINT_ADDRESS = process.env.ENDPOINT_ADDRESS
+
 
 task("deployProxy", "Deploy Proxy")
+    .addParam("relaychain","relay chain name")
     .setAction(async (taskArgs, hre) => {
         const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
         const proxy = await hre.upgrades.deployProxy(
             ProxyFactory,
             [
-                String(CLIENT_MANAGER_ADDRESS),
-                String(PACKET_ADDRESS)
+                taskArgs.relaychain,
             ]
         )
         await proxy.deployed()
@@ -24,55 +23,43 @@ task("deployProxy", "Deploy Proxy")
         fs.appendFileSync('env.txt', 'export PROXY_ADDRESS=' + proxy.address.toLocaleLowerCase() + '\n')
     })
 
-
 task("send", "Send Proxy")
-    .addParam("proxy", "proxy address")
     .addParam("refunder", "refunder address")
     .addParam("dstchain", "dstChain name")
-    .addParam("erctokenaddress", "tokenAddress for erc20 transfer")
-    .addParam("transferamount", "amount for erc20 transfer and rcc transfer")
-    .addParam("rccamount", "amount for erc20 transfer and rcc transfer")
-    .addParam("rcctokenaddress", "tokenAddress for rcc transfer")
-    .addParam("rccreceiver", "receiver for rcc transfer")
-    .addParam("rccdstchain", "dstchain for rcc transfer")
-    .addParam("rccrelaychain", "relay chain name", "", types.string, true)
+    .addParam("tokenaddress", "tokenAddress for erc20 transfer")
+    .addParam("amount", "amount for erc20 transfer and rcc transfer")
+    .addParam("receiver", "receiver for rcc transfer")
+    .addParam("callback","callback address")
     .addParam("feeamount", "relay fee")
+    .addParam("feeoption","feeOption")
     .setAction(async (taskArgs, hre) => {
         const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
-        const proxy = await ProxyFactory.attach(taskArgs.proxy)
+        const proxy = await ProxyFactory.attach(String(PROXY_ADDRESS))
         // teleport.agent 0x0000000000000000000000000000000040000001
-        let ERC20TransferData = {
-            tokenAddress: taskArgs.erctokenaddress.toLocaleLowerCase(),
-            receiver: "0x0000000000000000000000000000000040000001",
-            amount: taskArgs.transferamount,
-        }
-        let rccTransfer = {
-            tokenAddress: taskArgs.rcctokenaddress.toLocaleLowerCase(),
-            receiver: taskArgs.rccreceiver.toLocaleLowerCase(),
-            amount: taskArgs.rccamount,
-            dstChain: taskArgs.rccdstchain,
-            relayChain: taskArgs.rccrelaychain,
+        let AgentData = {
+            refundAddress:taskArgs.refunder,
+            dstChain:taskArgs.dstchain,
+            tokenAddress : taskArgs.tokenaddress,
+            amount: taskArgs.amount,
+            feeAmount: taskArgs.feeamount,
+            receiver : taskArgs.receiver,
+            callbackAddress : taskArgs.callback,
+            feeOption : taskArgs.feeoption,
         }
 
-        let multicallData = await proxy.send(taskArgs.refunder, taskArgs.dstchain, ERC20TransferData, rccTransfer, taskArgs.feeamount)
-        console.log("multicallData:", multicallData)
+        let agentData = await proxy.genCrossChainData(AgentData)
+        console.log("agentData:", agentData)
 
         let fee = {
             tokenAddress: "0x0000000000000000000000000000000000000000",
             amount: 0,
         }
 
-        const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
-        const multiCall = await multiCallFactory.attach(String(MULTICALl_ADDRESS))
-        if (ERC20TransferData.tokenAddress == "0x0000000000000000000000000000000000000000") {
-            console.log("transfer base")
-            let res = await multiCall.multiCall(multicallData[0], fee, { value: taskArgs.amount })
-            console.log(res)
-        } else {
-            console.log("transfer erc20")
-            let res = await multiCall.multiCall(multicallData[0], fee)
-            console.log(res)
-        }
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
+        // 2-Hop has no fee at the first packet
+        let res = await endpoint.crossChainCall(agentData, fee, { value: taskArgs.amount })
+        console.log(res)
     })
 
 module.exports = {}

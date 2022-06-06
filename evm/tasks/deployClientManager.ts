@@ -10,13 +10,11 @@ const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 let client = require("../test/proto/compiled.js")
 
 task("deployClientManager", "Deploy Client Manager")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await hre.upgrades.deployProxy(
             clientManagerFactory,
             [
-                taskArgs.chain,
                 String(ACCESS_MANAGER_ADDRESS),
             ]
         )
@@ -27,7 +25,6 @@ task("deployClientManager", "Deploy Client Manager")
     })
 
 task("upgradeClientManager", "Upgrade Client Manager")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await hre.upgrades.upgradeProxy(String(CLIENT_MANAGER_ADDRESS), clientManagerFactory)
@@ -37,7 +34,6 @@ task("upgradeClientManager", "Upgrade Client Manager")
     })
 
 task("upgradeClient", "Upgrade Client")
-    .addParam("chain", "Chain Name")
     .addParam("clientstate", "HEX encoding client client")
     .addParam("consensusstate", "HEX encoding consensus state")
     .setAction(async (taskArgs, hre) => {
@@ -81,7 +77,6 @@ task("upgradeClient", "Upgrade Client")
         }
         const consensusState = client.ConsensusState.encode(consensusStateEncode).finish()
         const result = await clientManager.upgradeClient(
-            taskArgs.chain,
             clientState,
             consensusState,
         )
@@ -89,7 +84,6 @@ task("upgradeClient", "Upgrade Client")
     })
 
 task("createClientFromFile", "create client from files")
-    .addParam("chain", "Chain Name")
     .addParam("client", "Client Address")
     .addParam("clientstate", "HEX encoding client client")
     .addParam("consensusstate", "HEX encoding consensus state")
@@ -134,7 +128,6 @@ task("createClientFromFile", "create client from files")
         }
         const consensusState = client.ConsensusState.encode(consensusStateEncode).finish()
         const result = await clientManager.createClient(
-            taskArgs.chain,
             taskArgs.client,
             clientState,
             consensusState,
@@ -143,12 +136,11 @@ task("createClientFromFile", "create client from files")
     })
 
 task("getTssCLient", "Get Tss CLient")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
 
-        const result = await clientManager.clients(taskArgs.chain)
+        const result = await clientManager.client(taskArgs.chain)
 
         const tssCLientFactory = await hre.ethers.getContractFactory('TssClient')
         const tssCLient = await tssCLientFactory.attach(String(result))
@@ -156,7 +148,6 @@ task("getTssCLient", "Get Tss CLient")
     })
 
 task("createTssCLient", "Create Tss CLient")
-    .addParam("chain", "Chain Name")
     .addParam("client", "Client Address")
     .addParam("pubkey", "pool pubkey")
     .addParam("partpubkeys", "part pubkeys")
@@ -177,7 +168,6 @@ task("createTssCLient", "Create Tss CLient")
             [[taskArgs.pooladdress, taskArgs.pubkey, taskArgs.partpubkeys]],
         )
         const result = await clientManager.createClient(
-            taskArgs.chain,
             taskArgs.client,
             clientStateBz,
             "0x",
@@ -202,7 +192,6 @@ task("getTssByte", "Create Tss CLient")
     })
 
 task("createClient", "create client with hex code")
-    .addParam("chain", "Chain Name")
     .addParam("client", "Client Address")
     .addParam("clientstate", "HEX encoding client client")
     .addParam("consensusstate", "HEX encoding consensus state")
@@ -243,7 +232,6 @@ task("createClient", "create client with hex code")
 
         const consensusState = client.ConsensusState.encode(consensusStateEncode).finish()
         const result = await clientManager.createClient(
-            taskArgs.chain,
             taskArgs.client,
             clientState,
             consensusState,
@@ -251,60 +239,21 @@ task("createClient", "create client with hex code")
         console.log(result)
     })
 
-task("registerRelayer", "register Relayer for light client")
-    .addParam("chain", "Chain Name")
-    .addParam("relayer", "Relayer Address")
-    .setAction(async (taskArgs, hre) => {
-        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.registerRelayer(taskArgs.chain, taskArgs.relayer)
-        console.log(result)
-    })
-
 task("updateClient", "update light client with header(hex)")
-    .addParam("chain", "chain name")
     .addParam("header", "HEX encoding header")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
         const haeder = Buffer.from(taskArgs.header, "hex")
-        const result = await clientManager.updateClient(taskArgs.chain, haeder)
+        const result = await clientManager.updateClient(haeder)
         console.log(await result.wait())
-    })
-
-task("getRelayers", "get client relayers")
-    .addParam("chain", "Chain Name")
-    .addParam("relayer", "Relayer Address")
-    .setAction(async (taskArgs, hre) => {
-        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.relayers(taskArgs.chain, taskArgs.relayer)
-        console.log(result)
     })
 
 task("lastheight", "get client latest height ")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.getLatestHeight(taskArgs.chain)
-        console.log(result)
-    })
-
-task("getClient", "Deploy Client Manager")
-    .addParam("chain", "Chain Name")
-    .setAction(async (taskArgs, hre) => {
-        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.getClient(taskArgs.chain)
-        console.log(await result.wait())
-    })
-
-task("getChainName", "Deploy Client Manager")
-    .setAction(async (taskArgs, hre) => {
-        const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
-        const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.getChainName()
+        const result = await clientManager.getLatestHeight()
         console.log(result)
     })
 

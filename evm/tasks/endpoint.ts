@@ -2,6 +2,8 @@ import "@nomiclabs/hardhat-web3"
 import { ethers } from "hardhat"
 import { task, types } from "hardhat/config"
 
+const ENDPOINT_ADDRESS = process.env.ENDPOINT_ADDRESS
+
 task("queryBalance", "Query Balance")
     .addParam("privkey", "private key")
     .addParam("node", "node url")
@@ -20,34 +22,35 @@ task("queryBalance", "Query Balance")
 
 
 task("transferToken", "Transfer token")
-    .addParam("transfer", "transfer contract address")
-    .addParam("address", "ERC20 contract address")
+    .addParam("tokenaddress", "ERC20 contract address")
     .addParam("receiver", "receiver address")
     .addParam("amount", "transfer amount")
     .addParam("dstchain", "dst chain name")
     .addParam("relaychain", "relay chain name", "", types.string, true)
-    .addParam("relayfeeaddress", "relay fee token address")
-    .addParam("relayfeeamout", "relay fee amout")
+    .addParam("feeamount", "relay fee token address")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
 
-        let transferdata = {
-            tokenAddress: taskArgs.address,
+        let crossChainData = {
+            dstChain: taskArgs.dstchain,
+            tokenAddress:  taskArgs.tokenaddress,
             receiver: taskArgs.receiver,
             amount: taskArgs.amount,
-            dstChain: taskArgs.dstchain,
-            relayChain: taskArgs.relaychain,
+            contractAddress: "0x0000000000000000000000000000000000000000",
+            callData: Buffer.from("", "utf-8"),
+            callbackAddress: "0x0000000000000000000000000000000000000000",
+            feeOption: 0,
         }
 
         let fee = {
-            tokenAddress: taskArgs.relayfeeaddress,
-            amount: taskArgs.relayfeeamout,
+            tokenAddress: taskArgs.tokenaddress,
+            amount: taskArgs.feeamount,
         }
 
         let baseToken = hre.ethers.utils.parseEther("0")
-        if (transferdata.tokenAddress == "0x0000000000000000000000000000000000000000") {
-            baseToken = baseToken.add(hre.ethers.utils.parseEther(transferdata.amount))
+        if (crossChainData.tokenAddress == "0x0000000000000000000000000000000000000000") {
+            baseToken = baseToken.add(hre.ethers.utils.parseEther(crossChainData.amount))
         }
 
         if (fee.tokenAddress == "0x0000000000000000000000000000000000000000") {
@@ -55,15 +58,15 @@ task("transferToken", "Transfer token")
         }
 
         if (baseToken.gt(hre.ethers.utils.parseEther("0"))) {
-            let res = await transfer.sendTransfer(
-                transferdata,
+            let res = await endpoint.sendTransfer(
+                crossChainData,
                 fee,
                 { value: baseToken }
             )
             console.log(await res.wait())
         } else {
-            let res = await transfer.sendTransfer(
-                transferdata,
+            let res = await endpoint.sendTransfer(
+                crossChainData,
                 fee
             )
             console.log(await res.wait())
@@ -71,15 +74,14 @@ task("transferToken", "Transfer token")
     })
 
 task("bindToken", "bind ERC20 token trace")
-    .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .addParam("oritoken", "origin token")
     .addParam("orichain", "origin chain")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
 
-        let res = await transfer.bindToken(
+        let res = await endpoint.bindToken(
             taskArgs.address,
             taskArgs.oritoken,
             taskArgs.orichain,
@@ -88,13 +90,12 @@ task("bindToken", "bind ERC20 token trace")
     })
 
 task("queryBindings", "query ERC20 token trace")
-    .addParam("transfer", "transfer contract address")
     .addParam("address", "ERC20 contract address")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
 
-        let res = await transfer.bindings(taskArgs.address)
+        let res = await endpoint.bindings(taskArgs.address)
         console.log(await res)
     })
 
@@ -158,26 +159,24 @@ task("queryAllowance", "Query ERC20 allowance")
     });
 
 task("queryOutToken", "Query out token")
-    .addParam("transfer", "transfer address ")
     .addParam("token", "token address ")
     .addParam("chainname", "chainName")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
 
-        let outToken = (await transfer.outTokens(taskArgs.token, taskArgs.chainname))
+        let outToken = (await endpoint.outTokens(taskArgs.token, taskArgs.chainname))
         console.log(outToken)
     });
 
 task("queryTrace", "Query trace")
-    .addParam("transfer", "transfer address")
-    .addParam("srcchain", "srcchain name")
+    .addParam("orichain", "srcchain name")
     .addParam("token", "token address")
     .setAction(async (taskArgs, hre) => {
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await transferFactory.attach(taskArgs.transfer)
+        const endpointFactory = await hre.ethers.getContractFactory('Endpoint')
+        const endpoint = await endpointFactory.attach(String(ENDPOINT_ADDRESS))
 
-        let trace = await transfer.bindingTraces(taskArgs.srcchain + "/" + taskArgs.token)
+        let trace = await endpoint.bindingTraces(taskArgs.orichain + "/" + taskArgs.token)
         console.log(trace)
     });
 

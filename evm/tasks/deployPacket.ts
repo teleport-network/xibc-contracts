@@ -3,12 +3,13 @@ import { task } from "hardhat/config"
 import fs = require('fs');
 
 const CLIENT_MANAGER_ADDRESS = process.env.CLIENT_MANAGER_ADDRESS
-const ROUTING_ADDRESS = process.env.ROUTING_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 const PACKET_ADDRESS = process.env.PACKET_ADDRESS
 const NOT_PROXY = process.env.NOT_PROXY
 
 task("deployPacket", "Deploy Packet")
+    .addParam("chain", "chain name")
+    .addParam("relaychain", "relay chain name")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         if (NOT_PROXY) {
@@ -20,8 +21,9 @@ task("deployPacket", "Deploy Packet")
             const packet = await hre.upgrades.deployProxy(
                 packetFactory,
                 [
+                    taskArgs.chain,
+                    taskArgs.relaychain,
                     String(CLIENT_MANAGER_ADDRESS),
-                    String(ROUTING_ADDRESS),
                     String(ACCESS_MANAGER_ADDRESS)
                 ]
             )
@@ -35,79 +37,60 @@ task("deployPacket", "Deploy Packet")
     })
 
 task("queryRecipt", "query recipt")
-    .addParam("packet", "packet address")
     .addParam("srcchain", "srcChain")
-    .addParam("dstchain", "srcChain")
     .addParam("sequence", "srcChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(taskArgs.packet)
-        let key = taskArgs.srcchain + "/" + taskArgs.dstchain + "/" + taskArgs.sequence
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
+        let key = taskArgs.srcchain + "/" + taskArgs.sequence
         let packetRec = await packet.receipts(Buffer.from(key, "utf-8"))
         console.log(packetRec)
     })
 
 task("queryCommit", "query commit")
-    .addParam("packet", "packet address")
-    .addParam("srcchain", "srcChain")
-    .addParam("dstchain", "srcChain")
-    .addParam("sequence", "srcChain")
-    .setAction(async (taskArgs, hre) => {
-        const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(taskArgs.packet)
-        let key = "commitments/" + taskArgs.srcchain + "/" + taskArgs.dstchain + "/sequences/" + taskArgs.sequence
-        let packetRec = await packet.commitments(Buffer.from(key, "utf-8"))
-        console.log(packetRec)
-    })
-
-task("queryRole", "query role")
-    .addParam("packet", "packet address")
-    .setAction(async (taskArgs, hre) => {
-        const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(taskArgs.packet)
-
-        let roleHash = await packet.MULTISEND_ROLE()
-        console.log(roleHash)
-    })
-
-task("getAckStatus", "get ack status")
     .addParam("srcchain", "srcChain")
     .addParam("dstchain", "srcChain")
     .addParam("sequence", "srcChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
         const packet = await packetFactory.attach(String(PACKET_ADDRESS))
-
-        let state = await packet.getAckStatus(taskArgs.srcchain, taskArgs.dstchain, taskArgs.sequence)
-        console.log(state)
+        let key = "commitments/" + taskArgs.srcchain + "/" + taskArgs.dstchain + "/sequences/" + taskArgs.sequence
+        let packetRec = await packet.commitments(Buffer.from(key, "utf-8"))
+        console.log(packetRec)
     })
 
-task("getPacketFee", "query packet fee")
-    .addParam("packet", "packet address")
-    .addParam("srcchain", "srcChain")
+task("getAckStatus", "get ack status")
     .addParam("dstchain", "srcChain")
     .addParam("sequence", "srcChain")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(taskArgs.packet)
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
 
-        let key = taskArgs.srcchain + "/" + taskArgs.dstchain + "/" + taskArgs.sequence
+        let state = await packet.getAckStatus(taskArgs.dstchain, taskArgs.sequence)
+        console.log(state)
+    })
+
+task("getPacketFee", "query packet fee")
+    .addParam("dstchain", "srcChain")
+    .addParam("sequence", "srcChain")
+    .setAction(async (taskArgs, hre) => {
+        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
+
+        let key = taskArgs.dstchain + "/" + taskArgs.sequence
         let Fees = await packet.packetFees(Buffer.from(key, "utf-8"))
         console.log(Fees)
     })
 
 task("addPacketFee", "set packet fee")
-    .addParam("packet", "packet address")
-    .addParam("src", "source chain name")
     .addParam("dst", "destination chain name")
     .addParam("sequence", "sequence")
     .addParam("amount", "amount")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('Packet')
-        const packet = await packetFactory.attach(taskArgs.packet)
+        const packet = await packetFactory.attach(String(PACKET_ADDRESS))
 
         let tx = await packet.addPacketFee(
-            taskArgs.src,
             taskArgs.dst,
             taskArgs.sequence,
             taskArgs.amount,
