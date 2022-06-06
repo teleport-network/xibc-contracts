@@ -434,7 +434,7 @@ describe('Endpoint', () => {
 
     const deployPacket = async () => {
         const packetFactory = await ethers.getContractFactory(
-            'Packet',
+            'contracts/chains/02-evm/core/packet/Packet.sol:Packet',
             { signer: accounts[0], }
         )
 
@@ -450,7 +450,10 @@ describe('Endpoint', () => {
     }
 
     const deployEndpoint = async () => {
-        const endpointFactory = await ethers.getContractFactory('Endpoint', accounts[0])
+        const endpointFactory = await ethers.getContractFactory(
+            'contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint',
+            accounts[0]
+        )
         endpoint = await upgrades.deployProxy(
             endpointFactory,
             [
@@ -462,7 +465,10 @@ describe('Endpoint', () => {
     }
 
     const deployExecute = async () => {
-        const executeFactory = await ethers.getContractFactory('Execute', accounts[0])
+        const executeFactory = await ethers.getContractFactory(
+            'contracts/chains/02-evm/core/endpoint/Execute.sol:Execute',
+            accounts[0]
+        )
         execute = await upgrades.deployProxy(
             executeFactory,
             [packetContract.address]
