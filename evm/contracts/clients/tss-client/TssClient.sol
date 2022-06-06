@@ -14,11 +14,13 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         address tss_address;
         bytes pubkey;
         bytes[] part_pubkeys;
+        uint64 threshold;
     }
 
     struct Header {
         bytes pubkey;
         bytes[] part_pubkeys;
+        uint64 threshold;
     }
 
     // current client state
@@ -103,6 +105,7 @@ contract TssClient is Initializable, IClient, OwnableUpgradeable {
         clientState.pubkey = header.pubkey;
         clientState.tss_address = address(uint160(uint256(keccak256(header.pubkey))));
         clientState.part_pubkeys = header.part_pubkeys;
+        clientState.threshold = header.threshold;
     }
 
     /**
