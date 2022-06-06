@@ -152,6 +152,7 @@ task("createTssCLient", "Create Tss CLient")
     .addParam("pubkey", "pool pubkey")
     .addParam("partpubkeys", "part pubkeys")
     .addParam("pooladdress", "pool address")
+    .addParam("threshold", "threshold")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
@@ -164,8 +165,8 @@ task("createTssCLient", "Create Tss CLient")
         taskArgs.partpubkeys = taskArgs.partpubkeys.split(",", 4);
 
         let clientStateBz = utils.defaultAbiCoder.encode(
-            ["tuple(address,bytes,bytes[])"],
-            [[taskArgs.pooladdress, taskArgs.pubkey, taskArgs.partpubkeys]],
+            ["tuple(address,bytes,bytes[],uint64)"],
+            [[taskArgs.pooladdress, taskArgs.pubkey, taskArgs.partpubkeys, taskArgs.threshold]],
         )
         const result = await clientManager.createClient(
             taskArgs.client,
@@ -179,14 +180,15 @@ task("getTssByte", "Create Tss CLient")
     .addParam("chain", "Chain Name")
     .addParam("pubkey", "pool pubkey")
     .addParam("pooladdress", "pool address")
+    .addParam("threshold", "threshold")
     .setAction(async (taskArgs, hre) => {
         let partpubkeys = ["0x42417732b0e10b29aa8c5284c58136ac6726cbc1b5afc8ace6d6c4b03274cd01310b958a6dc5b27f2c1ad5c6595bffeac951c8407947d05166e687724d3890f7",
             "0xa926c961ab71a72466faa6abef8074e6530f4c56087c43087ab92da441cbb1e9d24dfc12a5e0b4a686897e50ffa9977b3c3eb13870dcd44335287c0777c71489",
             "0xc17413bbdf839a3732af84f61993c9a09d71f33a68f6fbf05ce53b66b0954929943184d65d8d02c11b7a70904805bcca6e3f3749d95e6438b168f2ed55768310",
             "0x28b5ba326397f2c0f689908bcf4fe198d842739441471fa96e43d4cdd495d9c9f138fed315b3744300fa1dd5599a9e21d12264f97b094f3a5f4b84be120a1c6a"]
         let clientStateBz = utils.defaultAbiCoder.encode(
-            ["tuple(address,bytes,bytes[])"],
-            [[taskArgs.pooladdress, taskArgs.pubkey, partpubkeys]],
+            ["tuple(address,bytes,bytes[],uint64)"],
+            [[taskArgs.pooladdress, taskArgs.pubkey, partpubkeys, taskArgs.threshold]],
         )
         console.log(clientStateBz)
     })
