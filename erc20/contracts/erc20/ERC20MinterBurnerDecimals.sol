@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.3.2 (token/ERC20/presets/ERC20PresetMinterPauser.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.8;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @dev {ERC20} token, including:
@@ -22,7 +22,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
  * roles, as well as the default admin role, which will let it grant both minter
  * and pauser roles to other accounts.
  */
-contract ERC20MinterBurnerDecimals is Context, AccessControlEnumerable, ERC20, ERC20Pausable {
+contract ERC20MinterBurnerDecimals is Context, AccessControl, ERC20, ERC20Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -39,7 +39,7 @@ contract ERC20MinterBurnerDecimals is Context, AccessControlEnumerable, ERC20, E
         string memory symbol,
         uint8 decimals_,
         address transfer
-    ) ERC20(name, symbol) {
+    ) public ERC20(name, symbol) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(MINTER_ROLE, _msgSender());
@@ -49,13 +49,6 @@ contract ERC20MinterBurnerDecimals is Context, AccessControlEnumerable, ERC20, E
         _setupRole(MINTER_ROLE, transfer);
         _setupRole(BURNER_ROLE, transfer);
         _setupDecimals(decimals_);
-    }
-
-    /**
-     * @dev Sets `_decimals` as `decimals_ once at Deployment'
-     */
-    function _setupDecimals(uint8 decimals_) private {
-        _decimals = decimals_;
     }
 
     /**
@@ -95,7 +88,11 @@ contract ERC20MinterBurnerDecimals is Context, AccessControlEnumerable, ERC20, E
 
     function burnFrom(address account, uint256 amount) public virtual {
         require(hasRole(BURNER_ROLE, _msgSender()), "ERC20MinterBurnerDecimals: must have burner role to burn");
-        _spendAllowance(account, _msgSender(), amount);
+        uint256 decreasedAllowance = allowance(account, _msgSender()).sub(
+            amount,
+            "ERC20: burn amount exceeds allowance"
+        );
+        _approve(account, _msgSender(), decreasedAllowance);
         _burn(account, amount);
     }
 
