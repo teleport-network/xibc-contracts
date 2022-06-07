@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pragma solidity ^0.8.0;
-pragma experimental ABIEncoderV2;
 
 import "../../proto/Proofs.sol";
 import "../utils/Bytes.sol";
@@ -23,8 +22,14 @@ library ExistProof {
 
     function checkAgainstSpec(ExistenceProof.Data memory proof, ProofSpec.Data memory spec) private pure {
         LeafOpLib.checkAgainstSpec(proof.leaf, spec);
-        require(spec.min_depth == 0 || proof.path.length >= uint256(uint32(spec.min_depth)), "InnerOps depth too short");
-        require(spec.max_depth == 0 || proof.path.length >= uint256(uint32(spec.max_depth)), "InnerOps depth too short");
+        require(
+            spec.min_depth == 0 || proof.path.length >= uint256(uint32(spec.min_depth)),
+            "InnerOps depth too short"
+        );
+        require(
+            spec.max_depth == 0 || proof.path.length >= uint256(uint32(spec.max_depth)),
+            "InnerOps depth too short"
+        );
 
         for (uint256 i = 0; i < proof.path.length; i++) {
             InnerOpLib.checkAgainstSpec(proof.path[i], spec);
