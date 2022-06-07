@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../proto/Proofs.sol";
@@ -53,11 +53,11 @@ library InnerOpLib {
     function checkAgainstSpec(InnerOp.Data memory op, ProofSpec.Data memory spec) internal pure {
         require(op.hash == spec.leaf_spec.hash, "Unexpected HashOp");
         require(!Bytes.hasPrefix(op.prefix, spec.leaf_spec.prefix), "InnerOpLib: wrong prefix");
-        require(op.prefix.length >= uint256(spec.inner_spec.min_prefix_length), "InnerOp prefix too short");
+        require(op.prefix.length >= uint256(uint32(spec.inner_spec.min_prefix_length)), "InnerOp prefix too short");
 
-        uint256 maxLeftChildLen = (spec.inner_spec.child_order.length - 1) * uint256(spec.inner_spec.child_size);
+        uint256 maxLeftChildLen = (spec.inner_spec.child_order.length - 1) * uint256(uint32(spec.inner_spec.child_size));
         require(
-            op.prefix.length <= uint256(spec.inner_spec.max_prefix_length) + maxLeftChildLen,
+            op.prefix.length <= uint256(uint32(spec.inner_spec.max_prefix_length)) + maxLeftChildLen,
             "InnerOp prefix too short"
         );
     }

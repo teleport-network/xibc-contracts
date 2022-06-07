@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../../interfaces/IClientManager.sol";
 import "../../../interfaces/IClient.sol";
 import "../../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract MockClientManager is Initializable, OwnableUpgradeable, IClientManager {
     // relay chain client

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "./Verifier.sol";
@@ -10,7 +10,7 @@ import "../../../../../proto/Commitment.sol";
 import "../../../../../interfaces/IClient.sol";
 import "../../../../../libraries/utils/Bytes.sol";
 import "../../../../../libraries/packet/Packet.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract Tendermint is Initializable, IClient, OwnableUpgradeable {
@@ -74,7 +74,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         if (consState.root.length == 0) {
             return Status.Unknown;
         }
-        if (uint256(consState.timestamp.secs + clientState.trusting_period) <= block.timestamp) {
+        if (uint256(uint64(consState.timestamp.secs + clientState.trusting_period)) <= block.timestamp) {
             return Status.Expired;
         }
         return Status.Active;
@@ -141,7 +141,7 @@ contract Tendermint is Initializable, IClient, OwnableUpgradeable {
         trustedHeader.header.next_validators_hash = tmConsState.next_validators_hash;
 
         Timestamp.Data memory currentTimestamp;
-        currentTimestamp.secs = int64(block.timestamp);
+        currentTimestamp.secs = int64(int256(block.timestamp));
 
         // Verify next header with the passed-in trustedVals
         // - asserts trusting period not passed

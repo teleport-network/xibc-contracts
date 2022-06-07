@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../proto/Types.sol";
@@ -11,7 +11,7 @@ import "../utils/Timestamp.sol";
 import "../utils/Bytes.sol";
 import "../utils/Ed25519.sol";
 import "./MerkleTree.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 library LightClient {
     using TimestampLib for Timestamp.Data;
@@ -208,7 +208,7 @@ library LightClient {
 
         uint256 totalVotingPower;
         for (uint256 i = 0; i < trustedValset.validators.length; i++) {
-            totalVotingPower += uint256(trustedValset.validators[i].voting_power);
+            totalVotingPower += uint256(uint64(trustedValset.validators[i].voting_power));
         }
 
         (bool success, uint256 totalVotingPowerMulByNumerator) = SafeMath.tryMul(
@@ -221,7 +221,7 @@ library LightClient {
         );
 
         uint256 talliedVotingPower = 0;
-        uint256 votingPowerNeeded = uint256(totalVotingPowerMulByNumerator) / uint256(trustLevel.denominator);
+        uint256 votingPowerNeeded = totalVotingPowerMulByNumerator / uint256(trustLevel.denominator);
 
         for (uint256 i = 0; i < commit.signatures.length; i++) {
             if (commit.signatures[i].block_id_flag != TYPES_PROTO_GLOBAL_ENUMS.BlockIDFlag.BLOCK_ID_FLAG_COMMIT) {
@@ -244,7 +244,7 @@ library LightClient {
                 Bytes.toBytes32(Bytes.substr(commit.signatures[i].signature, 32, 32)),
                 signBytes
             );
-            talliedVotingPower += uint256(val.voting_power);
+            talliedVotingPower += uint256(uint64(val.voting_power));
             if (talliedVotingPower > votingPowerNeeded) {
                 return;
             }

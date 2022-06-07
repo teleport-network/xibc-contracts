@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../../../libraries/utils/Bytes.sol";
@@ -12,8 +12,8 @@ import "../../../../interfaces/IEndpoint.sol";
 import "../../../../interfaces/IAccessManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 interface IExecute {
     /**
@@ -160,7 +160,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
             sequences[nextSequenceSendKey] = 1;
         }
 
-        require(packet.sequence == sequences[nextSequenceSendKey], "packet sequence ≠ next send sequence");
+        require(packet.sequence == sequences[nextSequenceSendKey], "packet sequence != next send sequence");
         sequences[nextSequenceSendKey]++;
 
         bytes memory bz = abi.encode(packet);

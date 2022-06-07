@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../../../libraries/utils/Bytes.sol";
@@ -10,7 +10,7 @@ import "../../../../interfaces/IERC20XIBC.sol";
 import "../../../../interfaces/IPacket.sol";
 import "../../../../interfaces/ICallback.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract Endpoint is IEndpoint, ReentrancyGuardUpgradeable {
     using Strings for *;

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.3.2 (token/ERC20/presets/ERC20PresetMinterPauser.sol)
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
@@ -52,6 +52,13 @@ contract ERC20MinterBurnerDecimals is Context, AccessControl, ERC20, ERC20Pausab
     }
 
     /**
+     * @dev Sets `_decimals` as `decimals_ once at Deployment'
+     */
+    function _setupDecimals(uint8 decimals_) private {
+        _decimals = decimals_;
+    }
+
+    /**
      * @dev Overrides the `decimals()` method with custom `_decimals`
      */
     function decimals() public view virtual override returns (uint8) {
@@ -88,10 +95,7 @@ contract ERC20MinterBurnerDecimals is Context, AccessControl, ERC20, ERC20Pausab
 
     function burnFrom(address account, uint256 amount) public virtual {
         require(hasRole(BURNER_ROLE, _msgSender()), "ERC20MinterBurnerDecimals: must have burner role to burn");
-        uint256 decreasedAllowance = allowance(account, _msgSender()).sub(
-            amount,
-            "ERC20: burn amount exceeds allowance"
-        );
+        uint256 decreasedAllowance = allowance(account, _msgSender()) - amount;
         _approve(account, _msgSender(), decreasedAllowance);
         _burn(account, amount);
     }

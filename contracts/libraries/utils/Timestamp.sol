@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../proto/Types.sol";
 
 library TimestampLib {
     function getLocalTime() internal view returns (int64) {
-        return int64(block.timestamp);
+        return int64(int256(block.timestamp));
     }
 
     function add(Timestamp.Data memory self, int64 second) internal pure returns (Timestamp.Data memory target) {
