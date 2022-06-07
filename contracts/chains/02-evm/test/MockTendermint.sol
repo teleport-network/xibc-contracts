@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../../../libraries/packet/Packet.sol";
@@ -10,7 +10,7 @@ import "../../../libraries/tendermint/LightClient.sol";
 import "../../../proto/Tendermint.sol";
 import "../../../proto/Commitment.sol";
 import "../clients/light-clients/tendermint/Verifier.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
@@ -64,7 +64,7 @@ contract MockTendermint is Initializable, IClient, OwnableUpgradeable {
             return Status.Unknown;
         }
 
-        if (!(uint256(consState.timestamp.secs + clientState.trusting_period) > block.timestamp)) {
+        if (!(uint256(uint64(consState.timestamp.secs + clientState.trusting_period)) > block.timestamp)) {
             return Status.Expired;
         }
         return Status.Active;

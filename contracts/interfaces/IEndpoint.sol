@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.8;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../libraries/endpoint/Endpoint.sol";
@@ -38,17 +38,17 @@ interface IEndpoint {
     /**
      * @notice todo
      */
-    function boundTokens(uint256 index) external pure returns (address tokenAddress);
+    function boundTokens(uint256 index) external view returns (address tokenAddress);
 
     /**
      * @notice todo
      */
-    function bindingTraces(string calldata trace) external pure returns (address tokenAddress);
+    function bindingTraces(string calldata trace) external view returns (address tokenAddress);
 
     /**
      * @notice todo
      */
-    function outTokens(address tokenAddress, string calldata dstChain) external pure returns (uint256 amount);
+    function outTokens(address tokenAddress, string calldata dstChain) external view returns (uint256 amount);
 
     /**
      * @notice todo
