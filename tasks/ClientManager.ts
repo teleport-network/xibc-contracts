@@ -33,7 +33,7 @@ task("upgradeClientManager", "Upgrade Client Manager")
         console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address)
     })
 
-task("upgradeClient", "Upgrade Client")
+task("upgradeClientFromFile", "Upgrade Client")
     .addParam("clientstate", "HEX encoding client client")
     .addParam("consensusstate", "HEX encoding consensus state")
     .setAction(async (taskArgs, hre) => {
@@ -176,22 +176,38 @@ task("createTssCLient", "Create Tss CLient")
         console.log(result)
     })
 
-task("getTssByte", "Create Tss CLient")
-    .addParam("chain", "Chain Name")
-    .addParam("pubkey", "pool pubkey")
-    .addParam("pooladdress", "pool address")
-    .addParam("threshold", "threshold")
+task("getTssByte", "QA Create Tss CLient")
     .setAction(async (taskArgs, hre) => {
+        let threshold = 2
+        let tss_address = "0x64f8fc6b26ec81762673ebb4e32e48b72821294f"
+        let pubkey = "0xbfeae69c005221660bb8e20c11cc7bd3b4b8f3e85ef0356ed51905eaa172fcdd5480020eecb7fe85cd2aec618d2165f90e8b6480340f7273332206bf7d34d2f3"
         let partpubkeys = ["0x42417732b0e10b29aa8c5284c58136ac6726cbc1b5afc8ace6d6c4b03274cd01310b958a6dc5b27f2c1ad5c6595bffeac951c8407947d05166e687724d3890f7",
             "0xa926c961ab71a72466faa6abef8074e6530f4c56087c43087ab92da441cbb1e9d24dfc12a5e0b4a686897e50ffa9977b3c3eb13870dcd44335287c0777c71489",
             "0xc17413bbdf839a3732af84f61993c9a09d71f33a68f6fbf05ce53b66b0954929943184d65d8d02c11b7a70904805bcca6e3f3749d95e6438b168f2ed55768310",
             "0x28b5ba326397f2c0f689908bcf4fe198d842739441471fa96e43d4cdd495d9c9f138fed315b3744300fa1dd5599a9e21d12264f97b094f3a5f4b84be120a1c6a"]
         let clientStateBz = utils.defaultAbiCoder.encode(
             ["tuple(address,bytes,bytes[],uint64)"],
-            [[taskArgs.pooladdress, taskArgs.pubkey, partpubkeys, taskArgs.threshold]],
+            [[tss_address, pubkey, partpubkeys, threshold]],
         )
         console.log(clientStateBz)
     })
+
+
+task("getTssByte", "Testnet Create Tss CLient")
+.setAction(async (taskArgs, hre) => {
+    let threshold = 0
+    let tss_address = ""
+    let pubkey = ""
+    let partpubkeys = ["",
+        "",
+        "",
+        ""]
+    let clientStateBz = utils.defaultAbiCoder.encode(
+        ["tuple(address,bytes,bytes[],uint64)"],
+        [[tss_address, pubkey, partpubkeys, threshold]],
+    )
+    console.log(clientStateBz)
+})
 
 task("createClient", "create client with hex code")
     .addParam("client", "Client Address")
@@ -260,12 +276,11 @@ task("lastheight", "get client latest height ")
     })
 
 task("getClientType", "Deploy Client Manager")
-    .addParam("chain", "Chain Name")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-        const result = await clientManager.getClientType(taskArgs.chain)
-        console.log(await result.wait())
+        const result = await clientManager.getClientType()
+        console.log(result)
     })
 
 module.exports = {}

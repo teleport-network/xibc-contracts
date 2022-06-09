@@ -6,17 +6,19 @@ import "@typechain/hardhat"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 import "hardhat-abi-exporter"
-import "./tasks/deployLibraries"
-import "./tasks/deployTssClient"
-import "./tasks/deployTendermintClient"
-import "./tasks/deployClientManager"
-import "./tasks/deployPacket"
-import "./tasks/deployEndpoint"
-import "./tasks/deployAccessManager"
-import "./tasks/deployTestPayable"
-import "./tasks/endpoint"
-import "./tasks/deployAll"
-import "./tasks/deployTestContracts"
+import "./tasks/Libraries"
+import "./tasks/TssClient"
+import "./tasks/TendermintClient"
+import "./tasks/ClientManager"
+import "./tasks/Packet"
+import "./tasks/Endpoint"
+import "./tasks/AccessManager"
+import "./tasks/TestPayable"
+import "./tasks/Endpoint"
+import "./tasks/DeployAll"
+import "./tasks/TestContracts"
+import "./tasks/ERC20"
+import "./tasks/Execute"
 
 module.exports = {
     defaultNetwork: 'hardhat',
@@ -44,12 +46,6 @@ module.exports = {
             url: '',
             gasPrice: 30000000,
             chainId: 421611,
-            gas: 4100000,
-        },
-        teleport: {
-            url: '',
-            gasPrice: 5000000000,
-            chainId: 8001,
             gas: 4100000,
         },
         rinkeby: {

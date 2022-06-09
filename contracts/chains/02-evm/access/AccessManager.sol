@@ -31,7 +31,7 @@ contract AccessManager is AccessControlUpgradeable {
         // packet
         _setupRole(PAUSER_ROLE, _multiSignWallet);
 
-        // transfer
+        // endpoint
         _setupRole(BIND_TOKEN_ROLE, _multiSignWallet);
     }
 

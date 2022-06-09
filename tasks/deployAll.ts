@@ -38,6 +38,7 @@ task("deployall", "Deploy all base contract")
         console.log("export VERIFIER_ADDRESS=%s", verifierLib.address.toLocaleLowerCase())
         console.log("export LIGHT_CLIENT_VERIFY_ADDRESS=%s", lightClientVerify.address.toLocaleLowerCase())
         console.log("export LIGHT_CLIENT_GEN_VALHASH_ADDRESS=%s", lightClientGenValHash.address.toLocaleLowerCase())
+        console.log("")
 
         const accessManagerFactory = await hre.ethers.getContractFactory('AccessManager')
         const accessManager = await hre.upgrades.deployProxy(
@@ -51,77 +52,48 @@ task("deployall", "Deploy all base contract")
         const clientManager = await hre.upgrades.deployProxy(
             clientManagerFactory,
             [
-                taskArgs.chain,
                 accessManager.address.toLocaleLowerCase(),
             ]
         )
         await clientManager.deployed()
         console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address.toLocaleLowerCase())
 
-        const routingFactory = await hre.ethers.getContractFactory('Routing')
-        const routing = await hre.upgrades.deployProxy(routingFactory, [accessManager.address.toLocaleLowerCase()])
-        await routing.deployed()
-        console.log("export ROUTING_ADDRESS=%s", routing.address.toLocaleLowerCase())
-
-        const packetFactory = await hre.ethers.getContractFactory('Packet')
+        const packetFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/packet/Packet.sol:Packet')
         const packet = await hre.upgrades.deployProxy(
             packetFactory,
             [
+                taskArgs.chain,
+                'teleport',
                 clientManager.address.toLocaleLowerCase(),
-                routing.address.toLocaleLowerCase(),
                 accessManager.address.toLocaleLowerCase()
             ]
         )
         await packet.deployed()
         console.log("export PACKET_ADDRESS=%s", packet.address.toLocaleLowerCase())
 
-        const transferFactory = await hre.ethers.getContractFactory('Transfer')
-        const transfer = await hre.upgrades.deployProxy(
-            transferFactory,
+        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpoint = await hre.upgrades.deployProxy(
+            endpointFactory,
             [
                 packet.address.toLocaleLowerCase(),
                 clientManager.address.toLocaleLowerCase(),
                 accessManager.address.toLocaleLowerCase()
             ],
         )
-        await transfer.deployed()
-        console.log("export TRANSFER_ADDRESS=%s", transfer.address.toLocaleLowerCase())
+        await endpoint.deployed()
+        console.log("export ENDPOINT_ADDRESS=%s", endpoint.address.toLocaleLowerCase())
 
-        const RCCFactory = await hre.ethers.getContractFactory('RCC')
-        const rcc = await hre.upgrades.deployProxy(
-            RCCFactory,
+        const executeFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Execute.sol:Execute')
+        const execute = await hre.upgrades.deployProxy(
+            executeFactory,
             [
                 packet.address.toLocaleLowerCase(),
-                clientManager.address.toLocaleLowerCase(),
-                accessManager.address.toLocaleLowerCase()
-            ]
+            ],
         )
-        await rcc.deployed()
-        console.log("export RCC_ADDRESS=%s", rcc.address.toLocaleLowerCase())
+        await execute.deployed()
+        console.log("export EXECUTE_ADDRESS=%s", execute.address.toLocaleLowerCase())
 
-        const multiCallFactory = await hre.ethers.getContractFactory('MultiCall')
-        const multiCall = await hre.upgrades.deployProxy(
-            multiCallFactory,
-            [
-                packet.address.toLocaleLowerCase(),
-                clientManager.address.toLocaleLowerCase(),
-                transfer.address.toLocaleLowerCase(),
-                rcc.address.toLocaleLowerCase()
-            ]
-        )
-        await multiCall.deployed()
-        console.log("export MULTICALl_ADDRESS=%s", multiCall.address.toLocaleLowerCase())
-
-        const ProxyFactory = await hre.ethers.getContractFactory('Proxy')
-        const proxy = await hre.upgrades.deployProxy(
-            ProxyFactory,
-            [
-                clientManager.address.toLocaleLowerCase(),
-                packet.address.toLocaleLowerCase()
-            ]
-        )
-        await proxy.deployed()
-        console.log("export PROXY_ADDRESS=%s", proxy.address.toLocaleLowerCase())
+        console.log(await packet.initEndpoint(endpoint.address.toLocaleLowerCase(),execute.address.toLocaleLowerCase()))
     })
 
 task("transferOwnership", "Deploy all base contract")
