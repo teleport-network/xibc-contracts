@@ -23,10 +23,16 @@ contract Packet is IPacket {
     address public constant endpointContractAddress = address(0x0000000000000000000000000000000020000002);
     address public constant executeContractAddress = address(0x0000000000000000000000000000000020000003);
 
+    // key: bytes($dstChain)
     mapping(bytes => uint64) public sequences;
-    mapping(bytes => uint8) public ackStatus; // ack state(1 => success, 2 => err, 0 => not found)
+    // key: bytes($dstChain/$seqence)
+    // ack state(1 => success, 2 => err, 0 => not found)
+    mapping(bytes => uint8) public ackStatus;
+    // key: bytes($dstChain/$seqence)
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
-    mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
+    // key: bytes($dstChain/$seqence)
+    // TBD: delete acked packet fee
+    mapping(bytes => PacketTypes.Fee) public packetFees;
 
     PacketTypes.Packet public latestPacket;
 
@@ -36,11 +42,13 @@ contract Packet is IPacket {
      */
     event PacketSent(bytes packetBytes);
 
+    // only xibc packet module can perform related transactions
     modifier onlyXIBCModulePacket() {
         require(msg.sender == packetModuleAddress, "caller must be xibc packet module");
         _;
     }
 
+    // only xibc crosschain contract can perform related transactions
     modifier onlyCrossChainContract() {
         require(msg.sender == endpointContractAddress, "caller must be xibc app");
         _;
@@ -52,6 +60,17 @@ contract Packet is IPacket {
      */
     function setChainName(string memory thisChainName) public onlyXIBCModulePacket {
         _chainName = thisChainName;
+    }
+
+    /**
+     * @notice get the name of this chain
+     * @return returns the name of this chain
+     */
+    function chainName() external view override returns (string memory) {
+        if (bytes(_chainName).length == 0) {
+            return _defaultChainName;
+        }
+        return _chainName;
     }
 
     /**
@@ -72,7 +91,8 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice todo
+     * @notice onRecvPacket is called by XIBC packet module in order to receive & process an XIBC packet
+     * @param packet xibc packet
      */
     function onRecvPacket(PacketTypes.Packet memory packet)
         public
@@ -116,7 +136,9 @@ contract Packet is IPacket {
     }
 
     /**
-     * @notice todo
+     * @notice acknowledge packet in order to receive an XIBC acknowledgement
+     * @param packet xibc packet
+     * @param ack acknowledgement from dst chain
      */
     function OnAcknowledgePacket(PacketTypes.Packet memory packet, PacketTypes.Acknowledgement memory ack)
         public
@@ -138,18 +160,14 @@ contract Packet is IPacket {
         uint256 amount
     ) public payable {
         bytes memory key = getCommonUniqueKey(dstChain, sequence);
-
         require(ackStatus[key] == uint8(0), "invalid packet status");
-
         PacketTypes.Fee memory fee = packetFees[key];
-
         if (fee.tokenAddress == address(0)) {
             require(msg.value > 0 && msg.value == amount, "invalid value");
         } else {
             require(msg.value == 0, "invalid value");
             require(IERC20(fee.tokenAddress).transferFrom(msg.sender, address(this), amount), "transfer ERC20 failed");
         }
-
         packetFees[key].amount += amount;
     }
 
@@ -204,6 +222,7 @@ contract Packet is IPacket {
     /**
      * @notice get packet next sequence to send
      * @param dstChain name of destination chain
+     * @return returns next sequence
      */
     function getNextSequenceSend(string memory dstChain) public view override returns (uint64) {
         uint64 seq = sequences[bytes(dstChain)];
@@ -217,6 +236,7 @@ contract Packet is IPacket {
      * @notice get ack status
      * @param dstChain destination chain name
      * @param sequence sequence
+     * @return returns the acknowledgement status
      */
     function getAckStatus(string calldata dstChain, uint64 sequence) external view override returns (uint8) {
         return ackStatus[getCommonUniqueKey(dstChain, sequence)];
@@ -226,22 +246,17 @@ contract Packet is IPacket {
      * @notice get common unique key
      * @param chain chain name
      * @param sequence sequence
+     * @return returns the unique key
      */
     function getCommonUniqueKey(string memory chain, uint64 sequence) public pure returns (bytes memory) {
         return bytes(Strings.strConcat(Strings.strConcat(chain, "/"), Strings.uint642str(sequence)));
     }
 
     /**
-     * @notice todo
+     * @notice get latest packet
+     * @return returns latest packet
      */
-    function getLatestPacket() external view override returns (PacketTypes.Packet memory packet) {
+    function getLatestPacket() external view override returns (PacketTypes.Packet memory) {
         return latestPacket;
-    }
-
-    function chainName() external view override returns (string memory) {
-        if (bytes(_chainName).length == 0) {
-            return _defaultChainName;
-        }
-        return _chainName;
     }
 }

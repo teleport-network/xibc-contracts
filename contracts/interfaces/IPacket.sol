@@ -21,6 +21,7 @@ interface IPacket {
     /**
      * @notice get the next sequence of dstChain
      * @param dstChain destination chain name
+     * @return returns next sequence
      */
     function getNextSequenceSend(string calldata dstChain) external view returns (uint64);
 
@@ -28,11 +29,13 @@ interface IPacket {
      * @notice get the next sequence of dstChain
      * @param dstChain destination chain name
      * @param sequence sequence
+     * @return returns the acknowledgement status
      */
     function getAckStatus(string calldata dstChain, uint64 sequence) external view returns (uint8);
 
     /**
-     * @notice todo
+     * @notice get latest packet
+     * @return returns latest packet
      */
-    function getLatestPacket() external view returns (PacketTypes.Packet memory packet);
+    function getLatestPacket() external view returns (PacketTypes.Packet memory);
 }

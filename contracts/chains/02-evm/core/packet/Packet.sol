@@ -39,15 +39,25 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     IEndpoint public endpoint;
     IExecute public execute;
 
-    mapping(bytes => uint64) public sequences; // map(bytes(dstChain) => sequence)
+    // key: bytes(dstChain)
+    mapping(bytes => uint64) public sequences;
+    // packetCommitmentKey: bytes(commitments/$srcChain/$destChain/sequences/$sequence)
+    // packetAcknowledgementKey: bytes(acks/$srcChain/$destChain/sequences/$sequence)
     mapping(bytes => bytes32) public commitments;
-    mapping(bytes => bool) public receipts; // map(bytes(srcChain/sequence) => sequence)
-    mapping(bytes => uint8) public ackStatus; // 0 => not found , 1 => success , 2 => err
+    // key: bytes($srcChain/$seqence)
+    mapping(bytes => bool) public receipts;
+    // key: bytes($dstChain/$seqence)
+    // ack state(1 => success, 2 => err, 0 => not found)
+    mapping(bytes => uint8) public ackStatus;
+    // key: bytes($dstChain/$seqence)
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
-    mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
+    // key: bytes($dstChain/$seqence)
+    // TBD: delete acked packet fee
+    mapping(bytes => PacketTypes.Fee) public packetFees;
 
     PacketTypes.Packet public latestPacket;
 
+    // two hops packet fee remaining
     mapping(address => uint256) public fee2HopsRemaining;
 
     /**
@@ -118,7 +128,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      */
     event AckWritten(PacketTypes.Packet packet, bytes ack);
 
-    // only onlyEndpointContract can perform related transactions
+    // only Endpoint contract can perform related transactions
     modifier onlyEndpointContract() {
         require(address(endpoint) == _msgSender(), "only endpoint contract authorized");
         _;
@@ -258,7 +268,6 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
     /**
      * @notice Verify packet commitment
-     * todo
      */
     function _verifyPacketCommitment(
         address sender,
@@ -399,6 +408,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     /**
      * @notice get packet next sequence to send
      * @param dstChain name of destination chain
+     * @return returns next sequence
      */
     function getNextSequenceSend(string memory dstChain) public view override returns (uint64) {
         uint64 seq = sequences[bytes(dstChain)];
@@ -412,6 +422,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      * @notice get the next sequence of dstChain
      * @param dstChain destination chain name
      * @param sequence sequence
+     * @return returns the acknowledgement status
      */
     function getAckStatus(string calldata dstChain, uint64 sequence) external view override returns (uint8) {
         return ackStatus[bytes(commonUniquePath(dstChain, sequence))];
@@ -444,9 +455,10 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
     }
 
     /**
-     * @notice todo
+     * @notice get latest packet
+     * @return returns latest packet
      */
-    function getLatestPacket() external view override returns (PacketTypes.Packet memory packet) {
+    function getLatestPacket() external view override returns (PacketTypes.Packet memory) {
         return latestPacket;
     }
 
