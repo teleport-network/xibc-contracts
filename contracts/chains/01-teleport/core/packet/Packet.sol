@@ -16,7 +16,8 @@ interface IExecute {
 }
 
 contract Packet is IPacket {
-    string public override chainName = "teleport";
+    string private constant _defaultChainName = "teleport";
+    string private _chainName;
 
     address public constant packetModuleAddress = address(0x7426aFC489D0eeF99a0B438DEF226aD139F75235);
     address public constant endpointContractAddress = address(0x0000000000000000000000000000000020000002);
@@ -47,10 +48,10 @@ contract Packet is IPacket {
 
     /**
      * @notice set chain name
-     * @param _chainName chain name
+     * @param thisChainName this chain name
      */
-    function setChainName(string memory _chainName) public onlyXIBCModulePacket {
-        chainName = _chainName;
+    function setChainName(string memory thisChainName) public onlyXIBCModulePacket {
+        _chainName = thisChainName;
     }
 
     /**
@@ -235,5 +236,12 @@ contract Packet is IPacket {
      */
     function getLatestPacket() external view override returns (PacketTypes.Packet memory packet) {
         return latestPacket;
+    }
+
+    function chainName() external view override returns (string memory) {
+        if (bytes(_chainName).length == 0) {
+            return _defaultChainName;
+        }
+        return _chainName;
     }
 }

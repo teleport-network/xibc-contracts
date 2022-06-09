@@ -19,7 +19,7 @@ interface IPacket {
     function sendPacket(PacketTypes.Packet calldata packet, PacketTypes.Fee calldata fee) external payable;
 
     /**
-     * @notice get the next sequence of srcChain/dstChain
+     * @notice get the next sequence of dstChain
      * @param dstChain destination chain name
      */
     function getNextSequenceSend(string calldata dstChain) external view returns (uint64);
