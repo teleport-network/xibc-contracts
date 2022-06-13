@@ -24,5 +24,4 @@ task("deployExecute", "Deploy Execute")
             console.log("Execute deployed to:", execute.address.toLocaleLowerCase())
             console.log("export EXECUTE_ADDRESS=%s", execute.address.toLocaleLowerCase())
         }
-
     })

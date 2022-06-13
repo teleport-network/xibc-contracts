@@ -45,7 +45,7 @@ task("checkRouting", "query")
         console.log(await packet.execute())
     })
 
-task("initPacket", "query")
+task("initPacket", "set endpoint and execute contract addresses")
     .setAction(async (taskArgs, hre) => {
         const packetFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/packet/Packet.sol:Packet')
         const packet = await packetFactory.attach(String(PACKET_ADDRESS))
@@ -127,4 +127,5 @@ task("getChainName", "query packet chain name")
         console.log(await packet.chainName())
 
     })
+
 module.exports = {}
