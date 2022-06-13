@@ -25,17 +25,21 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     IClientManager public clientManager;
     IAccessManager public accessManager;
 
-    // token come in
+    // tokens come in
     address[] public override boundTokens;
-    mapping(address => TokenBindingTypes.Binding) public bindings; // mapping(token => Binding)
-    mapping(string => address) public override bindingTraces; // mapping(origin_chain/origin_token => token)
+    // token bindings
+    mapping(address => TokenBindingTypes.Binding) public bindings;
+    // key: $oriChain/$oriToken
+    mapping(string => address) public override bindingTraces;
 
     // token out. use address(0) as base token address
-    mapping(address => mapping(string => uint256)) public override outTokens; // mapping(token, mapping(dst_chain => amount))
+    // mapping(token, mapping($dstChain => amount))
+    mapping(address => mapping(string => uint256)) public override outTokens;
 
     // time based supply limit
-    mapping(address => TokenBindingTypes.TimeBasedSupplyLimit) public limits; // mapping(token => TimeBasedSupplyLimit)
+    mapping(address => TokenBindingTypes.TimeBasedSupplyLimit) public limits;
 
+    // only xibc packet contract can perform related transactions
     modifier onlyPacket() {
         require(msg.sender == address(packetContract), "caller must be packet contract");
         _;
@@ -48,7 +52,10 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     }
 
     /**
-     * @notice todo
+     * @notice initialize contract addresses
+     * @param _packetContractAddress packet contract address
+     * @param _clientManagerContractAddress clientManager contract address
+     * @param _accessManagerContractAddress accessManager contract address
      */
     function initialize(
         address _packetContractAddress,
@@ -168,7 +175,9 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     }
 
     /**
-     * @notice todo
+     * @notice send cross chain call
+     * @param crossChainData cross chain data
+     * @param fee cross chain fee
      */
     function crossChainCall(CrossChainDataTypes.CrossChainData memory crossChainData, PacketTypes.Fee memory fee)
         public
@@ -271,7 +280,8 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     }
 
     /**
-     * @notice todo
+     * @notice onRecvPacket is called by XIBC packet module in order to receive & process an XIBC packet
+     * @param packet xibc packet
      */
     function onRecvPacket(PacketTypes.Packet calldata packet)
         external
@@ -340,7 +350,10 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     }
 
     /**
-     * @notice todo
+     * @notice acknowledge packet in order to receive an XIBC acknowledgement
+     * @param code error code
+     * @param result packet execution result
+     * @param message error message
      */
     function onAcknowledgementPacket(
         PacketTypes.Packet memory packet,
@@ -385,6 +398,9 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
 
     // ===========================================================================
 
+    /**
+     * @notice burn escrow tokens
+     */
     function _burn(
         address dstContract,
         address account,
@@ -397,6 +413,9 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
         }
     }
 
+    /**
+     * @notice mint cross chain tokens
+     */
     function _mint(
         address dstContract,
         address to,
@@ -412,7 +431,7 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
     // ===========================================================================
 
     /**
-     * @notice todo
+     * @notice returns token binding by key. key: $tokenAddress
      */
     function getBindings(string calldata token)
         external

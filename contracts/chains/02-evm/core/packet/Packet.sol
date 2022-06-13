@@ -283,7 +283,8 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
 
     /**
      * @notice _writeAcknowledgement is called by a module in order to send back a ack message
-     * todo
+     * @param packet xibc packet
+     * @param ack acknowledgement to write
      */
     function _writeAcknowledgement(PacketTypes.Packet memory packet, PacketTypes.Acknowledgement memory ack) private {
         bytes memory ackBytes = abi.encode(ack);

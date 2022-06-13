@@ -9,6 +9,9 @@ interface IERC20XIBC {
 }
 
 contract TestTransfer {
+    /**
+     * @dev burn coins
+     */
     function burn(
         address dstContract,
         address account,
@@ -21,6 +24,9 @@ contract TestTransfer {
         }
     }
 
+    /**
+     * @dev mint coins
+     */
     function mint(
         address dstContract,
         address to,

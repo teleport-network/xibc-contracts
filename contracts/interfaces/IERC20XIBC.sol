@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 
 interface IERC20XIBC {
     /**
-     * @notice todo
+     * @notice mint token. only for xibc
      */
     function mint(address to, uint256 amount) external;
 
     /**
-     * @notice todo
+     * @notice burn coin. only for xibc
      */
     function burnFrom(address account, uint256 amount) external;
 }

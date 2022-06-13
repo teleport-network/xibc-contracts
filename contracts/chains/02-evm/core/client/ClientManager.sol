@@ -25,7 +25,8 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
     }
 
     /**
-     * @notice todo
+     * @notice initialize contract address
+     *  @param accessManagerContract accessManager contract address
      */
     function initialize(address accessManagerContract) public initializer {
         accessManager = IAccessManager(accessManagerContract);
@@ -33,9 +34,9 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
 
     /**
      *  @notice this function is intended to be called by owner to create a client and initialize client data.
-     *  @param clientAddress    client contract address
-     *  @param clientState      client status
-     *  @param consensusState   client consensus status
+     *  @param clientAddress client contract address
+     *  @param clientState client status
+     *  @param consensusState client consensus status
      */
     function createClient(
         address clientAddress,
@@ -71,9 +72,9 @@ contract ClientManager is Initializable, OwnableUpgradeable, IClientManager {
 
     /**
      *  @notice this function is called by the owner, the purpose is to toggle client type between Light and TSS
-     *  @param clientAddress    client contract address
-     *  @param clientState      client status
-     *  @param consensusState   client consensus status
+     *  @param clientAddress client contract address
+     *  @param clientState client status
+     *  @param consensusState client consensus status
      */
     function toggleClient(
         address clientAddress,
