@@ -176,7 +176,7 @@ task("createTssCLient", "Create Tss CLient")
         console.log(result)
     })
 
-task("getTssByte", "QA Create Tss CLient")
+task("getTssByteQ", "QA Create Tss CLient")
     .setAction(async (taskArgs, hre) => {
         let threshold = 2
         let tss_address = "0x64f8fc6b26ec81762673ebb4e32e48b72821294f"
@@ -193,7 +193,7 @@ task("getTssByte", "QA Create Tss CLient")
     })
 
 
-task("getTssByte", "Testnet Create Tss CLient")
+task("getTssByteT", "Testnet Create Tss CLient")
 .setAction(async (taskArgs, hre) => {
     let threshold = 0
     let tss_address = ""
