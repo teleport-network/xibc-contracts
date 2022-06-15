@@ -139,8 +139,7 @@ task("getTssCLient", "Get Tss CLient")
     .setAction(async (taskArgs, hre) => {
         const clientManagerFactory = await hre.ethers.getContractFactory('ClientManager')
         const clientManager = await clientManagerFactory.attach(String(CLIENT_MANAGER_ADDRESS))
-
-        const result = await clientManager.client(taskArgs.chain)
+        const result = await clientManager.client()
 
         const tssCLientFactory = await hre.ethers.getContractFactory('TssClient')
         const tssCLient = await tssCLientFactory.attach(String(result))

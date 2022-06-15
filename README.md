@@ -49,29 +49,29 @@ yarn test
 - rinkeby
 
     ```bash
-    yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network $NETWORK_NAME
+    yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --endpoint $ENDPOINT_CONTRACT_ADDRESS --network $NETWORK_NAME
     # example
-    yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 6 --transfer $TRANSFER_CONTRACT_ADDRESS --network rinkeby
+    yarn hardhat deployToken --name USDT --symbol USDT --decimals 6 --endpoint $ENDPOINT_CONTRACT_ADDRESS --network rinkeby
     ```
 
-    example-address: https://rinkeby.etherscan.io/token/0xce6f517236f122fc5a718d6dc15f0c52e2c2a17b
+    example-address: https://rinkeby.etherscan.io/token/0x0328787d1b6bdc5a215df7ddd2e339c49e827289
 
 - bsc
 
     ```bash
-    yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network $NETWORK_NAME
+    yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --endpoint $ENDPOINT_CONTRACT_ADDRESS --network $NETWORK_NAME
     # example
-    yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer $TRANSFER_CONTRACT_ADDRESS --network bsctest
+    yarn hardhat deployToken --name USDT --symbol USDT --decimals 18 --endpoint $ENDPOINT_CONTRACT_ADDRESS --network bsctest
     ```
 
-    example-address:https://testnet.bscscan.com/token/0x53205b9371ece357c4f792a90652b2f74503c60e
+    example-address:https://testnet.bscscan.com/token/0x44de7218b9f7a205084466d9ad7f438ec30dc192
 
 - teleport
 
     ```bash
-    yarn hardhat deployTestToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --transfer $TRANSFER_CONTRACT_ADDRESS --network teleport
+    yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --endpoint $ENDPOINT_CONTRACT_ADDRESS --network teleport
     # example
-    yarn hardhat deployTestToken --name USDT --symbol USDT --decimals 18 --transfer $TRANSFER_CONTRACT_ADDRESS --network teleport
+    yarn hardhat deployToken --name USDT --symbol USDT --decimals 18 --endpoint $ENDPOINT_CONTRACT_ADDRESS --network teleport
     ```
 
 - faucet repo
@@ -97,14 +97,14 @@ yarn hardhat deployLibraries --network $NETWORK_NAME
 yarn hardhat deployAcessManager --network $NETWORK_NAME --wallet $SUPER_ADMIN
 
 # Deploy ClientManager
-yarn hardhat deployClientManager --network $NETWORK_NAME --chain eth 
+yarn hardhat deployClientManager --network $NETWORK_NAME
 
 # Deploy Tendermint Client
 # When multiple light clients need to be created, multiple instances need to be deployed (Tendermint contracts)
 yarn hardhat deployTendermint --network $NETWORK_NAME
 
 # Deploy Packet
-yarn hardhat deployPacket --network $NETWORK_NAME
+yarn hardhat deployPacket --chain $CHAIN_NAME --relaychain teleport --network $NETWORK_NAME
 
 # Deploy Endpoint
 yarn hardhat deployEndpoint --network $NETWORK_NAME
@@ -115,6 +115,8 @@ yarn hardhat deployExecute --network $NETWORK_NAME
 # Set endpoint and execute address in Packet
 yarn hardhat initPacket --network $NETWORK_NAME
 
+# Check to xibc-app repo then deploy Proxy Contract
+# repo:https://github.com/teleport-network/xibc-apps/tree/main/bridge
 # Deploy Proxy
 yarn hardhat deployProxy --network $NETWORK_NAME 
 ```
@@ -124,13 +126,13 @@ yarn hardhat deployProxy --network $NETWORK_NAME
 Create lightClient
 
 ```bash
-yarn hardhat createClientFromFile --chain teleport --client $TENDERMINT_CLIENT --clientstate $CLIENT_STATE_PATH --consensusstate $CONSENSUS_STATE_PATH --network $NETWORK_NAME
+yarn hardhat createClientFromFile --client $TENDERMINT_CLIENT --clientstate $CLIENT_STATE_PATH --consensusstate $CONSENSUS_STATE_PATH  --network $NETWORK_NAME
 ```
 
 Deploy Token
 
 ```bash
-yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --network $NETWORK_NAME
+yarn hardhat deployToken --name $TOKEN_NAME --symbol $TOKEN_SYMBOL --decimals $DECIMAL --endpoint $ENDPOINT_CONTRACT_ADDRESS --network $NETWORK_NAME
 ```
 
 Cross chain call
