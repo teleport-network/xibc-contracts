@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../../../libraries/utils/Strings.sol";
 import "../../../../interfaces/IPacket.sol";
@@ -249,7 +249,7 @@ contract Packet is IPacket {
      * @return returns the unique key
      */
     function getCommonUniqueKey(string memory chain, uint64 sequence) public pure returns (bytes memory) {
-        return bytes(Strings.strConcat(Strings.strConcat(chain, "/"), Strings.uint642str(sequence)));
+        return bytes(string.concat(chain, "/", Strings.uint642str(sequence)));
     }
 
     /**

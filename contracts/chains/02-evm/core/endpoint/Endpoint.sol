@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../../../libraries/utils/Bytes.sol";
 import "../../../../libraries/utils/Strings.sol";
@@ -89,8 +89,9 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
 
         if (bindings[tokenAddress].bound) {
             // rebind
-            string memory reBindKey = Strings.strConcat(
-                Strings.strConcat(bindings[tokenAddress].oriChain, "/"),
+            string memory reBindKey = string.concat(
+                bindings[tokenAddress].oriChain,
+                "/",
                 bindings[tokenAddress].oriToken
             );
             delete bindingTraces[reBindKey];
@@ -98,7 +99,7 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
             boundTokens.push(tokenAddress);
         }
 
-        string memory key = Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken);
+        string memory key = string.concat(oriChain, "/", oriToken);
 
         bindings[tokenAddress] = TokenBindingTypes.Binding({
             oriChain: oriChain,
@@ -301,9 +302,7 @@ contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGua
         uint256 amount = transferData.amount.toUint256();
         if (bytes(transferData.oriToken).length == 0) {
             // token come in
-            tokenAddress = bindingTraces[
-                Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
-            ];
+            tokenAddress = bindingTraces[string.concat(packet.srcChain, "/", transferData.token)];
             // check bindings
             if (!bindings[tokenAddress].bound) {
                 return (2, "", "token not bound");

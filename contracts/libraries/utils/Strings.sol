@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "./Bytes.sol";
 
@@ -107,15 +107,6 @@ library Strings {
             }
         }
         return selfptr + selflen;
-    }
-
-    /*
-     * @notice Concatenate two strings into a single string
-     * @param _first First string
-     * @param _second Second string
-     */
-    function strConcat(string memory _first, string memory _second) internal pure returns (string memory) {
-        return string(Bytes.concat(bytes(_first), bytes(_second)));
     }
 
     /*
@@ -324,24 +315,6 @@ library Strings {
             equal := eq(keccak256(selfptr, length), keccak256(needleptr, length))
         }
         return equal;
-    }
-
-    /*
-     * @dev Returns a newly allocated string containing the concatenation of
-     *      `self` and `other`.
-     * @param self The first slice to concatenate.
-     * @param other The second slice to concatenate.
-     * @return The concatenation of the two strings.
-     */
-    function concat(slice memory self, slice memory other) internal pure returns (string memory) {
-        string memory ret = new string(self._len + other._len);
-        uint256 retptr;
-        assembly {
-            retptr := add(ret, 32)
-        }
-        memcpy(retptr, self._ptr, self._len);
-        memcpy(retptr + self._len, other._ptr, other._len);
-        return ret;
     }
 
     // Returns the memory address of the first byte after the last occurrence of

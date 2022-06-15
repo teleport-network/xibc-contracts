@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../../../libraries/utils/Bytes.sol";
 import "../../../../libraries/utils/Strings.sol";
@@ -63,21 +63,17 @@ contract Endpoint is IEndpoint, ReentrancyGuardUpgradeable {
             !oriChain.equals(IPacket(packetContractAddress).chainName()),
             "oriChain can't equal to nativeChainName"
         );
-        string memory bindingKey = Strings.strConcat(Strings.strConcat(tokenAddress.addressToString(), "/"), oriChain);
+        string memory bindingKey = string.concat(tokenAddress.addressToString(), "/", oriChain);
         if (bindings[bindingKey].bound) {
             // rebind
-            string memory rebindKey = Strings.strConcat(
-                Strings.strConcat(oriChain, "/"),
-                bindings[bindingKey].oriToken
-            );
+            string memory rebindKey = string.concat(oriChain, "/", bindings[bindingKey].oriToken);
             delete bindingTraces[rebindKey];
         } else {
             boundTokens.push(tokenAddress);
             boundTokenSources[tokenAddress].push(oriChain);
         }
 
-        string memory traceKey = Strings.strConcat(Strings.strConcat(oriChain, "/"), oriToken);
-
+        string memory traceKey = string.concat(oriChain, "/", oriToken);
         bindings[bindingKey] = TokenBindingTypes.Binding({
             oriChain: oriChain,
             oriToken: oriToken,
@@ -207,8 +203,9 @@ contract Endpoint is IEndpoint, ReentrancyGuardUpgradeable {
             } else {
                 // transfer ERC20
 
-                string memory bindingKey = Strings.strConcat(
-                    Strings.strConcat(crossChainData.tokenAddress.addressToString(), "/"),
+                string memory bindingKey = string.concat(
+                    crossChainData.tokenAddress.addressToString(),
+                    "/",
                     crossChainData.dstChain
                 );
 
@@ -282,13 +279,8 @@ contract Endpoint is IEndpoint, ReentrancyGuardUpgradeable {
         uint256 amount = transferData.amount.toUint256();
         if (bytes(transferData.oriToken).length == 0) {
             // token come in
-            tokenAddress = bindingTraces[
-                Strings.strConcat(Strings.strConcat(packet.srcChain, "/"), transferData.token)
-            ];
-            string memory bindingKey = Strings.strConcat(
-                Strings.strConcat(tokenAddress.addressToString(), "/"),
-                packet.srcChain
-            );
+            tokenAddress = bindingTraces[string.concat(packet.srcChain, "/", transferData.token)];
+            string memory bindingKey = string.concat(tokenAddress.addressToString(), "/", packet.srcChain);
             uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
 
             // check bindings
@@ -358,10 +350,7 @@ contract Endpoint is IEndpoint, ReentrancyGuardUpgradeable {
 
             if (bytes(transferData.oriToken).length > 0) {
                 // refund crossed chain token back to origin
-                string memory bindingKey = Strings.strConcat(
-                    Strings.strConcat(transferData.token, "/"),
-                    packet.dstChain
-                );
+                string memory bindingKey = string.concat(transferData.token, "/", packet.dstChain);
                 uint256 realAmount = amount * 10**uint256(bindings[bindingKey].scale);
                 require(_mint(tokenAddress, sender, realAmount), "mint back to sender failed");
                 bindings[bindingKey].amount += realAmount;

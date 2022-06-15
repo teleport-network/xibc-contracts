@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../proto/Proofs.sol";
 import "../utils/Bytes.sol";
@@ -21,8 +21,9 @@ library LeafOpLib {
     ) internal pure returns (bytes memory) {
         require(key.length > 0, "Leaf op needs key");
         require(value.length > 0, "Leaf op needs value");
-        bytes memory data = Bytes.concat(
-            Bytes.concat(op.prefix, prepareLeafData(op.prehash_key, op.length, key)),
+        bytes memory data = bytes.concat(
+            op.prefix,
+            prepareLeafData(op.prehash_key, op.length, key),
             prepareLeafData(op.prehash_value, op.length, value)
         );
         return Operation.doHash(op.hash, data);
@@ -64,7 +65,7 @@ library InnerOpLib {
 
     function applyValue(InnerOp.Data memory op, bytes memory child) internal pure returns (bytes memory) {
         require(child.length > 0, "Inner op needs child value");
-        return Operation.doHash(op.hash, Bytes.concat(Bytes.concat(op.prefix, child), op.suffix));
+        return Operation.doHash(op.hash, bytes.concat(op.prefix, child, op.suffix));
     }
 }
 
@@ -99,7 +100,7 @@ library Operation {
             return data;
         }
         if (lengthOp == PROOFS_PROTO_GLOBAL_ENUMS.LengthOp.VAR_PROTO) {
-            return Bytes.concat(encodeVarintProto(uint64(data.length)), data);
+            return bytes.concat(encodeVarintProto(uint64(data.length)), data);
         }
         if (lengthOp == PROOFS_PROTO_GLOBAL_ENUMS.LengthOp.REQUIRE_32_BYTES) {
             require(data.length == 32, "Expected 32 bytes");

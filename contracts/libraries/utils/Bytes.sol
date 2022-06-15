@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "./Memory.sol";
 
@@ -113,21 +113,6 @@ library Bytes {
             }
         }
         return true;
-    }
-
-    // Combines 'self' and 'other' into a single array.
-    // Returns the concatenated arrays:
-    //  [self[0], self[1], ... , self[self.length - 1], other[0], other[1], ... , other[other.length - 1]]
-    // The length of the new array is 'self.length + other.length'
-    function concat(bytes memory self, bytes memory other) internal pure returns (bytes memory) {
-        bytes memory ret = new bytes(self.length + other.length);
-        (uint256 src, uint256 srcLen) = Memory.fromBytes(self);
-        (uint256 src2, uint256 src2Len) = Memory.fromBytes(other);
-        (uint256 dest, ) = Memory.fromBytes(ret);
-        uint256 dest2 = dest + srcLen;
-        Memory.copy(src, dest, srcLen);
-        Memory.copy(src2, dest2, src2Len);
-        return ret;
     }
 
     function bytes32ToUint(bytes32 b) internal pure returns (uint256) {

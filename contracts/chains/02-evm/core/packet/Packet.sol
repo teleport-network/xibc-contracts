@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../../../libraries/utils/Bytes.sol";
 import "../../../../libraries/utils/Strings.sol";
@@ -491,7 +491,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
      *  @param sequence sequence
      */
     function commonUniquePath(string memory chain, uint64 sequence) internal pure returns (string memory) {
-        return Strings.strConcat(Strings.strConcat(chain, "/"), Strings.uint642str(sequence));
+        return string.concat(chain, "/", Strings.uint642str(sequence));
     }
 
     /**
@@ -505,20 +505,7 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         string memory dstChain,
         uint64 sequence
     ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat(
-                            "commitments/",
-                            Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)
-                        ),
-                        "/sequences"
-                    ),
-                    "/"
-                ),
-                Strings.uint642str(sequence)
-            );
+        return string.concat("commitments/", srcChain, "/", dstChain, "/sequences/", Strings.uint642str(sequence));
     }
 
     /**
@@ -532,16 +519,6 @@ contract Packet is Initializable, OwnableUpgradeable, IPacket, PausableUpgradeab
         string memory dstChain,
         uint64 sequence
     ) internal pure returns (string memory) {
-        return
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat(
-                        Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
-                        "/sequences"
-                    ),
-                    "/"
-                ),
-                Strings.uint642str(sequence)
-            );
+        return string.concat("acks/", srcChain, "/", dstChain, "/sequences/", Strings.uint642str(sequence));
     }
 }

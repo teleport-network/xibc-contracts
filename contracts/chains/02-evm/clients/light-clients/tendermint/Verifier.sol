@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../../../../../proto/Tendermint.sol";
 import "../../../../../proto/Proofs.sol";
@@ -36,17 +36,7 @@ library Verifier {
         );
         string[] memory path = new string[](2);
         path[0] = string(state.merkle_prefix.key_prefix);
-        path[1] = Strings.strConcat(
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat("commitments/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
-                    "/sequences"
-                ),
-                "/"
-            ),
-            Strings.uint642str(sequence)
-        );
-
+        path[1] = string.concat("commitments/", srcChain, "/", dstChain, "/sequences/", Strings.uint642str(sequence));
         Merkle.verifyMembership(
             ProofCodec.decode(proof),
             getDefaultProofSpecs(state.proof_specs),
@@ -83,16 +73,7 @@ library Verifier {
         );
         string[] memory path = new string[](2);
         path[0] = string(state.merkle_prefix.key_prefix);
-        path[1] = Strings.strConcat(
-            Strings.strConcat(
-                Strings.strConcat(
-                    Strings.strConcat("acks/", Strings.strConcat(Strings.strConcat(srcChain, "/"), dstChain)),
-                    "/sequences"
-                ),
-                "/"
-            ),
-            Strings.uint642str(sequence)
-        );
+        path[1] = string.concat("acks/", srcChain, "/", dstChain, "/sequences/", Strings.uint642str(sequence));
         Merkle.verifyMembership(
             ProofCodec.decode(proof),
             getDefaultProofSpecs(state.proof_specs),
