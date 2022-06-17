@@ -15,7 +15,7 @@ interface IExecute {
     function execute(PacketTypes.CallData calldata callData) external returns (bool success, bytes memory res);
 }
 
-contract Packet is IPacket {
+contract Packet is IPacket, LatestPacket {
     string private constant _defaultChainName = "teleport";
     string private _chainName;
 

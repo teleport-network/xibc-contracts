@@ -46,8 +46,6 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
     mapping(bytes => PacketTypes.Acknowledgement) public acks;
     mapping(bytes => PacketTypes.Fee) public packetFees; // TBD: delete acked packet fee
 
-    PacketTypes.Packet public latestPacket;
-
     mapping(address => uint256) public fee2HopsRemaining;
 
     uint256 public version; // used for upgrade
@@ -187,14 +185,10 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         Height.Data calldata height
     ) external nonReentrant whenNotPaused onlyAuthorizee(RELAYER_ROLE) {
         require(address(clientManager.client()) != address(0), "invalid client");
-
         PacketTypes.Packet memory packet = abi.decode(packetBytes, (PacketTypes.Packet));
-        latestPacket = packet;
-
         require(packet.dstChain.equals(chainName), "invalid dstChain");
         bytes memory packetReceiptKey = bytes(commonUniquePath(packet.srcChain, packet.sequence));
         require(!receipts[packetReceiptKey], "packet has been received");
-
         bytes memory packetCommitment = Bytes.fromBytes32(sha256(packetBytes));
         _verifyPacketCommitment(
             _msgSender(),
@@ -205,22 +199,17 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
             height,
             packetCommitment
         );
-
         receipts[packetReceiptKey] = true;
         emit PacketReceived(packet);
-
         PacketTypes.Acknowledgement memory ack;
         ack.relayer = msg.sender.addressToString();
         ack.feeOption = packet.feeOption;
-
         if (packet.transferData.length == 0 && packet.callData.length == 0) {
             ack.code = 1;
-            // ack.result = "";
             ack.message = "empty pcaket data";
             _writeAcknowledgement(packet, ack);
             return;
         }
-
         if (packet.transferData.length > 0) {
             try endpoint.onRecvPacket(packet) returns (uint64 _code, bytes memory _result, string memory _message) {
                 ack.code = _code;
@@ -232,34 +221,24 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
                 }
             } catch {
                 ack.code = 2;
-                // ack.result = "";
                 ack.message = "execute transfer data failed";
                 _writeAcknowledgement(packet, ack);
                 return;
             }
         }
-
         if (packet.callData.length > 0) {
             PacketTypes.CallData memory callData = abi.decode(packet.callData, (PacketTypes.CallData));
             (bool success, bytes memory res) = execute.execute(callData);
             if (!success) {
                 ack.code = 2;
-                // ack.result = "";
                 ack.message = "execute call data failed";
                 _writeAcknowledgement(packet, ack);
                 return;
             }
-            // ack.code = 0;
             ack.result = res;
-            // ack.message = "";
             _writeAcknowledgement(packet, ack);
             return;
         }
-
-        // ack.code = 0;
-        // ack.result = "";
-        // ack.message = "";
-
         _writeAcknowledgement(packet, ack);
         return;
     }
@@ -448,13 +427,6 @@ contract MockPacket is Initializable, OwnableUpgradeable, IPacket, PausableUpgra
         if (dstChain.equals(relayChainName)) {
             fee2HopsRemaining[fee.tokenAddress] += amount;
         }
-    }
-
-    /**
-     * @notice todo
-     */
-    function getLatestPacket() external view override returns (PacketTypes.Packet memory packet) {
-        return latestPacket;
     }
 
     /**

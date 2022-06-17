@@ -32,7 +32,9 @@ interface IPacket {
      * @return returns the acknowledgement status
      */
     function getAckStatus(string calldata dstChain, uint64 sequence) external view returns (uint8);
+}
 
+interface LatestPacket {
     /**
      * @notice get latest packet
      * @return returns latest packet
