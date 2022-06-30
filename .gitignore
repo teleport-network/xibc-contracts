@@ -125,3 +125,5 @@ abi/
 
 erc20/env.txt
 evm/env.txt
+
+env.txt

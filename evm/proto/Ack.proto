@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-message Acknowledgement {
-    repeated bytes results = 1;
-    string message = 2;
-    string relayer = 3;
-}
