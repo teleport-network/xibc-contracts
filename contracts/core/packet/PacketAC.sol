@@ -117,8 +117,10 @@ contract PacketAC is Initializable, OwnableUpgradeable, IPacket, PausableUpgrade
      * @notice Event triggered when the write ack
      * @param packet packet data
      * @param ack ack bytes
+     * @param feeToken fee token
+     * @param feeAmount fee amount
      */
-    event AckPacket(PacketTypes.Packet packet, bytes ack);
+    event AckPacket(PacketTypes.Packet packet, bytes ack, address feeToken, uint256 feeAmount);
 
     /**
      * @notice Event triggered when receive ack
@@ -307,7 +309,8 @@ contract PacketAC is Initializable, OwnableUpgradeable, IPacket, PausableUpgrade
         );
 
         delete commitments[pktCmtKey];
-        emit AckPacket(packet, acknowledgement);
+        PacketTypes.Fee memory fee = packetFees[commonUniqueKey(packet.dstChain, packet.sequence)];
+        emit AckPacket(packet, acknowledgement, fee.tokenAddress, fee.amount);
 
         PacketTypes.Acknowledgement memory ack = abi.decode(acknowledgement, (PacketTypes.Acknowledgement));
         bytes memory key = commonUniqueKey(packet.dstChain, packet.sequence);

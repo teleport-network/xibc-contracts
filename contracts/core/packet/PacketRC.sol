@@ -117,8 +117,10 @@ contract PacketRC is
      * @notice Event triggered when the write ack
      * @param packet packet data
      * @param ack ack bytes
+     * @param feeToken fee token
+     * @param feeAmount fee amount
      */
-    event AckPacket(PacketTypes.Packet packet, bytes ack);
+    event AckPacket(PacketTypes.Packet packet, bytes ack, address feeToken, uint256 feeAmount);
 
     /**
      * @notice Event triggered when receive ack
@@ -322,7 +324,8 @@ contract PacketRC is
         bytes memory pktCmtKey = packetCommitmentKey(packet.srcChain, packet.dstChain, packet.sequence);
         require(commitments[pktCmtKey] == sha256(packetBytes), "commitment bytes are not equal");
         delete commitments[pktCmtKey];
-        emit AckPacket(packet, acknowledgement);
+        PacketTypes.Fee memory fee = packetFees[commonUniqueKey(packet.dstChain, packet.sequence)];
+        emit AckPacket(packet, acknowledgement, fee.tokenAddress, fee.amount);
 
         // check is two hops ack or not on relay chain
         if (!packet.srcChain.equals(chainName)) {
