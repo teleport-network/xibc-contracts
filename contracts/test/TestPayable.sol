@@ -1,40 +1,40 @@
-// // SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 
-// pragma solidity ^0.8.0;
+pragma solidity ^0.8.0;
 
-// import "./TestRecl.sol";
+import "./TestRecl.sol";
 
-// contract TestPayable {
-//     receive() external payable {
-//         num++;
-//         if (num != 10) {
-//             recl.getether();
-//         }
-//     }
+contract TestPayable {
+    receive() external payable {
+        num++;
+        if (num != 10) {
+            recl.getether();
+        }
+    }
 
-//     uint64 public num = 0;
+    uint64 public num = 0;
 
-//     ITestRecl public recl;
+    ITestRecl public recl;
 
-//     function send(address cat) external payable returns (bool) {
-//         return payable(cat).send(msg.value);
-//     }
+    function send(address cat) external payable returns (bool) {
+        return payable(cat).send(msg.value);
+    }
 
-//     function call(address cat) external payable returns (bool) {
-//         (bool success, ) = cat.call{value: msg.value}("");
-//         return success;
-//     }
+    function call(address cat) external payable returns (bool) {
+        (bool success, ) = cat.call{value: msg.value}("");
+        return success;
+    }
 
-//     function transfer(address cat) external payable {
-//         payable(cat).transfer(msg.value);
-//     }
+    function transfer(address cat) external payable {
+        payable(cat).transfer(msg.value);
+    }
 
-//     function getBalance() public view returns (uint256) {
-//         return address(this).balance;
-//     }
+    function getBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
 
-//     function proxySend(address _recl) external {
-//         recl = ITestRecl(_recl);
-//         recl.getether();
-//     }
-// }
+    function proxySend(address _recl) external {
+        recl = ITestRecl(_recl);
+        recl.getether();
+    }
+}

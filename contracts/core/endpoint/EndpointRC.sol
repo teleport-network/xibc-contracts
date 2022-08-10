@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract Endpoint is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract EndpointRC is Initializable, IEndpoint, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using Strings for *;
     using Bytes for *;
 

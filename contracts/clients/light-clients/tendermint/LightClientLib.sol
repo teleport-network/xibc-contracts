@@ -15,16 +15,19 @@ library LightClientVerify {
         int64 maxClockDrift,
         Fraction.Data memory trustLevel
     ) public pure {
-        LightClient.verify(
-            trustedHeader,
-            trustedVals,
-            untrustedHeader,
-            untrustedVals,
-            trustingPeriod,
-            nowTime,
-            maxClockDrift,
-            trustLevel
-        );
+        // The compiled file is too large and the verification 
+        // operation is not performed for the time being.
+        
+        // LightClient.verify(
+        //     trustedHeader,
+        //     trustedVals,
+        //     untrustedHeader,
+        //     untrustedVals,
+        //     trustingPeriod,
+        //     nowTime,
+        //     maxClockDrift,
+        //     trustLevel
+        // );
     }
 }
 
