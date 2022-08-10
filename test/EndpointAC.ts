@@ -9,7 +9,7 @@ const keccak256 = require('keccak256')
 
 let client = require("./proto/compiled.js")
 
-describe('Endpoint', () => {
+describe('EndpointAC', () => {
     let accounts: Signer[]
     let endpoint: EndpointAC
     let execute: Execute
@@ -259,7 +259,7 @@ describe('Endpoint', () => {
 
     it("upgrade endpoint", async () => {
         // upgrade Endpoint contract and check the contract address    
-        const mockEndpointFactory = await ethers.getContractFactory("MockEndpoint")
+        const mockEndpointFactory = await ethers.getContractFactory("MockEndpointAC")
         const upgradedEndpoint = await upgrades.upgradeProxy(endpoint.address, mockEndpointFactory)
         expect(upgradedEndpoint.address).to.eq(endpoint.address)
 
@@ -342,8 +342,8 @@ describe('Endpoint', () => {
     }
 
     const deployClientManager = async () => {
-        const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-        clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManager
+        const msrFactory = await ethers.getContractFactory('ClientManagerAC', accounts[0])
+        clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManagerAC
     }
 
     const deployTendermint = async () => {
@@ -434,7 +434,7 @@ describe('Endpoint', () => {
 
     const deployPacket = async () => {
         const packetFactory = await ethers.getContractFactory(
-            'contracts/chains/02-evm/core/packet/Packet.sol:Packet',
+            'PacketAC',
             { signer: accounts[0], }
         )
 
@@ -446,27 +446,26 @@ describe('Endpoint', () => {
                 clientManager.address,
                 accessManager.address,
             ]
-        ) as Packet
+        ) as PacketAC
     }
 
     const deployEndpoint = async () => {
         const endpointFactory = await ethers.getContractFactory(
-            'contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint',
+            'EndpointAC',
             accounts[0]
         )
         endpoint = await upgrades.deployProxy(
             endpointFactory,
             [
                 packetContract.address,
-                clientManager.address,
                 accessManager.address
             ]
-        ) as Endpoint
+        ) as EndpointAC
     }
 
     const deployExecute = async () => {
         const executeFactory = await ethers.getContractFactory(
-            'contracts/chains/02-evm/core/endpoint/Execute.sol:Execute',
+            'Execute',
             accounts[0]
         )
         execute = await upgrades.deployProxy(
