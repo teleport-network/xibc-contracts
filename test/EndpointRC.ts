@@ -301,19 +301,6 @@ describe('EndpointRC', () => {
             callbackAddress: "0x0000000000000000000000000000000000000000",
             feeOption: 0,
         }
-        // let packetBz = utils.defaultAbiCoder.encode(
-        //     ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
-        //     [[
-        //         packet.srcChain,
-        //         packet.dstChain,
-        //         packet.sequence,
-        //         packet.sender,
-        //         packet.transferData,
-        //         packet.callData,
-        //         packet.callbackAddress,
-        //         packet.feeOption,
-        //     ]]
-        // )
 
         await endpoint.bindToken(erc20Contract.address, transferData.token, packet.srcChain, 0)
         let trace = await endpoint.bindingTraces(packet.srcChain + "/" + transferData.token)

@@ -1,306 +1,312 @@
-// import { Signer, BigNumber, utils } from "ethers"
-// import { MockEndpoint, Execute, Packet, ClientManager, MockTendermint, AccessManager, ERC20 } from '../typechain'
-// import { sha256 } from "ethers/lib/utils"
-// import chai from "chai"
+import { Signer, BigNumber, utils } from "ethers"
+import { MockEndpointRC, Execute, PacketRC, ClientManagerRC, MockTendermint, AccessManager, ERC20 } from '../typechain'
+import { sha256 } from "ethers/lib/utils"
+import chai from "chai"
 
-// const { expect } = chai
-// const { web3, ethers, upgrades } = require("hardhat")
-// const keccak256 = require('keccak256')
+const { expect } = chai
+const { web3, ethers, upgrades } = require("hardhat")
+const keccak256 = require('keccak256')
 
-// let client = require("./proto/compiled.js")
+let client = require("./proto/compiled.js")
 
-// describe('Packet', () => {
-//     let clientManager: ClientManager
-//     let tendermint: MockTendermint
-//     let endpoint: MockEndpoint
-//     let execute: Execute
-//     let accessManager: AccessManager
-//     let accounts: Signer[]
-//     let packetContract: Packet
-//     let erc20Contract: ERC20
+describe('Packet', () => {
+    let clientManager: ClientManagerRC
+    let tendermint: MockTendermint
+    let endpoint: MockEndpointRC
+    let execute: Execute
+    let accessManager: AccessManager
+    let accounts: Signer[]
+    let packetContract: PacketRC
+    let erc20Contract: ERC20
 
-//     const chainName = "chainName"
-//     const testChainName = "testChainName"
+    const chainName = "chainName"
+    const testChainName = "testChainName"
 
-//     before('deploy Packet', async () => {
-//         accounts = await ethers.getSigners()
-//         await deployAccessManager()
-//         await deployClientManager()
-//         await deployTendermint()
-//         await deployPacket()
-//         await deployEndpoint()
-//         await deployExecute()
-//         await deployToken()
-//     })
+    before('deploy Packet', async () => {
+        accounts = await ethers.getSigners()
+        await deployAccessManager()
+        await deployClientManager()
+        await deployTendermint()
+        await deployPacket()
+        await deployEndpoint()
+        await deployExecute()
+        await deployToken()
+    })
 
-//     it("send packet and receive ack", async () => {
-//         let account = (await accounts[0].getAddress()).toString()
-//         let receiver = (await accounts[3].getAddress()).toString().toLocaleLowerCase()
-//         let callbackAddress = "0x0000000000000000000000000000000000000000"
-//         let crossChainData = {
-//             dstChain: testChainName,
-//             tokenAddress: erc20Contract.address.toLocaleLowerCase(),
-//             receiver: receiver,
-//             amount: 1,
-//             contractAddress: "",
-//             callData: [],
-//             callbackAddress: callbackAddress,
-//             feeOption: 0,
-//         }
-//         let Fee = {
-//             tokenAddress: "0x0000000000000000000000000000000000000000",
-//             amount: 0,
-//         }
+    it("send packet and receive ack", async () => {
+        let account = (await accounts[0].getAddress()).toString()
+        let receiver = (await accounts[3].getAddress()).toString().toLocaleLowerCase()
+        let callbackAddress = "0x0000000000000000000000000000000000000000"
+        let crossChainData = {
+            dstChain: testChainName,
+            tokenAddress: erc20Contract.address.toLocaleLowerCase(),
+            receiver: receiver,
+            amount: 1,
+            contractAddress: "",
+            callData: [],
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let Fee = {
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: 0,
+        }
 
-//         let transferData = {
-//             token: erc20Contract.address.toLocaleLowerCase(),
-//             oriToken: "",
-//             amount: web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001"),
-//             receiver: receiver,
-//         }
-//         let transferDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,bytes,string)"],
-//             [[
-//                 transferData.token,
-//                 transferData.oriToken,
-//                 transferData.amount,
-//                 transferData.receiver,
-//             ]]
-//         )
-//         let packet = {
-//             srcChain: chainName,
-//             dstChain: testChainName,
-//             sequence: 1,
-//             sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
-//             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
-//             callData: [],
-//             callbackAddress: callbackAddress,
-//             feeOption: 0,
-//         }
-//         let packetBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
-//             [[
-//                 packet.srcChain,
-//                 packet.dstChain,
-//                 packet.sequence,
-//                 packet.sender,
-//                 packet.transferData,
-//                 packet.callData,
-//                 packet.callbackAddress,
-//                 packet.feeOption,
-//             ]]
-//         )
-//         let path = "commitments/" + chainName + "/" + testChainName + "/sequences/" + 1
-//         await endpoint.crossChainCall(crossChainData, Fee)
-//         let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
-//         let seq = await packetContract.getNextSequenceSend(testChainName)
-//         expect(seq).to.equal(2)
+        let transferData = {
+            token: erc20Contract.address.toLocaleLowerCase(),
+            oriToken: "",
+            amount: web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            receiver: receiver,
+        }
+        let transferDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,bytes,string)"],
+            [[
+                transferData.token,
+                transferData.oriToken,
+                transferData.amount,
+                transferData.receiver,
+            ]]
+        )
+        let packet = {
+            srcChain: chainName,
+            dstChain: testChainName,
+            sequence: 1,
+            sender: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
+            transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
+            callData: [],
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let packetBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
+            [[
+                packet.srcChain,
+                packet.dstChain,
+                packet.sequence,
+                packet.sender,
+                packet.transferData,
+                packet.callData,
+                packet.callbackAddress,
+                packet.feeOption,
+            ]]
+        )
+        let path = "commitments/" + chainName + "/" + testChainName + "/sequences/" + 1
+        await endpoint.crossChainCall(crossChainData, Fee)
+        let commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
+        let seq = await packetContract.getNextSequenceSend(testChainName)
+        expect(seq).to.equal(2)
 
-//         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
-//         expect(commit).to.equal(sha256(packetBytes))
+        let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
+        expect(commit).to.equal(sha256(packetBytes))
 
-//         let ackBytes = utils.defaultAbiCoder.encode(
-//             ["tuple(uint64,bytes,string,string,uint64)"],
-//             [[0, [], "", account.toLowerCase(), 0]]
-//         )
-//         let proof = Buffer.from("proof", "utf-8")
-//         let height = {
-//             revision_number: 1,
-//             revision_height: 1,
-//         }
-//         await packetContract.acknowledgePacket(packetBytes, ackBytes, proof, height)
-//         commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
-//         expect(commit).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
-//     })
+        let ackBytes = utils.defaultAbiCoder.encode(
+            ["tuple(uint64,bytes,string,string,uint64)"],
+            [[0, [], "", account.toLowerCase(), 0]]
+        )
+        let proof = Buffer.from("proof", "utf-8")
+        let height = {
+            revision_number: 1,
+            revision_height: 1,
+        }
+        await packetContract.acknowledgePacket(packetBytes, ackBytes, proof, height)
+        commit = await packetContract.commitments(Buffer.from(path, "utf-8"))
+        expect(commit).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
+    })
 
-//     it("receive packet and write ack", async () => {
-//         let account = (await accounts[0].getAddress()).toString()
-//         let callbackAddress = "0x0000000000000000000000000000000000000000"
+    it("receive packet and write ack", async () => {
+        let account = (await accounts[0].getAddress()).toString()
+        let callbackAddress = "0x0000000000000000000000000000000000000000"
 
-//         let transferData = {
-//             token: "0x0000000000000000000000000000000000000000",
-//             oriToken: erc20Contract.address.toLocaleLowerCase(),
-//             amount: web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001"),
-//             receiver: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
-//         }
-//         let transferDataBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,bytes,string)"],
-//             [[
-//                 transferData.token,
-//                 transferData.oriToken,
-//                 transferData.amount,
-//                 transferData.receiver,
-//             ]]
-//         )
-//         let packet = {
-//             srcChain: testChainName,
-//             dstChain: chainName,
-//             sequence: 1,
-//             sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
-//             transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
-//             callData: [],
-//             callbackAddress: callbackAddress,
-//             feeOption: 0,
-//         }
-//         let packetBz = utils.defaultAbiCoder.encode(
-//             ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
-//             [[
-//                 packet.srcChain,
-//                 packet.dstChain,
-//                 packet.sequence,
-//                 packet.sender,
-//                 packet.transferData,
-//                 packet.callData,
-//                 packet.callbackAddress,
-//                 packet.feeOption,
-//             ]]
-//         )
-//         let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
-//         let ackBz = utils.defaultAbiCoder.encode(
-//             ["tuple(uint64,bytes,string,string,uint64)"],
-//             [[0, [], "", account.toLowerCase(), 0]]
-//         )
-//         let proof = Buffer.from("proof", "utf-8")
-//         let height = {
-//             revision_number: 1,
-//             revision_height: 1,
-//         }
-//         await packetContract.recvPacket(packetBytes, proof, height)
-//         let ackPath = "acks/" + testChainName + "/" + chainName + "/sequences/" + 1
-//         let receiptPath = testChainName + "/" + 1
-//         expect(await packetContract.receipts(Buffer.from(receiptPath, "utf-8"))).to.equal(true)
-//         let ackCommit = await packetContract.commitments(Buffer.from(ackPath, "utf-8"))
-//         expect(ackCommit).to.equal(sha256(Buffer.from(web3.utils.hexToBytes(ackBz))))
-//     })
+        let transferData = {
+            token: "0x0000000000000000000000000000000000000000",
+            oriToken: erc20Contract.address.toLocaleLowerCase(),
+            amount: web3.utils.hexToBytes("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            receiver: (await accounts[0].getAddress()).toString().toLocaleLowerCase(),
+        }
+        let transferDataBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,bytes,string)"],
+            [[
+                transferData.token,
+                transferData.oriToken,
+                transferData.amount,
+                transferData.receiver,
+            ]]
+        )
+        let packet = {
+            srcChain: testChainName,
+            dstChain: chainName,
+            sequence: 1,
+            sender: (await accounts[3].getAddress()).toString().toLocaleLowerCase(),
+            transferData: Buffer.from(web3.utils.hexToBytes(transferDataBz)),
+            callData: [],
+            callbackAddress: callbackAddress,
+            feeOption: 0,
+        }
+        let packetBz = utils.defaultAbiCoder.encode(
+            ["tuple(string,string,uint64,string,bytes,bytes,string,uint64)"],
+            [[
+                packet.srcChain,
+                packet.dstChain,
+                packet.sequence,
+                packet.sender,
+                packet.transferData,
+                packet.callData,
+                packet.callbackAddress,
+                packet.feeOption,
+            ]]
+        )
+        let packetBytes = Buffer.from(web3.utils.hexToBytes(packetBz))
+        let ackBz = utils.defaultAbiCoder.encode(
+            ["tuple(uint64,bytes,string,string,uint64)"],
+            [[0, [], "", (await accounts[0].getAddress()).toString(), 0]]
+        )
+        let proof = Buffer.from("proof", "utf-8")
+        let height = {
+            revision_number: 1,
+            revision_height: 1,
+        }
 
-//     it("upgrade packet", async () => {
-//         const mockPacketFactory = await ethers.getContractFactory("MockPacket")
-//         const mockPacket = await upgrades.upgradeProxy(packetContract.address, mockPacketFactory)
-//         expect(mockPacket.address).to.eq(packetContract.address)
+        let relayer = {
+            addr: (await accounts[0].getAddress()).toString(),
+            chains: [testChainName],
+            chainAddrs: [(await accounts[0].getAddress()).toString()],
+        }
+        await clientManager.registerRelayer(relayer)
 
-//         await mockPacket.setVersion(2)
-//         const version = await mockPacket.version()
-//         expect(2).to.eq(version.toNumber())
-//     })
+        await packetContract.recvPacket(packetBytes, proof, height)
+        let ackPath = "acks/" + testChainName + "/" + chainName + "/sequences/" + 1
+        let receiptPath = testChainName + "/" + 1
+        expect(await packetContract.receipts(Buffer.from(receiptPath, "utf-8"))).to.equal(true)
+        let ackCommit = await packetContract.commitments(Buffer.from(ackPath, "utf-8"))
+        expect(ackCommit).to.equal(sha256(Buffer.from(web3.utils.hexToBytes(ackBz))))
+    })
 
-//     const deployAccessManager = async () => {
-//         const accessFactory = await ethers.getContractFactory('AccessManager')
-//         accessManager = (await upgrades.deployProxy(accessFactory, [await accounts[0].getAddress()])) as AccessManager
+    it("upgrade packet", async () => {
+        const mockPacketFactory = await ethers.getContractFactory("MockPacketRC")
+        const mockPacket = await upgrades.upgradeProxy(packetContract.address, mockPacketFactory)
+        expect(mockPacket.address).to.eq(packetContract.address)
 
-//         let relayerRole = keccak256("RELAYER_ROLE")
-//         let signer = await accounts[0].getAddress()
-//         let ret = await accessManager.grantRole(relayerRole, signer)
-//         expect(ret.blockNumber).to.greaterThan(0)
-//     }
+        await mockPacket.setVersion(2)
+        const version = await mockPacket.version()
+        expect(2).to.eq(version.toNumber())
+    })
 
-//     const deployClientManager = async () => {
-//         const msrFactory = await ethers.getContractFactory('ClientManager', accounts[0])
-//         clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManager
-//     }
+    const deployAccessManager = async () => {
+        const accessFactory = await ethers.getContractFactory('AccessManager')
+        accessManager = (await upgrades.deployProxy(accessFactory, [await accounts[0].getAddress()])) as AccessManager
 
-//     const deployTendermint = async () => {
-//         const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
-//         const clientStateCodec = await ClientStateCodec.deploy()
-//         await clientStateCodec.deployed()
+        let relayerRole = keccak256("RELAYER_ROLE")
+        let signer = await accounts[0].getAddress()
+        let ret = await accessManager.grantRole(relayerRole, signer)
+        expect(ret.blockNumber).to.greaterThan(0)
+    }
 
-//         const ConsensusStateCodec = await ethers.getContractFactory('ConsensusStateCodec')
-//         const consensusStateCodec = await ConsensusStateCodec.deploy()
-//         await consensusStateCodec.deployed()
+    const deployClientManager = async () => {
+        const msrFactory = await ethers.getContractFactory('ClientManagerRC', accounts[0])
+        clientManager = (await upgrades.deployProxy(msrFactory, [accessManager.address])) as ClientManagerRC
+    }
 
-//         const tmFactory = await ethers.getContractFactory(
-//             'MockTendermint',
-//             {
-//                 signer: accounts[0],
-//                 libraries: {
-//                     ClientStateCodec: clientStateCodec.address,
-//                     ConsensusStateCodec: consensusStateCodec.address
-//                 },
-//             }
-//         )
-//         tendermint = await upgrades.deployProxy(
-//             tmFactory,
-//             [clientManager.address],
-//             { "unsafeAllowLinkedLibraries": true }
-//         ) as MockTendermint
+    const deployTendermint = async () => {
+        const ClientStateCodec = await ethers.getContractFactory('ClientStateCodec')
+        const clientStateCodec = await ClientStateCodec.deploy()
+        await clientStateCodec.deployed()
 
-//         // create light client
-//         let clientState = {
-//             chainId: testChainName,
-//             trustLevel: { numerator: 1, denominator: 3 },
-//             trustingPeriod: 10 * 24 * 60 * 60,
-//             unbondingPeriod: 1814400,
-//             maxClockDrift: 10,
-//             latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
-//             merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
-//             timeDelay: 10,
-//         }
+        const ConsensusStateCodec = await ethers.getContractFactory('ConsensusStateCodec')
+        const consensusStateCodec = await ConsensusStateCodec.deploy()
+        await consensusStateCodec.deployed()
 
-//         let consensusState = {
-//             timestamp: { secs: 1631155726, nanos: 5829, },
-//             root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
-//             nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
-//         }
+        const tmFactory = await ethers.getContractFactory(
+            'MockTendermint',
+            {
+                signer: accounts[0],
+                libraries: {
+                    ClientStateCodec: clientStateCodec.address,
+                    ConsensusStateCodec: consensusStateCodec.address
+                },
+            }
+        )
+        tendermint = await upgrades.deployProxy(
+            tmFactory,
+            [clientManager.address],
+            { "unsafeAllowLinkedLibraries": true }
+        ) as MockTendermint
 
-//         accounts = await ethers.getSigners()
+        // create light client
+        let clientState = {
+            chainId: testChainName,
+            trustLevel: { numerator: 1, denominator: 3 },
+            trustingPeriod: 10 * 24 * 60 * 60,
+            unbondingPeriod: 1814400,
+            maxClockDrift: 10,
+            latestHeight: { revisionNumber: 0, revisionHeight: 3893 },
+            merklePrefix: { key_prefix: Buffer.from("74696263", "hex") },
+            timeDelay: 10,
+        }
 
-//         const ProofCodec = await ethers.getContractFactory('ProofCodec')
-//         const proofCodec = await ProofCodec.deploy()
-//         await proofCodec.deployed()
+        let consensusState = {
+            timestamp: { secs: 1631155726, nanos: 5829, },
+            root: Buffer.from("gd17k2js3LzwChS4khcRYMwVFWMPQX4TfJ9wG3MP4gs=", "base64"),
+            nextValidatorsHash: Buffer.from("B1fwvGc/jfJtYdPnS7YYGsnfiMCaEQDG+t4mRgS0xHg=", "base64")
+        }
 
-//         let clientStateBuf = client.ClientState.encode(clientState).finish()
-//         let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
-//         await clientManager.createClient(tendermint.address, clientStateBuf, consensusStateBuf)
-//     }
+        accounts = await ethers.getSigners()
 
-//     const deployToken = async () => {
-//         const tokenFactory = await ethers.getContractFactory("TestToken")
-//         erc20Contract = await tokenFactory.deploy("test", "test")
-//         await erc20Contract.deployed()
+        const ProofCodec = await ethers.getContractFactory('ProofCodec')
+        const proofCodec = await ProofCodec.deploy()
+        await proofCodec.deployed()
 
-//         erc20Contract.mint(await accounts[0].getAddress(), 1000)
-//         erc20Contract.approve(endpoint.address, 100000)
-//         expect((await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
-//     }
+        let clientStateBuf = client.ClientState.encode(clientState).finish()
+        let consensusStateBuf = client.ConsensusState.encode(consensusState).finish()
+        await clientManager.createClient(testChainName,tendermint.address, clientStateBuf, consensusStateBuf)
+    }
 
-//     const deployPacket = async () => {
-//         const packetFactory = await ethers.getContractFactory(
-//             'contracts/chains/02-evm/core/packet/Packet.sol:Packet',
-//             { signer: accounts[0], }
-//         )
+    const deployToken = async () => {
+        const tokenFactory = await ethers.getContractFactory("TestToken")
+        erc20Contract = await tokenFactory.deploy("test", "test")
+        await erc20Contract.deployed()
 
-//         packetContract = await upgrades.deployProxy(
-//             packetFactory,
-//             [
-//                 chainName,
-//                 testChainName,
-//                 clientManager.address,
-//                 accessManager.address,
-//             ]
-//         ) as Packet
-//     }
+        erc20Contract.mint(await accounts[0].getAddress(), 1000)
+        erc20Contract.approve(endpoint.address, 100000)
+        expect((await erc20Contract.balanceOf(await accounts[0].getAddress())).toString()).to.eq("1000")
+    }
 
-//     const deployEndpoint = async () => {
-//         const endpointFactory = await ethers.getContractFactory('MockEndpoint', accounts[0])
-//         endpoint = await upgrades.deployProxy(
-//             endpointFactory,
-//             [
-//                 packetContract.address,
-//                 clientManager.address,
-//                 accessManager.address
-//             ]
-//         ) as MockEndpoint
-//     }
+    const deployPacket = async () => {
+        const packetFactory = await ethers.getContractFactory(
+            'PacketRC',
+            { signer: accounts[0], }
+        )
 
-//     const deployExecute = async () => {
-//         const executeFactory = await ethers.getContractFactory(
-//             'contracts/chains/02-evm/core/endpoint/Execute.sol:Execute',
-//             accounts[0]
-//         )
-//         execute = await upgrades.deployProxy(
-//             executeFactory,
-//             [packetContract.address]
-//         ) as Execute
+        packetContract = await upgrades.deployProxy(
+            packetFactory,
+            [
+                chainName,
+                clientManager.address,
+                accessManager.address,
+            ]
+        ) as PacketRC
+    }
 
-//         await packetContract.initEndpoint(endpoint.address, execute.address)
-//     }
-// })
+    const deployEndpoint = async () => {
+        const endpointFactory = await ethers.getContractFactory('MockEndpointRC', accounts[0])
+        endpoint = await upgrades.deployProxy(
+            endpointFactory,
+            [
+                packetContract.address,
+                accessManager.address
+            ]
+        ) as MockEndpointRC
+    }
+
+    const deployExecute = async () => {
+        const executeFactory = await ethers.getContractFactory(
+            'Execute',
+            accounts[0]
+        )
+        execute = await upgrades.deployProxy(
+            executeFactory,
+            [packetContract.address]
+        ) as Execute
+
+        await packetContract.initEndpoint(endpoint.address, execute.address)
+    }
+})

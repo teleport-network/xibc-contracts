@@ -37,6 +37,7 @@ module.exports = {
             gasPrice: 5000000000,
             chainId: 9000,
             gas: 4100000,
+            accounts:['B8E1356DCC17B4C97D6E1A92C9CCDA2604A000FEB218902BD799BBBA41E30304']
         },
         qa: {
             url: '',
