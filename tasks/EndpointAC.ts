@@ -35,7 +35,7 @@ task("deployEndpointAC", "Deploy Endpoint")
 
 task("upgradeEndpoint", "upgrade Endpoint")
     .setAction(async (taskArgs, hre) => {
-        const MockEndpointFactory = await hre.ethers.getContractFactory("MockEndpoint");
+        const MockEndpointFactory = await hre.ethers.getContractFactory("MockEndpointAC");
         const mockEndpointProxy = await hre.upgrades.upgradeProxy(
             String(ENDPOINT_AC_ADDRESS),
             MockEndpointFactory,
@@ -49,7 +49,7 @@ task("upgradeEndpoint", "upgrade Endpoint")
 
 task("setVersion", "set version for mockEndpoint")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('MockEndpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('MockEndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         await endpoint.setVersion(2)
@@ -57,7 +57,7 @@ task("setVersion", "set version for mockEndpoint")
 
 task("getVersion", "get version for mockEndpoint")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('MockEndpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('MockEndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         console.log(await endpoint.version())
@@ -86,7 +86,7 @@ task("transferToken", "Transfer token")
     .addParam("dstchain", "dst chain name")
     .addParam("feeamount", "relay fee token address")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let crossChainData = {
@@ -137,7 +137,7 @@ task("bindToken", "bind ERC20 token trace")
     .addParam("oritoken", "origin token")
     .addParam("orichain", "origin chain")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let res = await endpoint.bindToken(
@@ -151,7 +151,7 @@ task("bindToken", "bind ERC20 token trace")
 task("queryBindings", "query ERC20 token trace")
     .addParam("token", "ERC20 contract address")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let res = await endpoint.bindings(taskArgs.token)
@@ -161,7 +161,7 @@ task("queryBindings", "query ERC20 token trace")
 task("queryBindingsL", "query ERC20 token trace")
     .addParam("token", "ERC20 contract address")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/01-teleport/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let res = await endpoint.bindings(taskArgs.token)
@@ -172,7 +172,7 @@ task("queryOutToken", "Query out token")
     .addParam("token", "token address ")
     .addParam("chainname", "chainName")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let outToken = (await endpoint.outTokens(taskArgs.token, taskArgs.chainname))
@@ -183,7 +183,7 @@ task("queryTrace", "Query trace")
     .addParam("orichain", "srcchain name")
     .addParam("token", "token address")
     .setAction(async (taskArgs, hre) => {
-        const endpointFactory = await hre.ethers.getContractFactory('contracts/chains/02-evm/core/endpoint/Endpoint.sol:Endpoint')
+        const endpointFactory = await hre.ethers.getContractFactory('EndpointAC')
         const endpoint = await endpointFactory.attach(String(ENDPOINT_AC_ADDRESS))
 
         let trace = await endpoint.bindingTraces(taskArgs.orichain + "/" + taskArgs.token)

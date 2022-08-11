@@ -1,10 +1,7 @@
 import "@nomiclabs/hardhat-web3"
 import { task } from "hardhat/config"
-import { utils } from "ethers"
-import { readFileSync } from 'fs'
 import fs = require('fs');
 
-const CLIENT_MANAGER_RC_ADDRESS = process.env.CLIENT_MANAGER_RC_ADDRESS
 const ACCESS_MANAGER_ADDRESS = process.env.ACCESS_MANAGER_ADDRESS
 
 task("deployClientManagerRC", "Deploy Client Manager")

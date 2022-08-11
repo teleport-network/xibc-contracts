@@ -30,7 +30,7 @@ task("upgradeClientManager", "Upgrade Client Manager")
         const clientManager = await hre.upgrades.upgradeProxy(String(CLIENT_MANAGER_AC_ADDRESS), clientManagerFactory)
         await clientManager.deployed()
         console.log("Client Manager upgraded to:", clientManager.address)
-        console.log("export CLIENT_MANAGER_ADDRESS=%s", clientManager.address)
+        console.log("export CLIENT_MANAGER_AC_ADDRESS=%s", clientManager.address)
     })
 
 task("upgradeClientFromFile", "Upgrade Client")
