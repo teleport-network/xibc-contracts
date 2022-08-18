@@ -9,12 +9,14 @@ import "hardhat-abi-exporter"
 import "./tasks/Libraries"
 import "./tasks/TssClient"
 import "./tasks/TendermintClient"
-import "./tasks/ClientManager"
-import "./tasks/Packet"
-import "./tasks/Endpoint"
+import "./tasks/ClientManagerRC"
+import "./tasks/ClientManagerAC"
+import "./tasks/PacketRC"
+import "./tasks/PacketAC"
+import "./tasks/EndpointRC"
+import "./tasks/EndpointAC"
 import "./tasks/AccessManager"
 import "./tasks/TestPayable"
-import "./tasks/Endpoint"
 import "./tasks/DeployAll"
 import "./tasks/TestContracts"
 import "./tasks/ERC20"
@@ -62,7 +64,7 @@ module.exports = {
         },
     },
     solidity: {
-        version: '0.8.12',
+        version: '0.8.13',
         settings: {
             optimizer: {
                 enabled: true,
